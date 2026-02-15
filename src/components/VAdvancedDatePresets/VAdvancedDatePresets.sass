@@ -1,0 +1,82 @@
+.v-advanced-date-presets
+  // Vertical sidebar (desktop)
+  &--vertical
+    display: flex
+    flex-direction: column
+    width: var(--v-advanced-date-sidebar-width)
+    min-width: var(--v-advanced-date-sidebar-width)
+    padding: 8px
+    border-right: 1px solid rgba(var(--v-theme-on-surface), 0.08)
+    overflow-y: auto
+
+    .v-advanced-date-presets__item
+      display: flex
+      align-items: center
+      width: 100%
+      padding: 8px 12px
+      border: none
+      border-radius: 6px
+      background: transparent
+      font-size: 0.8125rem
+      color: rgba(var(--v-theme-on-surface), 0.87)
+      cursor: pointer
+      text-align: left
+      transition: background-color var(--v-advanced-date-transition-duration) ease, color var(--v-advanced-date-transition-duration) ease
+      -webkit-tap-highlight-color: transparent
+
+      &:hover
+        background-color: rgba(var(--v-theme-on-surface), 0.04)
+
+      &:focus-visible
+        box-shadow: 0 0 0 2px rgb(var(--v-theme-primary))
+        outline: none
+
+      &--active
+        background-color: var(--v-advanced-date-preset-active-bg)
+        color: rgb(var(--v-theme-primary))
+        font-weight: 600
+
+  // Horizontal chip row (mobile fullscreen)
+  &--horizontal
+    display: flex
+    flex-direction: row
+    gap: 8px
+    padding: 8px 12px
+    overflow-x: auto
+    overflow-y: hidden
+    scroll-snap-type: x mandatory
+    -webkit-overflow-scrolling: touch
+    scrollbar-width: none
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08)
+
+    &::-webkit-scrollbar
+      display: none
+
+    .v-advanced-date-presets__item
+      flex: 0 0 auto
+      display: inline-flex
+      align-items: center
+      padding: 6px 14px
+      border: 1px solid rgba(var(--v-theme-on-surface), 0.2)
+      border-radius: 18px
+      background: transparent
+      font-size: 0.8125rem
+      color: rgba(var(--v-theme-on-surface), 0.87)
+      white-space: nowrap
+      cursor: pointer
+      scroll-snap-align: start
+      transition: all var(--v-advanced-date-transition-duration) ease
+      -webkit-tap-highlight-color: transparent
+
+      &:hover
+        border-color: rgba(var(--v-theme-on-surface), 0.4)
+
+      &:focus-visible
+        box-shadow: 0 0 0 2px rgb(var(--v-theme-primary))
+        outline: none
+
+      &--active
+        background-color: rgb(var(--v-theme-primary))
+        color: rgb(var(--v-theme-on-primary))
+        border-color: rgb(var(--v-theme-primary))
+        font-weight: 500
