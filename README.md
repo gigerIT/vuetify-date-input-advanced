@@ -253,26 +253,16 @@ The `months` prop is a **maximum** — the component clamps it based on availabl
 
 Override these to customize the appearance:
 
+The component uses Vuetify's native components (`v-btn`, `v-card`, `v-toolbar`, `v-list`, `v-chip`, etc.) so it inherits all Vuetify theming, dark mode, and density automatically. Only a few layout dimensions are exposed as CSS custom properties:
+
 ```css
 :root {
-  --v-advanced-date-range-bg: rgba(var(--v-theme-primary), 0.1);
-  --v-advanced-date-range-hover-bg: rgba(var(--v-theme-primary), 0.05);
-  --v-advanced-date-selected-bg: rgb(var(--v-theme-primary));
-  --v-advanced-date-selected-text: rgb(var(--v-theme-on-primary));
-  --v-advanced-date-today-border: 1px solid rgb(var(--v-theme-primary));
-  --v-advanced-date-preset-active-bg: rgba(var(--v-theme-primary), 0.08);
   --v-advanced-date-sidebar-width: 180px;
   --v-advanced-date-cell-size: 36px;
   --v-advanced-date-cell-size-mobile: 44px;
   --v-advanced-date-month-gap: 16px;
-  --v-advanced-date-transition-duration: 200ms;
-  --v-advanced-date-fullscreen-header-height: 56px;
-  --v-advanced-date-fullscreen-bottom-bar-height: 64px;
-  --v-advanced-date-border-radius: 8px;
 }
 ```
-
-All animations respect `prefers-reduced-motion: reduce` — transitions are automatically disabled.
 
 ## Composables
 

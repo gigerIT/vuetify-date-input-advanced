@@ -1,5 +1,5 @@
 <template>
-  <div
+  <v-card
     ref="pickerEl"
     class="v-advanced-date-picker"
     :class="{
@@ -8,29 +8,30 @@
       'v-advanced-date-picker--with-presets': showPresets,
       'v-advanced-date-picker--swiping': swiping,
     }"
+    :rounded="isFullscreen ? '0' : undefined"
+    :flat="isFullscreen"
   >
     <!-- Fullscreen top bar -->
-    <div v-if="isFullscreen" class="v-advanced-date-picker__topbar">
-      <button
-        class="v-advanced-date-picker__topbar-close"
+    <v-toolbar v-if="isFullscreen" density="comfortable" :color="undefined">
+      <v-btn
+        icon
+        variant="text"
         aria-label="Close"
         @click="$emit('close')"
       >
-        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor" />
-        </svg>
-      </button>
-      <span class="v-advanced-date-picker__topbar-title">{{ title }}</span>
-      <button
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+      <v-toolbar-title>{{ title }}</v-toolbar-title>
+      <v-btn
         v-if="!autoApply"
-        class="v-advanced-date-picker__topbar-apply"
+        variant="tonal"
+        color="primary"
         :disabled="!hasCompleteSelection"
         @click="$emit('apply')"
       >
         Apply
-      </button>
-      <div v-else class="v-advanced-date-picker__topbar-spacer" />
-    </div>
+      </v-btn>
+    </v-toolbar>
 
     <!-- Preset chips (horizontal, mobile fullscreen) -->
     <VAdvancedDatePresets
@@ -97,42 +98,51 @@
     </div>
 
     <!-- Bottom display bar (date summary + action buttons) -->
-    <div
+    <v-divider v-if="showBottomBar" />
+    <v-card-actions
       v-if="showBottomBar"
       class="v-advanced-date-picker__bottom"
       :class="{ 'v-advanced-date-picker__bottom--sticky': isFullscreen }"
     >
-      <span v-if="displayText" class="v-advanced-date-picker__summary">
+      <span v-if="displayText" class="v-advanced-date-picker__summary text-caption text-medium-emphasis">
         {{ displayText }}
       </span>
-      <div v-if="!autoApply" class="v-advanced-date-picker__actions">
+      <v-spacer />
+      <template v-if="!autoApply">
         <slot name="actions" :apply="() => $emit('apply')" :cancel="() => $emit('cancel')">
-          <button
-            class="v-advanced-date-picker__action v-advanced-date-picker__action--cancel"
+          <v-btn
+            variant="text"
             @click="$emit('cancel')"
           >
             Cancel
-          </button>
-          <button
-            class="v-advanced-date-picker__action v-advanced-date-picker__action--apply"
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            color="primary"
             :disabled="!hasCompleteSelection"
             @click="$emit('apply')"
           >
             Apply
-          </button>
+          </v-btn>
         </slot>
-      </div>
-    </div>
+      </template>
+    </v-card-actions>
 
     <!-- Screen reader live region -->
     <div class="v-advanced-date-picker__sr-live" aria-live="polite" aria-atomic="true">
       {{ liveAnnouncement }}
     </div>
-  </div>
+  </v-card>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, toRef, onMounted, nextTick } from 'vue'
+import { VCard, VCardActions } from 'vuetify/components/VCard'
+import { VToolbar, VToolbarTitle } from 'vuetify/components/VToolbar'
+import { VBtn } from 'vuetify/components/VBtn'
+import { VIcon } from 'vuetify/components/VIcon'
+import { VDivider } from 'vuetify/components/VDivider'
+import { VSpacer } from 'vuetify/components/VGrid'
 import type { PresetRange, SelectionPhase } from '../../types'
 import type { MonthDescriptor } from '../../composables/useMultiMonth'
 import { VAdvancedDateMonth } from '../VAdvancedDateMonth'
@@ -369,7 +379,8 @@ function onDayKeydown(event: KeyboardEvent, date: Date) {
     }
     // Focus the new day cell after DOM update
     nextTick(() => {
-      const dayEl = pickerEl.value?.querySelector(
+      const el = (pickerEl.value as any)?.$el ?? pickerEl.value
+      const dayEl = el?.querySelector(
         `[tabindex="0"].v-advanced-date-month__day`,
       ) as HTMLElement
       dayEl?.focus()
@@ -390,7 +401,8 @@ watch(
 // Focus management: focus first selectable day on mount
 onMounted(() => {
   nextTick(() => {
-    const firstDay = pickerEl.value?.querySelector(
+    const el = (pickerEl.value as any)?.$el ?? pickerEl.value
+    const firstDay = el?.querySelector(
       '.v-advanced-date-month__day[tabindex="0"]',
     ) as HTMLElement
     firstDay?.focus()

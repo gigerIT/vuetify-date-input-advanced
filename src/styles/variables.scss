@@ -1,24 +1,7 @@
-// CSS Custom Properties for consumer overrides
+// CSS Custom Properties — only layout dimensions that have no Vuetify equivalent
 :root {
-  --v-advanced-date-range-bg: rgba(var(--v-theme-primary, 98, 0, 238), 0.1);
-  --v-advanced-date-range-hover-bg: rgba(var(--v-theme-primary, 98, 0, 238), 0.05);
-  --v-advanced-date-selected-bg: rgb(var(--v-theme-primary, 98, 0, 238));
-  --v-advanced-date-selected-text: rgb(var(--v-theme-on-primary, 255, 255, 255));
-  --v-advanced-date-today-border: 1px solid rgb(var(--v-theme-primary, 98, 0, 238));
-  --v-advanced-date-preset-active-bg: rgba(var(--v-theme-primary, 98, 0, 238), 0.08);
   --v-advanced-date-sidebar-width: 180px;
   --v-advanced-date-cell-size: 36px;
   --v-advanced-date-cell-size-mobile: 44px;
   --v-advanced-date-month-gap: 16px;
-  --v-advanced-date-transition-duration: 200ms;
-  --v-advanced-date-fullscreen-header-height: 56px;
-  --v-advanced-date-fullscreen-bottom-bar-height: 64px;
-  --v-advanced-date-border-radius: 8px;
-}
-
-// Respect prefers-reduced-motion
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --v-advanced-date-transition-duration: 0ms;
-  }
 }

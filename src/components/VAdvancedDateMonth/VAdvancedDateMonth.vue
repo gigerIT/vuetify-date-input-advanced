@@ -19,7 +19,7 @@
       <div
         v-for="day in weekdayLabels"
         :key="day"
-        class="v-advanced-date-month__weekday"
+        class="v-advanced-date-month__weekday text-caption text-medium-emphasis"
         role="columnheader"
         :abbr="day"
       >
@@ -36,36 +36,47 @@
     >
       <div
         v-if="showWeekNumbers"
-        class="v-advanced-date-month__week-number"
+        class="v-advanced-date-month__week-number text-caption text-disabled"
         role="rowheader"
       >
         {{ getWeekNumber(week[0]) }}
       </div>
-      <button
+      <!-- Range band wrapper around each v-btn -->
+      <div
         v-for="(day, dayIdx) in week"
         :key="dayIdx"
-        class="v-advanced-date-month__day"
-        :class="getDayClasses(day)"
-        role="gridcell"
-        :aria-selected="isDaySelected(day) || undefined"
-        :aria-disabled="isDayDisabled(day) || undefined"
-        :disabled="isDayDisabled(day)"
-        :tabindex="isFocusTarget(day) ? 0 : -1"
-        @click="onDayClick(day)"
-        @mouseenter="onDayMouseEnter(day)"
-        @mouseleave="onDayMouseLeave"
-        @keydown="onDayKeydown($event, day)"
+        class="v-advanced-date-month__day-wrapper"
+        :class="getRangeBandClasses(day)"
       >
-        <span class="v-advanced-date-month__day-content">
+        <v-btn
+          :icon="true"
+          :size="mobile ? 40 : 32"
+          :variant="isDaySelected(day) ? 'flat' : isToday(day) && !isDaySelected(day) ? 'outlined' : 'text'"
+          :color="isDaySelected(day) ? color : isToday(day) ? color : undefined"
+          :disabled="isDayDisabled(day)"
+          class="v-advanced-date-month__day"
+          :class="{
+            'v-advanced-date-month__day--other-month': !isCurrentMonth(day),
+          }"
+          role="gridcell"
+          :aria-selected="isDaySelected(day) || undefined"
+          :aria-disabled="isDayDisabled(day) || undefined"
+          :tabindex="isFocusTarget(day) ? 0 : -1"
+          @click="onDayClick(day)"
+          @mouseenter="onDayMouseEnter(day)"
+          @mouseleave="onDayMouseLeave"
+          @keydown="onDayKeydown($event, day)"
+        >
           {{ day.getDate() }}
-        </span>
-      </button>
+        </v-btn>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { VBtn } from 'vuetify/components/VBtn'
 import { buildMonthGrid, getWeekNumber as getWeekNum, isSameDay, isSameMonth, isInRange } from '../../utils/dateHelpers'
 
 const props = withDefaults(defineProps<{
@@ -194,24 +205,19 @@ function isFocusTarget(date: Date): boolean {
   return date.getDate() === 1 && isCurrentMonth(date)
 }
 
-function getDayClasses(date: Date) {
-  const inCurrentMonth = isCurrentMonth(date)
+/** Range band classes go on the wrapper div (background band spanning edge-to-edge) */
+function getRangeBandClasses(date: Date) {
   const selected = isDaySelected(date)
   const inRange = isInSelectedRange(date)
   const inHover = isInHoverRange(date)
-  const disabled = isDayDisabled(date)
 
   return {
-    'v-advanced-date-month__day--other-month': !inCurrentMonth,
-    'v-advanced-date-month__day--today': isToday(date),
-    'v-advanced-date-month__day--selected': selected,
-    'v-advanced-date-month__day--range-start': isRangeStart(date),
-    'v-advanced-date-month__day--range-end': isRangeEnd(date),
-    'v-advanced-date-month__day--in-range': inRange && !selected,
-    'v-advanced-date-month__day--hover-range': inHover && !selected && !inRange,
-    'v-advanced-date-month__day--hover-start': isHoverRangeStart(date),
-    'v-advanced-date-month__day--hover-end': isHoverRangeEnd(date),
-    'v-advanced-date-month__day--disabled': disabled,
+    'v-advanced-date-month__day-wrapper--range-start': isRangeStart(date),
+    'v-advanced-date-month__day-wrapper--range-end': isRangeEnd(date),
+    'v-advanced-date-month__day-wrapper--in-range': inRange && !selected,
+    'v-advanced-date-month__day-wrapper--hover-range': inHover && !selected && !inRange,
+    'v-advanced-date-month__day-wrapper--hover-start': isHoverRangeStart(date),
+    'v-advanced-date-month__day-wrapper--hover-end': isHoverRangeEnd(date),
   }
 }
 
