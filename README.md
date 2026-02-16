@@ -251,15 +251,11 @@ The `months` prop is a **maximum** — the component clamps it based on availabl
 
 ## CSS Custom Properties
 
-Override these to customize the appearance:
-
-The component uses Vuetify's native components (`v-btn`, `v-card`, `v-toolbar`, `v-list`, `v-chip`, etc.) so it inherits all Vuetify theming, dark mode, and density automatically. Only a few layout dimensions are exposed as CSS custom properties:
+The component uses Vuetify's native components (`v-btn`, `v-card`, `v-toolbar`, `v-list`, `v-chip`, etc.) and matches Vuetify's own `VDatePicker` sizing (40x40px day cells, 4px column gap, `--v-btn-height: 24px`). It inherits all Vuetify theming, dark mode, and density automatically. Only two layout dimensions are exposed as CSS custom properties:
 
 ```css
 :root {
   --v-advanced-date-sidebar-width: 180px;
-  --v-advanced-date-cell-size: 36px;
-  --v-advanced-date-cell-size-mobile: 44px;
   --v-advanced-date-month-gap: 16px;
 }
 ```

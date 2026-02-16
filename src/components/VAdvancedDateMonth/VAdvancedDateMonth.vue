@@ -49,18 +49,19 @@
         :class="getRangeBandClasses(day)"
       >
         <v-btn
-          :icon="true"
-          :size="mobile ? 40 : 32"
+          icon
+          :ripple="false"
           :variant="isDaySelected(day) ? 'flat' : isToday(day) && !isDaySelected(day) ? 'outlined' : 'text'"
-          :color="isDaySelected(day) ? color : isToday(day) ? color : undefined"
+          :color="isDaySelected(day) || isToday(day) ? color : undefined"
           :disabled="isDayDisabled(day)"
-          class="v-advanced-date-month__day"
+          class="v-advanced-date-month__day-btn"
           :class="{
-            'v-advanced-date-month__day--other-month': !isCurrentMonth(day),
+            'v-advanced-date-month__day-btn--other-month': !isCurrentMonth(day),
           }"
           role="gridcell"
           :aria-selected="isDaySelected(day) || undefined"
           :aria-disabled="isDayDisabled(day) || undefined"
+          :aria-current="isToday(day) ? 'date' : undefined"
           :tabindex="isFocusTarget(day) ? 0 : -1"
           @click="onDayClick(day)"
           @mouseenter="onDayMouseEnter(day)"

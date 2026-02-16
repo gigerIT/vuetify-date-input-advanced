@@ -381,7 +381,7 @@ function onDayKeydown(event: KeyboardEvent, date: Date) {
     nextTick(() => {
       const el = (pickerEl.value as any)?.$el ?? pickerEl.value
       const dayEl = el?.querySelector(
-        `[tabindex="0"].v-advanced-date-month__day`,
+        `[tabindex="0"].v-advanced-date-month__day-btn`,
       ) as HTMLElement
       dayEl?.focus()
     })
@@ -403,7 +403,7 @@ onMounted(() => {
   nextTick(() => {
     const el = (pickerEl.value as any)?.$el ?? pickerEl.value
     const firstDay = el?.querySelector(
-      '.v-advanced-date-month__day[tabindex="0"]',
+      '.v-advanced-date-month__day-btn[tabindex="0"]',
     ) as HTMLElement
     firstDay?.focus()
   })

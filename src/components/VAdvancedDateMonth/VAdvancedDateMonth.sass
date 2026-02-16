@@ -1,40 +1,52 @@
+// Matches Vuetify VDatePickerMonth layout and sizing exactly.
+// Only custom CSS is the range-band highlighting on day wrappers.
+
 .v-advanced-date-month
+  display: flex
+  justify-content: center
+  padding: 0 12px 8px
   user-select: none
 
   &__weekdays
     display: grid
-    grid-template-columns: repeat(7, var(--v-advanced-date-cell-size))
-    gap: 0
-    margin-bottom: 4px
+    grid-template-columns: repeat(7, min-content)
+    column-gap: 4px
+    justify-content: space-around
+    width: 100%
 
   &__weekday
     display: flex
     align-items: center
     justify-content: center
-    width: var(--v-advanced-date-cell-size)
-    height: 28px
+    height: 40px
+    width: 40px
+    font-size: 0.875rem
     font-weight: 600
-    text-transform: uppercase
 
   &__week
     display: grid
-    grid-template-columns: repeat(7, var(--v-advanced-date-cell-size))
-    gap: 0
+    grid-template-columns: repeat(7, min-content)
+    column-gap: 4px
+    justify-content: space-around
+    width: 100%
 
   &__week-number
     display: flex
     align-items: center
     justify-content: center
     width: 28px
+    font-size: 0.75rem
 
-  // ----- Day wrapper: carries the range band background -----
+  // ----- Day wrapper: 40x40 cell matching Vuetify v-date-picker-month__day -----
   &__day-wrapper
     display: flex
     align-items: center
     justify-content: center
-    width: var(--v-advanced-date-cell-size)
-    height: var(--v-advanced-date-cell-size)
+    position: relative
+    height: 40px
+    width: 40px
 
+    // --- Range band backgrounds (our custom feature) ---
     &--range-start
       border-radius: 50% 0 0 50%
       background-color: rgba(var(--v-theme-primary), 0.1)
@@ -59,24 +71,23 @@
       border-radius: 0 50% 50% 0
       background-color: rgba(var(--v-theme-primary), 0.05)
 
-  // ----- Day button adjustments -----
-  &__day
-    font-size: 0.875rem
+  // ----- Day button: match Vuetify v-date-picker-month__day-btn sizing -----
+  &__day-btn
+    --v-btn-height: 24px
+    --v-btn-size: 0.875rem
 
     &--other-month
-      opacity: 0.38
+      opacity: 0.5
 
   // ----- Mobile: larger touch targets -----
   &--mobile
-    .v-advanced-date-month__weekdays
-      grid-template-columns: repeat(7, var(--v-advanced-date-cell-size-mobile))
-
     .v-advanced-date-month__weekday
-      width: var(--v-advanced-date-cell-size-mobile)
-
-    .v-advanced-date-month__week
-      grid-template-columns: repeat(7, var(--v-advanced-date-cell-size-mobile))
+      width: 48px
+      height: 48px
 
     .v-advanced-date-month__day-wrapper
-      width: var(--v-advanced-date-cell-size-mobile)
-      height: var(--v-advanced-date-cell-size-mobile)
+      width: 48px
+      height: 48px
+
+    .v-advanced-date-month__day-btn
+      --v-btn-height: 40px
