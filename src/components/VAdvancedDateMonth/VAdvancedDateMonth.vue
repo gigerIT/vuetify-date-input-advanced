@@ -3,6 +3,7 @@
     class="v-advanced-date-month"
     :class="{
       'v-advanced-date-month--mobile': mobile,
+      'v-advanced-date-month--with-week-numbers': showWeekNumbers,
     }"
     role="grid"
     :aria-label="`${monthName} ${year}`"
