@@ -19,8 +19,9 @@ export interface MonthDescriptor {
 export function useMultiMonth(options: UseMultiMonthOptions) {
   const { months, min, max } = options
 
-  // The anchor is the leftmost visible month
-  const anchorDate = ref(options.initialDate ?? new Date())
+  // The anchor is the leftmost visible month (always normalized to 1st of month)
+  const init = options.initialDate ?? new Date()
+  const anchorDate = ref(new Date(init.getFullYear(), init.getMonth(), 1))
 
   /** Effective month count (clamped externally via setEffectiveMonths) */
   const effectiveMonths = ref(months.value)

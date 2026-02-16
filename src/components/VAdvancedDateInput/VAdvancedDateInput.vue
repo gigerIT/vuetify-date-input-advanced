@@ -285,9 +285,10 @@ function closePicker() {
 
 function onMenuToggle(value: boolean) {
   if (!value) {
-    if (!props.autoApply) {
-      dateState.cancel()
-    }
+    // Always restore committed state when menu closes via user action
+    // (click outside, Escape). This handles both non-auto-apply mode
+    // and auto-apply mode with incomplete range selections.
+    dateState.cancel()
     emit('close')
   }
 }

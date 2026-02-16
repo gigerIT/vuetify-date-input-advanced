@@ -7,16 +7,17 @@ function getDefaultPresets(): PresetRange[] {
     {
       label: 'Today',
       value: () => {
-        const d = new Date()
-        return [d, d]
+        return [new Date(), new Date()]
       },
     },
     {
       label: 'Yesterday',
       value: () => {
-        const d = new Date()
-        d.setDate(d.getDate() - 1)
-        return [d, d]
+        const a = new Date()
+        a.setDate(a.getDate() - 1)
+        const b = new Date()
+        b.setDate(b.getDate() - 1)
+        return [a, b]
       },
     },
     {

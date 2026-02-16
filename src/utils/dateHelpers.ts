@@ -44,10 +44,16 @@ export function endOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0)
 }
 
-/** Add N months to a date */
+/** Add N months to a date, clamping the day to avoid overflow */
 export function addMonths(date: Date, n: number): Date {
   const d = new Date(date)
-  d.setMonth(d.getMonth() + n)
+  const targetMonth = d.getMonth() + n
+  d.setMonth(targetMonth)
+  // If day overflow pushed us into the wrong month, clamp to last day of target month
+  const expected = ((targetMonth % 12) + 12) % 12
+  if (d.getMonth() !== expected) {
+    d.setDate(0) // last day of the previous month (the intended target)
+  }
   return d
 }
 
