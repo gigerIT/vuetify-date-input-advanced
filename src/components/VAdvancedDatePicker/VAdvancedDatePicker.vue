@@ -72,7 +72,7 @@
             :hide-year-menu="hideYearMenu"
             @prev="goBack()"
             @next="goForward()"
-            @year-click="$emit('year-click', m)"
+            @year-select="onYearSelect($event, m.month)"
           />
           <VAdvancedDateMonth
             :year="m.year"
@@ -144,7 +144,6 @@ import { VIcon } from 'vuetify/components/VIcon'
 import { VDivider } from 'vuetify/components/VDivider'
 import { VSpacer } from 'vuetify/components/VGrid'
 import type { PresetRange, SelectionPhase } from '../../types'
-import type { MonthDescriptor } from '../../composables/useMultiMonth'
 import { VAdvancedDateMonth } from '../VAdvancedDateMonth'
 import { VAdvancedDateHeader } from '../VAdvancedDateHeader'
 import { VAdvancedDatePresets } from '../VAdvancedDatePresets'
@@ -205,7 +204,6 @@ const emit = defineEmits<{
   'cancel': []
   'close': []
   'month-change': [payload: { year: number, month: number }]
-  'year-click': [month: MonthDescriptor]
 }>()
 
 const pickerEl = ref<HTMLElement | null>(null)
@@ -318,6 +316,10 @@ function onDayClick(date: Date) {
 
 function onDayHover(date: Date | null) {
   emit('day-hover', date)
+}
+
+function onYearSelect(year: number, month: number) {
+  multiMonth.goTo(year, month)
 }
 
 function onPresetSelect(preset: PresetRange) {

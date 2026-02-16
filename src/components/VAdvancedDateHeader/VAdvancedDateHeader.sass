@@ -24,3 +24,15 @@
   &__year-static
     font-weight: inherit
     color: inherit
+
+  // Year picker dropdown grid — matches Vuetify VDatePickerYears layout
+  &__year-grid
+    display: grid
+    grid-template-columns: repeat(3, 1fr)
+    gap: 8px 24px
+    padding: 16px 32px
+    height: 288px
+    overflow-y: auto
+
+    .v-btn
+      padding-inline: 8px
