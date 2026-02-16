@@ -103,6 +103,9 @@ export function useAdvancedDate(options: UseAdvancedDateOptions) {
   function cancel() {
     // Restore from model value
     syncFromModel()
+    // Sync pending state too, so a subsequent apply() won't emit the canceled selection
+    pendingStart.value = startDate.value
+    pendingEnd.value = endDate.value
     phase.value = startDate.value ? 'complete' : 'idle'
   }
 
