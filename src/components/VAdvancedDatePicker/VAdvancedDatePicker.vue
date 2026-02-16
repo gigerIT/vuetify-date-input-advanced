@@ -365,6 +365,10 @@ function onDayKeydown(event: KeyboardEvent, date: Date) {
   }
 
   if (newDate) {
+    // Prevent navigating past min/max bounds
+    if (minDate.value && newDate.getTime() < minDate.value.getTime()) return
+    if (maxDate.value && newDate.getTime() > maxDate.value.getTime()) return
+
     focusedDate.value = newDate
     // Ensure the new date's month is visible
     const newMonth = newDate.getMonth()

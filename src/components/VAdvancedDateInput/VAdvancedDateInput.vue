@@ -93,7 +93,7 @@
 
       <!-- Mobile: VDialog fullscreen -->
       <template v-else>
-        <slot name="activator" :props="{}" :is-active="isOpen">
+        <slot name="activator" :props="{ onClick: openPicker }" :is-active="isOpen">
           <v-text-field
             :model-value="inputDisplayValue"
             :label="label"

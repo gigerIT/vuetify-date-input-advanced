@@ -158,6 +158,8 @@ export function useAdvancedDate(options: UseAdvancedDateOptions) {
     if (v === null) {
       startDate.value = null
       endDate.value = null
+      pendingStart.value = null
+      pendingEnd.value = null
       phase.value = 'idle'
     } else if (Array.isArray(v)) {
       startDate.value = startOfDay(v[0])
@@ -168,6 +170,8 @@ export function useAdvancedDate(options: UseAdvancedDateOptions) {
     } else if (v instanceof Date) {
       startDate.value = startOfDay(v)
       endDate.value = null
+      pendingStart.value = startDate.value
+      pendingEnd.value = null
       phase.value = range.value ? 'start-selected' : 'complete'
     }
   }
