@@ -1,0 +1,38 @@
+.v-advanced-date-header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 4px 0
+  margin-bottom: 8px
+  min-height: 40px
+
+  &__nav-spacer
+    width: 28px
+    height: 28px
+
+  &__title
+    display: flex
+    align-items: center
+    gap: 4px
+    font-size: 0.9375rem
+    font-weight: 500
+    color: rgba(var(--v-theme-on-surface), 0.87)
+
+  &__month
+    font-weight: 600
+
+  &__year-static
+    font-weight: inherit
+    color: inherit
+
+  // Year picker dropdown grid — matches Vuetify VDatePickerYears layout
+  &__year-grid
+    display: grid
+    grid-template-columns: repeat(3, 1fr)
+    gap: 8px 24px
+    padding: 16px 32px
+    height: 288px
+    overflow-y: auto
+
+    .v-btn
+      padding-inline: 8px
