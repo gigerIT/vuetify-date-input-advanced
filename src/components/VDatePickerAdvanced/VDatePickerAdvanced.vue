@@ -53,11 +53,11 @@ const props = defineProps({
     default: false,
   },
   min: {
-    type: null as unknown as PropType<unknown>,
+    type: [Array, Object, String, Number, Date, Boolean] as PropType<unknown>,
     default: undefined,
   },
   max: {
-    type: null as unknown as PropType<unknown>,
+    type: [Array, Object, String, Number, Date, Boolean] as PropType<unknown>,
     default: undefined,
   },
   allowedDates: {
@@ -123,6 +123,10 @@ const props = defineProps({
   mobileBreakpoint: {
     type: [Number, String] as PropType<number | DisplayBreakpoint>,
     default: undefined,
+  },
+  mobile: {
+    type: Boolean as PropType<boolean | null>,
+    default: null,
   },
   weekdays: {
     type: Array as PropType<Array<0 | 1 | 2 | 3 | 4 | 5 | 6>>,
@@ -240,6 +244,8 @@ const {
   mobileBreakpoint: toRef(props, 'mobileBreakpoint'),
 })
 
+const effectiveMobile = computed(() => props.mobile ?? mobile.value)
+
 const { resolvedPresets, activePresetIndex } = usePresets(adapter, toRef(props, 'presets'), modelRef)
 
 const {
@@ -252,7 +258,7 @@ const {
 
 const swipeTarget = ref<HTMLElement | null>(null)
 useSwipe(swipeTarget, {
-  enabled: computed(() => props.swipeable && mobile.value),
+  enabled: computed(() => props.swipeable && effectiveMobile.value),
   onPrev: () => onPrev(),
   onNext: () => onNext(),
 })
@@ -380,7 +386,7 @@ function eventColorsFor(dateIso: string): string[] {
         v-if="showPresets"
         :presets="resolvedPresets"
         :active-index="activePresetIndex"
-        :mobile="mobile"
+        :mobile="effectiveMobile"
         @select="onSelectPreset"
       >
         <template #preset="slotProps">

@@ -32,6 +32,14 @@ app.use(DateInputAdvancedPlugin)
 />
 ```
 
+## Local playground
+
+```bash
+npm run dev
+```
+
+This starts `playground/` and aliases package imports to `src/index.ts` and `src/styles/main.scss`, so edits in the library update instantly in the showcase app.
+
 ## Exports
 
 - `VDateInputAdvanced` (`<v-date-input-advanced>`)

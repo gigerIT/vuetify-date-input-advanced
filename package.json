@@ -25,7 +25,8 @@
     "*.sass"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --config playground/vite.config.ts",
+    "dev:lib": "vite",
     "build": "vite build && vue-tsc --declaration --emitDeclarationOnly -p tsconfig.build.json",
     "test": "vitest run",
     "lint": "eslint ."

@@ -18,13 +18,17 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'VuetifyDateInputAdvanced',
-      fileName: 'vuetify-date-input-advanced',
+      fileName: (format) =>
+        format === 'es'
+          ? 'vuetify-date-input-advanced.es.js'
+          : 'vuetify-date-input-advanced.umd.js',
       cssFileName: 'vuetify-date-input-advanced',
       formats: ['es', 'umd'],
     },
     rollupOptions: {
       external: ['vue', 'vuetify'],
       output: {
+        exports: 'named',
         globals: {
           vue: 'Vue',
           vuetify: 'Vuetify',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, toRef, watch, type PropType } from 'vue'
+import { computed, ref, toRef, useAttrs, watch, type PropType } from 'vue'
 import { useDate, useDefaults, useDisplay } from 'vuetify'
 import {
   formatDisplayValue,
@@ -10,13 +10,16 @@ import { cloneModelValue } from '@/utils/dateHelpers'
 import type { PresetRange, ResolvedPresetRange } from '@/types'
 import { VDatePickerAdvanced } from '@/components/VDatePickerAdvanced'
 
+type DisplayBreakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
+
 defineOptions({
   name: 'VDateInputAdvanced',
+  inheritAttrs: false,
 })
 
 const rawProps = defineProps({
   modelValue: {
-    type: null as unknown as PropType<unknown | unknown[] | null>,
+    type: [Array, Object, String, Number, Date, Boolean] as PropType<unknown | unknown[] | null>,
     default: null,
   },
   range: {
@@ -72,11 +75,11 @@ const rawProps = defineProps({
     default: ' - ',
   },
   min: {
-    type: null as unknown as PropType<unknown>,
+    type: [Array, Object, String, Number, Date, Boolean] as PropType<unknown>,
     default: undefined,
   },
   max: {
-    type: null as unknown as PropType<unknown>,
+    type: [Array, Object, String, Number, Date, Boolean] as PropType<unknown>,
     default: undefined,
   },
   allowedDates: {
@@ -128,8 +131,100 @@ const rawProps = defineProps({
     default: 'month',
   },
   mobileBreakpoint: {
-    type: [Number, String] as PropType<number | string>,
+    type: [Number, String] as PropType<number | DisplayBreakpoint>,
     default: undefined,
+  },
+  mobile: {
+    type: Boolean as PropType<boolean | null>,
+    default: null,
+  },
+  location: {
+    type: String,
+    default: 'bottom start',
+  },
+  menu: {
+    type: Boolean,
+    default: false,
+  },
+  menuProps: {
+    type: Object as PropType<Record<string, unknown>>,
+    default: undefined,
+  },
+  pickerProps: {
+    type: Object as PropType<Record<string, unknown>>,
+    default: undefined,
+  },
+  weekdays: {
+    type: Array as PropType<Array<0 | 1 | 2 | 3 | 4 | 5 | 6>>,
+    default: undefined,
+  },
+  firstDayOfYear: {
+    type: [String, Number] as PropType<string | number>,
+    default: undefined,
+  },
+  weekdayFormat: {
+    type: String as PropType<'long' | 'short' | 'narrow'>,
+    default: undefined,
+  },
+  hideWeekdays: {
+    type: Boolean,
+    default: false,
+  },
+  transition: {
+    type: String,
+    default: undefined,
+  },
+  reverseTransition: {
+    type: String,
+    default: undefined,
+  },
+  header: {
+    type: String,
+    default: undefined,
+  },
+  title: {
+    type: String,
+    default: undefined,
+  },
+  headerColor: {
+    type: String,
+    default: undefined,
+  },
+  headerDateFormat: {
+    type: String,
+    default: undefined,
+  },
+  landscapeHeaderWidth: {
+    type: [String, Number] as PropType<string | number>,
+    default: undefined,
+  },
+  controlHeight: {
+    type: [String, Number] as PropType<string | number>,
+    default: undefined,
+  },
+  nextIcon: {
+    type: [String, Array, Object] as PropType<unknown>,
+    default: undefined,
+  },
+  prevIcon: {
+    type: [String, Array, Object] as PropType<unknown>,
+    default: undefined,
+  },
+  modeIcon: {
+    type: [String, Array, Object] as PropType<unknown>,
+    default: undefined,
+  },
+  divided: {
+    type: Boolean,
+    default: false,
+  },
+  landscape: {
+    type: Boolean,
+    default: false,
+  },
+  hideTitle: {
+    type: Boolean,
+    default: false,
   },
   cancelText: {
     type: String,
@@ -188,9 +283,11 @@ const rawProps = defineProps({
 })
 
 const props = useDefaults(rawProps, 'VDateInputAdvanced')
+const attrs = useAttrs()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: unknown | unknown[] | null): void
+  (e: 'update:menu', value: boolean): void
   (e: 'range-start', value: unknown): void
   (e: 'range-end', value: unknown): void
   (e: 'month-change', value: { month: number; year: number }): void
@@ -200,10 +297,11 @@ const emit = defineEmits<{
 }>()
 
 const adapter = useDate()
-const display = useDisplay({ mobileBreakpoint: props.mobileBreakpoint as never })
-const { isFullscreen } = useFullscreen(toRef(props, 'fullscreen'), display.mobile)
+const display = useDisplay({ mobileBreakpoint: props.mobileBreakpoint })
+const effectiveMobile = computed(() => props.mobile ?? display.mobile.value)
+const { isFullscreen } = useFullscreen(toRef(props, 'fullscreen'), effectiveMobile)
 
-const menu = ref(false)
+const menuState = ref(props.menu)
 const inputValue = ref('')
 const draftValue = ref<unknown | unknown[] | null>(cloneModelValue(props.modelValue))
 
@@ -223,12 +321,73 @@ const currentPickerValue = computed<unknown | unknown[] | null>(() => {
   return draftValue.value
 })
 
-const pickerModelValue = computed(() => currentPickerValue.value as never)
+const pickerModelValue = computed(() => currentPickerValue.value)
+
+const pickerSharedProps = computed<Record<string, unknown>>(() => ({
+  modelValue: pickerModelValue.value,
+  range: props.range,
+  months: props.months,
+  presets: props.presets,
+  showPresets: props.showPresets,
+  autoApply: props.autoApply,
+  swipeable: props.swipeable,
+  hideYearMenu: props.hideYearMenu,
+  min: props.min,
+  max: props.max,
+  allowedDates: props.allowedDates,
+  allowedMonths: props.allowedMonths,
+  allowedYears: props.allowedYears,
+  showWeek: props.showWeek,
+  weeksInMonth: props.weeksInMonth,
+  firstDayOfWeek: props.firstDayOfWeek,
+  events: props.events,
+  eventColor: props.eventColor,
+  showAdjacentMonths: props.showAdjacentMonths,
+  controlVariant: props.controlVariant,
+  viewMode: props.viewMode,
+  color: props.color,
+  disabled: props.disabled,
+  readonly: props.readonly,
+  mobileBreakpoint: props.mobileBreakpoint,
+  mobile: props.mobile,
+  weekdays: props.weekdays,
+  firstDayOfYear: props.firstDayOfYear,
+  weekdayFormat: props.weekdayFormat,
+  hideWeekdays: props.hideWeekdays,
+  transition: props.transition,
+  reverseTransition: props.reverseTransition,
+  header: props.header,
+  title: props.title,
+  headerColor: props.headerColor,
+  headerDateFormat: props.headerDateFormat,
+  landscapeHeaderWidth: props.landscapeHeaderWidth,
+  controlHeight: props.controlHeight,
+  nextIcon: props.nextIcon,
+  prevIcon: props.prevIcon,
+  modeIcon: props.modeIcon,
+  divided: props.divided,
+  landscape: props.landscape,
+  hideTitle: props.hideTitle,
+  pickerProps: props.pickerProps,
+  cancelText: props.cancelText,
+  okText: props.okText,
+}))
+
+const inheritedAttrs = computed<Record<string, unknown>>(() => ({ ...attrs }))
+const inlinePickerProps = computed<Record<string, unknown>>(() => ({
+  ...inheritedAttrs.value,
+  ...pickerSharedProps.value,
+}))
+
+const resolvedMenuProps = computed<Record<string, unknown>>(() => ({
+  location: props.location,
+  ...props.menuProps,
+}))
 
 watch(
   () => props.modelValue,
   (value) => {
-    if (props.autoApply || !menu.value) {
+    if (props.autoApply || !menuState.value) {
       draftValue.value = cloneModelValue(value)
     }
     inputValue.value = displayText.value
@@ -236,7 +395,9 @@ watch(
   { immediate: true },
 )
 
-watch(menu, (next, prev) => {
+watch(menuState, (next, prev) => {
+  emit('update:menu', next)
+
   if (!prev && next) {
     if (!props.autoApply) {
       draftValue.value = cloneModelValue(props.modelValue)
@@ -249,14 +410,23 @@ watch(menu, (next, prev) => {
   }
 })
 
+watch(
+  () => props.menu,
+  (value) => {
+    if (value !== menuState.value) {
+      menuState.value = value
+    }
+  },
+)
+
 function open() {
   if (!isInteractive.value || props.inline) return
-  menu.value = true
+  menuState.value = true
 }
 
 function close() {
   if (props.inline) return
-  menu.value = false
+  menuState.value = false
 }
 
 function parseAndEmit() {
@@ -273,7 +443,7 @@ function parseAndEmit() {
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== 'Enter') return
-  if (!menu.value) open()
+  if (!menuState.value) open()
   if (props.updateOn.includes('enter')) {
     parseAndEmit()
   }
@@ -316,34 +486,8 @@ function onPickerApply() {
   <div class="v-date-input-advanced">
     <VDatePickerAdvanced
       v-if="inline"
-      :model-value="pickerModelValue"
-      :range="range"
-      :months="months"
-      :presets="presets"
-      :show-presets="showPresets"
-      :auto-apply="autoApply"
-      :swipeable="swipeable"
+      v-bind="inlinePickerProps"
       :fullscreen="isFullscreen"
-      :hide-year-menu="hideYearMenu"
-      :min="min"
-      :max="max"
-      :allowed-dates="allowedDates"
-      :allowed-months="allowedMonths"
-      :allowed-years="allowedYears"
-      :show-week="showWeek"
-      :weeks-in-month="weeksInMonth"
-      :first-day-of-week="firstDayOfWeek"
-      :events="events"
-      :event-color="eventColor"
-      :show-adjacent-months="showAdjacentMonths"
-      :control-variant="controlVariant"
-      :view-mode="viewMode"
-      :color="color"
-      :disabled="disabled"
-      :readonly="readonly"
-      :mobile-breakpoint="mobileBreakpoint"
-      :cancel-text="cancelText"
-      :ok-text="okText"
       @update:model-value="onPickerUpdate"
       @range-start="emit('range-start', $event)"
       @range-end="emit('range-end', $event)"
@@ -368,6 +512,7 @@ function onPickerApply() {
 
     <VTextField
       v-else
+      v-bind="inheritedAttrs"
       class="v-date-input-advanced__input"
       :model-value="inputValue"
       :label="label"
@@ -381,7 +526,7 @@ function onPickerApply() {
       :hide-details="hideDetails"
       :error-messages="errorMessages"
       :rules="rules"
-      :focused="menu"
+      :focused="menuState"
       @update:model-value="inputValue = $event"
       @keydown="onKeydown"
       @blur="onBlur"
@@ -391,42 +536,16 @@ function onPickerApply() {
       <template #default>
         <VMenu
           v-if="!isFullscreen"
-          v-model="menu"
+          v-model="menuState"
           activator="parent"
           :close-on-content-click="false"
-          location="bottom start"
           min-width="0"
+          v-bind="resolvedMenuProps"
         >
           <VCard>
             <VDatePickerAdvanced
-              :model-value="pickerModelValue"
-              :range="range"
-              :months="months"
-              :presets="presets"
-              :show-presets="showPresets"
-              :auto-apply="autoApply"
-              :swipeable="swipeable"
+              v-bind="pickerSharedProps"
               :fullscreen="false"
-              :hide-year-menu="hideYearMenu"
-              :min="min"
-              :max="max"
-              :allowed-dates="allowedDates"
-              :allowed-months="allowedMonths"
-              :allowed-years="allowedYears"
-              :show-week="showWeek"
-              :weeks-in-month="weeksInMonth"
-              :first-day-of-week="firstDayOfWeek"
-              :events="events"
-              :event-color="eventColor"
-              :show-adjacent-months="showAdjacentMonths"
-              :control-variant="controlVariant"
-              :view-mode="viewMode"
-              :color="color"
-              :disabled="disabled"
-              :readonly="readonly"
-              :mobile-breakpoint="mobileBreakpoint"
-              :cancel-text="cancelText"
-              :ok-text="okText"
               @update:model-value="onPickerUpdate"
               @range-start="emit('range-start', $event)"
               @range-end="emit('range-end', $event)"
@@ -451,7 +570,7 @@ function onPickerApply() {
           </VCard>
         </VMenu>
 
-        <VDialog v-else v-model="menu" fullscreen>
+        <VDialog v-else v-model="menuState" fullscreen>
           <VCard class="v-date-input-advanced__dialog">
             <div class="v-date-input-advanced__dialog-top-bar">
               <slot name="title">Select date</slot>
@@ -460,34 +579,8 @@ function onPickerApply() {
             </div>
 
             <VDatePickerAdvanced
-              :model-value="pickerModelValue"
-              :range="range"
-              :months="months"
-              :presets="presets"
-              :show-presets="showPresets"
-              :auto-apply="autoApply"
-              :swipeable="swipeable"
+              v-bind="pickerSharedProps"
               :fullscreen="true"
-              :hide-year-menu="hideYearMenu"
-              :min="min"
-              :max="max"
-              :allowed-dates="allowedDates"
-              :allowed-months="allowedMonths"
-              :allowed-years="allowedYears"
-              :show-week="showWeek"
-              :weeks-in-month="weeksInMonth"
-              :first-day-of-week="firstDayOfWeek"
-              :events="events"
-              :event-color="eventColor"
-              :show-adjacent-months="showAdjacentMonths"
-              :control-variant="controlVariant"
-              :view-mode="viewMode"
-              :color="color"
-              :disabled="disabled"
-              :readonly="readonly"
-              :mobile-breakpoint="mobileBreakpoint"
-              :cancel-text="cancelText"
-              :ok-text="okText"
               @update:model-value="onPickerUpdate"
               @range-start="emit('range-start', $event)"
               @range-end="emit('range-end', $event)"
