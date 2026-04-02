@@ -4,6 +4,16 @@ import { VAdvancedDatePicker } from '@/components/VAdvancedDatePicker'
 
 import { render } from '../render'
 
+function toLocalYmd(date: Date | null | undefined) {
+  if (!date) return null
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
 describe('VAdvancedDatePicker', () => {
   it('emits a completed range after two valid clicks', async () => {
     const wrapper = render(VAdvancedDatePicker, {
@@ -45,5 +55,73 @@ describe('VAdvancedDatePicker', () => {
     await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
 
     expect(wrapper.emitted('presetSelect')).toHaveLength(1)
+  })
+
+  it('hides adjacent month days from the visible grids', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    const months = wrapper.findAll('.v-advanced-date-picker__month')
+    const january = months[0]
+
+    expect(january.find('[data-date="2025-12-31"]').exists()).toBe(false)
+    expect(january.find('[data-date="2026-02-01"]').exists()).toBe(false)
+    expect(january.findAll('button[data-date]').length).toBe(31)
+    expect(january.findAll('.v-advanced-date-picker__day-placeholder').length).toBeGreaterThan(0)
+  })
+
+  it('moves focus with arrow keys and selects with enter', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const first = wrapper.find('[data-date="2026-01-01"]')
+
+    await first.trigger('focus')
+    await first.trigger('keydown', { key: 'ArrowRight' })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    expect((document.activeElement as HTMLElement | null)?.getAttribute('data-date')).toBe('2026-01-02')
+
+    await wrapper.find('[data-date="2026-01-02"]').trigger('keydown', { key: 'Enter' })
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
+
+    expect(toLocalYmd(finalValue[0])).toBe('2026-01-02')
+    expect(finalValue[1]).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('resets the range on the third click', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-02"]').trigger('click')
+    await wrapper.find('[data-date="2026-01-07"]').trigger('click')
+    await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
+
+    expect(toLocalYmd(finalValue[0])).toBe('2026-01-12')
+    expect(finalValue[1]).toBeNull()
   })
 })

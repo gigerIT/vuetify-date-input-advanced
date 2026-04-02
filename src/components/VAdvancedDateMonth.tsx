@@ -55,6 +55,7 @@ export const VAdvancedDateMonth = defineComponent({
                   type: 'button' as const,
                   class: [
                     'v-advanced-date-picker__day',
+                    'rounded',
                     {
                       'v-advanced-date-picker__day--outside': day.outside,
                       'v-advanced-date-picker__day--disabled': day.disabled,
@@ -81,19 +82,36 @@ export const VAdvancedDateMonth = defineComponent({
                 }
 
                 return (
-                  <div key={day.key} class="v-advanced-date-picker__day-cell" role="gridcell">
-                    {slots.day?.({
-                      date: day.date,
-                      outside: day.outside,
-                      disabled: day.disabled,
-                      today: day.today,
-                      selected: day.selected,
-                      rangeStart: day.rangeStart,
-                      rangeEnd: day.rangeEnd,
-                      inRange: day.inRange,
-                      preview: day.preview,
-                      props: dayProps,
-                    }) ?? <button {...dayProps}>{day.label}</button>}
+                  <div
+                    key={day.key}
+                    class={[
+                      'v-advanced-date-picker__day-cell',
+                      {
+                        'v-advanced-date-picker__day-cell--outside': day.outside,
+                        'v-advanced-date-picker__day-cell--selected': day.selected,
+                        'v-advanced-date-picker__day-cell--range-start': day.rangeStart,
+                        'v-advanced-date-picker__day-cell--range-end': day.rangeEnd,
+                        'v-advanced-date-picker__day-cell--in-range': day.inRange,
+                        'v-advanced-date-picker__day-cell--preview': day.preview,
+                      },
+                    ]}
+                    role="gridcell"
+                  >
+                    {day.outside ? <div class="v-advanced-date-picker__day-placeholder" aria-hidden="true" /> : null}
+                    {day.outside
+                      ? null
+                      : slots.day?.({
+                        date: day.date,
+                        outside: day.outside,
+                        disabled: day.disabled,
+                        today: day.today,
+                        selected: day.selected,
+                        rangeStart: day.rangeStart,
+                        rangeEnd: day.rangeEnd,
+                        inRange: day.inRange,
+                        preview: day.preview,
+                        props: dayProps,
+                      }) ?? <button {...dayProps}>{day.label}</button>}
                   </div>
                 )
               })}

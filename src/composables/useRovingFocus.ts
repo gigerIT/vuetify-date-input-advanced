@@ -38,13 +38,18 @@ export function useRovingFocus<TDate>(options: {
         next = options.adapter.addDays(date, 6 - getWeekdayIndex(options.adapter, date))
         break
       case 'PageUp':
-        next = options.adapter.addMonths(date, -1)
+        next = event.shiftKey
+          ? options.adapter.setYear(date, options.adapter.getYear(date) - 1)
+          : options.adapter.addMonths(date, -1)
         break
       case 'PageDown':
-        next = options.adapter.addMonths(date, 1)
+        next = event.shiftKey
+          ? options.adapter.setYear(date, options.adapter.getYear(date) + 1)
+          : options.adapter.addMonths(date, 1)
         break
       case 'Enter':
       case ' ':
+      case 'Spacebar':
         event.preventDefault()
         options.onSelect?.(date)
         return

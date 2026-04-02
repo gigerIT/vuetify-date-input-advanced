@@ -1,7 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
 import type { AdvancedDateAdapter, AdvancedDateModel } from '@/types'
-import { formatInputValue, parseInputDate } from '@/util/dates'
+import { formatInputValue, isDateDisabled, parseInputDate } from '@/util/dates'
 import { normalizeModel, orderRange, serializeModel } from '@/util/model'
 
 function splitRangeInput(input: string, separator: string): [string, string] | null {
@@ -24,6 +24,9 @@ export function useAdvancedDateInput<TDate>(options: {
   displayFormat: Ref<string>
   rangeSeparator: Ref<string>
   parseInput: Ref<((value: string) => TDate | null) | undefined>
+  min: Ref<TDate | null | undefined>
+  max: Ref<TDate | null | undefined>
+  allowedDates: Ref<((date: TDate) => boolean) | undefined>
   onUpdate: (value: AdvancedDateModel<TDate>) => void
 }) {
   const text = ref('')
@@ -47,6 +50,14 @@ export function useAdvancedDateInput<TDate>(options: {
     { immediate: true },
   )
 
+  function isUnavailable(date: TDate): boolean {
+    return isDateDisabled(options.adapter, date, {
+      min: options.min.value,
+      max: options.max.value,
+      allowedDates: options.allowedDates.value,
+    })
+  }
+
   function commitInput(): boolean {
     inputError.value = null
 
@@ -61,6 +72,11 @@ export function useAdvancedDateInput<TDate>(options: {
       const parsed = parseInputDate(options.adapter, trimmed, options.parseInput.value)
       if (!parsed) {
         inputError.value = 'Enter a valid date'
+        return false
+      }
+
+      if (isUnavailable(parsed)) {
+        inputError.value = 'Date is unavailable'
         return false
       }
 
@@ -80,6 +96,11 @@ export function useAdvancedDateInput<TDate>(options: {
 
     if (!start || !end) {
       inputError.value = 'Enter a valid date range'
+      return false
+    }
+
+    if (isUnavailable(start) || isUnavailable(end)) {
+      inputError.value = 'One or more dates are unavailable'
       return false
     }
 

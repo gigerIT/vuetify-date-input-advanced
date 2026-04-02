@@ -93,7 +93,7 @@ const output = computed(() => ({
           <v-row>
             <v-col cols="12" lg="8">
               <div class="d-flex flex-column ga-6">
-                <v-card rounded="xl" variant="outlined">
+                <v-card variant="outlined">
                   <v-card-title>Range Input</v-card-title>
                   <v-card-text>
                     <v-advanced-date-input
@@ -106,7 +106,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card rounded="xl" variant="outlined">
+                <v-card variant="outlined">
                   <v-card-title>Single Date Mode</v-card-title>
                   <v-card-text>
                     <v-advanced-date-input
@@ -119,7 +119,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card rounded="xl" variant="outlined">
+                <v-card variant="outlined">
                   <v-card-title>Typed Input + Validation</v-card-title>
                   <v-card-text>
                     <v-advanced-date-input
@@ -132,7 +132,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card rounded="xl" variant="outlined">
+                <v-card variant="outlined">
                   <v-card-title>Constrained Selection</v-card-title>
                   <v-card-text>
                     <v-advanced-date-input
@@ -150,7 +150,7 @@ const output = computed(() => ({
 
             <v-col cols="12" lg="4">
               <div class="d-flex flex-column ga-6">
-                <v-card rounded="xl" variant="tonal">
+                <v-card variant="tonal">
                   <v-card-title>Inline Dashboard Mode</v-card-title>
                   <v-card-text>
                     <v-advanced-date-input
@@ -170,7 +170,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card rounded="xl" variant="outlined">
+                <v-card variant="outlined">
                   <v-card-title>Emitted Model</v-card-title>
                   <v-card-text>
                     <pre class="text-body-2">{{ JSON.stringify(output, null, 2) }}</pre>

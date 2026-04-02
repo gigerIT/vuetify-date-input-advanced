@@ -1,5 +1,5 @@
 import type { PropType } from 'vue'
-import { computed, defineComponent, ref, toRef, watch } from 'vue'
+import { computed, defineComponent, nextTick, ref, toRef, watch } from 'vue'
 
 import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
@@ -114,7 +114,7 @@ export const VAdvancedDateInput = defineComponent({
     theme: String,
     rounded: {
       type: [String, Number, Boolean],
-      default: 'xl',
+      default: undefined,
     },
     border: {
       type: [String, Number, Boolean],
@@ -147,6 +147,7 @@ export const VAdvancedDateInput = defineComponent({
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
     const menu = ref(props.menu)
+    const pickerRef = ref<{ focusActiveDate?: () => void } | null>(null)
 
     watch(
       () => props.menu,
@@ -163,7 +164,16 @@ export const VAdvancedDateInput = defineComponent({
       displayFormat: toRef(props, 'displayFormat'),
       rangeSeparator: toRef(props, 'rangeSeparator'),
       parseInput: toRef(props, 'parseInput'),
+      min: toRef(props, 'min'),
+      max: toRef(props, 'max'),
+      allowedDates: toRef(props, 'allowedDates'),
       onUpdate: value => emit('update:modelValue', value),
+    })
+
+    watch(menu, async value => {
+      if (!value) return
+      await nextTick()
+      pickerRef.value?.focusActiveDate?.()
     })
 
     const mergedErrorMessages = computed(() => {
@@ -236,6 +246,7 @@ export const VAdvancedDateInput = defineComponent({
     function renderPicker() {
       return (
         <VAdvancedDatePicker
+          ref={pickerRef}
           {...pickerProps.value}
           onUpdate:modelValue={handlePickerUpdate}
           onUpdate:month={value => emit('update:month', value)}
@@ -248,10 +259,13 @@ export const VAdvancedDateInput = defineComponent({
       )
     }
 
-    function renderField() {
+    function renderField(activatorProps: Record<string, unknown> = {}) {
+      const hasActivatorProps = Object.keys(activatorProps).length > 0
+
       if (slots.activator) {
         return slots.activator({
           props: {
+            ...activatorProps,
             onClick: () => setMenu(true),
           },
           isOpen: menu.value,
@@ -274,16 +288,22 @@ export const VAdvancedDateInput = defineComponent({
             rules: props.rules,
             clearable: props.clearable,
             focused: props.focused,
+            'aria-expanded': menu.value,
             disabled: props.disabled,
             readonly: props.readonly,
             prependInnerIcon: props.prependInnerIcon,
             appendInnerIcon: props.appendInnerIcon,
             density: props.density,
+            ...activatorProps,
             onFocus: input.onFocus,
             onBlur: input.onBlur,
             onKeydown: handleKeydown,
-            'onClick:control': () => setMenu(true),
-            'onClick:appendInner': () => setMenu(true),
+            'onClick:control': () => {
+              if (!hasActivatorProps) setMenu(true)
+            },
+            'onClick:appendInner': () => {
+              if (!hasActivatorProps) setMenu(true)
+            },
             'onClick:clear': () => {
               input.setText('')
               input.commitInput()
@@ -311,7 +331,7 @@ export const VAdvancedDateInput = defineComponent({
       return (
         <VMenu v-model={menu.value} closeOnContentClick={false} offset={8}>
           {{
-            activator: () => renderField(),
+            activator: ({ props: activatorProps }: { props: Record<string, unknown> }) => renderField(activatorProps),
             default: () => renderPicker(),
           }}
         </VMenu>

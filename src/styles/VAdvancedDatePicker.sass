@@ -16,14 +16,21 @@
   display: flex
   align-items: center
   justify-content: space-between
-  padding: 12px 16px
+  gap: 12px
+  padding: 14px 18px
 
 .v-advanced-date-picker__header-content
   flex: 1
   text-align: center
 
+.v-advanced-date-picker__header-summary
+  color: rgb(var(--v-theme-on-surface-variant))
+  font-size: 0.85rem
+  letter-spacing: 0.01em
+  margin-bottom: 4px
+
 .v-advanced-date-picker__header-text
-  font-size: 1rem
+  font-size: 1.05rem
   font-weight: 600
   letter-spacing: 0.01em
 
@@ -37,7 +44,7 @@
 .v-advanced-date-picker__presets
   inline-size: var(--v-advanced-date-preset-width)
   flex: 0 0 var(--v-advanced-date-preset-width)
-  padding: 10px
+  padding: 12px
 
 .v-advanced-date-picker--stacked .v-advanced-date-picker__presets
   inline-size: 100%
@@ -46,7 +53,7 @@
 .v-advanced-date-picker__months
   display: flex
   gap: var(--v-advanced-date-gap)
-  padding: 20px
+  padding: 18px 20px 20px
   flex: 1 1 auto
   min-inline-size: 0
 
@@ -60,13 +67,15 @@
 .v-advanced-date-picker__month-label
   text-align: center
   font-weight: 600
-  margin-bottom: 16px
+  margin-bottom: 14px
 
 .v-advanced-date-picker__weekday-row,
 .v-advanced-date-picker__week
   display: grid
   grid-template-columns: repeat(7, minmax(0, 1fr))
-  gap: 4px
+
+.v-advanced-date-picker__weekday-row
+  gap: 2px
 
 .v-advanced-date-picker__weekday-row
   margin-bottom: 8px
@@ -85,21 +94,54 @@
 
 .v-advanced-date-picker__grid
   display: grid
-  gap: 4px
+  gap: 0
 
 .v-advanced-date-picker__day-cell
   position: relative
+  isolation: isolate
+
+.v-advanced-date-picker__day-cell--outside::before
+  display: none
+
+.v-advanced-date-picker__day-placeholder
+  inline-size: 100%
+  min-inline-size: var(--v-advanced-date-cell-size)
+  block-size: var(--v-advanced-date-cell-size)
+
+.v-advanced-date-picker__day-cell::before
+  content: ''
+  position: absolute
+  inset-block: 5px
+  inset-inline: 0
+  background: transparent
+  z-index: 0
+
+.v-advanced-date-picker__day-cell--in-range::before
+  background: var(--v-advanced-date-range-bg)
+
+.v-advanced-date-picker__day-cell--preview::before
+  background: var(--v-advanced-date-range-preview-bg)
+
+.v-advanced-date-picker__day-cell--range-start::before
+  inset-inline-start: 50%
+
+.v-advanced-date-picker__day-cell--range-end::before
+  inset-inline-end: 50%
+
+.v-advanced-date-picker__day-cell--range-start.v-advanced-date-picker__day-cell--range-end::before
+  inset-inline: 0
 
 .v-advanced-date-picker__day
   inline-size: 100%
   min-inline-size: var(--v-advanced-date-cell-size)
   block-size: var(--v-advanced-date-cell-size)
   border: 0
-  border-radius: 999px
   background: transparent
   color: inherit
   cursor: pointer
   transition: background-color 0.16s ease, color 0.16s ease, opacity 0.16s ease
+  position: relative
+  z-index: 1
 
 .v-advanced-date-picker__day:hover:not(:disabled),
 .v-advanced-date-picker__day:focus-visible
@@ -116,22 +158,11 @@
 .v-advanced-date-picker__day--today
   box-shadow: inset 0 0 0 1px var(--v-advanced-date-picker-color)
 
-.v-advanced-date-picker__day--in-range,
-.v-advanced-date-picker__day--preview
-  border-radius: 0
-
-.v-advanced-date-picker__day--in-range
-  background: var(--v-advanced-date-range-bg)
-
-.v-advanced-date-picker__day--preview
-  background: var(--v-advanced-date-range-preview-bg)
-
 .v-advanced-date-picker__day--range-start,
 .v-advanced-date-picker__day--range-end,
 .v-advanced-date-picker__day--selected
   background: var(--v-advanced-date-selected-bg)
   color: var(--v-advanced-date-selected-color)
-  border-radius: 999px
 
 .v-advanced-date-picker__actions
   display: flex
