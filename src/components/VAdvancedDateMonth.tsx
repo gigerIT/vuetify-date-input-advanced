@@ -50,6 +50,7 @@ export const VAdvancedDateMonth = defineComponent({
           {props.showPrevious ? (
             <VBtn
               {...({
+                key: 'previous',
                 class: [
                   'v-advanced-date-picker__nav',
                   'v-advanced-date-picker__nav--prev',
@@ -73,6 +74,7 @@ export const VAdvancedDateMonth = defineComponent({
           {props.showNext ? (
             <VBtn
               {...({
+                key: 'next',
                 class: [
                   'v-advanced-date-picker__nav',
                   'v-advanced-date-picker__nav--next',

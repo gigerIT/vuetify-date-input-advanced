@@ -97,6 +97,32 @@ describe('VAdvancedDatePicker', () => {
     ).toBe(true)
   })
 
+  it('does not reuse the clicked previous button as the next button after navigation', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const previousButton = wrapper.find('button[aria-label="Previous month"]')
+    const previousElement = previousButton.element
+
+    await previousButton.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('December 2025')
+    expect(wrapper.text()).toContain('January 2026')
+
+    const nextButton = wrapper.find('button[aria-label="Next month"]')
+
+    expect(nextButton.element).not.toBe(previousElement)
+
+    wrapper.unmount()
+  })
+
   it('moves focus with arrow keys and selects with enter', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
