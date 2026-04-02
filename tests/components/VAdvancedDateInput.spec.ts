@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { VMenu } from 'vuetify/components'
 
 import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 
@@ -61,6 +62,20 @@ describe('VAdvancedDateInput', () => {
 
     expect(finalValue[0]).toBeInstanceOf(Date)
     expect(finalValue[1]).toBeInstanceOf(Date)
+
+    wrapper.unmount()
+  })
+
+  it('does not force the menu overlay to match the activator width', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+      },
+    })
+
+    const menu = wrapper.findComponent(VMenu)
+
+    expect(menu.props('minWidth')).toBe(0)
 
     wrapper.unmount()
   })

@@ -341,7 +341,12 @@ export const VAdvancedDateInput = defineComponent({
       }
 
       return (
-        <VMenu v-model={menu.value} closeOnContentClick={false} offset={8}>
+        <VMenu
+          v-model={menu.value}
+          closeOnContentClick={false}
+          offset={8}
+          minWidth={props.minWidth ?? 0}
+        >
           {{
             activator: ({
               props: activatorProps,
