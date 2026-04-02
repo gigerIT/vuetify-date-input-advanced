@@ -1,0 +1,123 @@
+import { computed, ref, watch, type Ref } from 'vue'
+
+import type { AdvancedDateAdapter, AdvancedDateModel } from '@/types'
+import { formatInputValue, parseInputDate } from '@/util/dates'
+import { normalizeModel, orderRange, serializeModel } from '@/util/model'
+
+function splitRangeInput(input: string, separator: string): [string, string] | null {
+  if (input.includes(separator)) {
+    const [start, end] = input.split(separator)
+    if (end != null) return [start, end]
+  }
+
+  const fallback = input.split(/\s+[-–—]\s+/)
+  if (fallback.length === 2) return [fallback[0], fallback[1]]
+
+  return null
+}
+
+export function useAdvancedDateInput<TDate>(options: {
+  adapter: AdvancedDateAdapter<TDate>
+  modelValue: Ref<AdvancedDateModel<TDate>>
+  range: Ref<boolean>
+  returnObject: Ref<boolean>
+  displayFormat: Ref<string>
+  rangeSeparator: Ref<string>
+  parseInput: Ref<((value: string) => TDate | null) | undefined>
+  onUpdate: (value: AdvancedDateModel<TDate>) => void
+}) {
+  const text = ref('')
+  const isEditing = ref(false)
+  const inputError = ref<string | null>(null)
+
+  const normalized = computed(() => normalizeModel(options.adapter, options.modelValue.value, options.range.value))
+  const displayText = computed(() => {
+    return formatInputValue(options.adapter, normalized.value, {
+      range: options.range.value,
+      displayFormat: options.displayFormat.value,
+      separator: options.rangeSeparator.value,
+    })
+  })
+
+  watch(
+    displayText,
+    value => {
+      if (!isEditing.value) text.value = value
+    },
+    { immediate: true },
+  )
+
+  function commitInput(): boolean {
+    inputError.value = null
+
+    const trimmed = text.value.trim()
+    if (!trimmed) {
+      options.onUpdate(null)
+      text.value = ''
+      return true
+    }
+
+    if (!options.range.value) {
+      const parsed = parseInputDate(options.adapter, trimmed, options.parseInput.value)
+      if (!parsed) {
+        inputError.value = 'Enter a valid date'
+        return false
+      }
+
+      options.onUpdate(parsed)
+      text.value = options.adapter.format(parsed, options.displayFormat.value)
+      return true
+    }
+
+    const parts = splitRangeInput(trimmed, options.rangeSeparator.value)
+    if (!parts) {
+      inputError.value = 'Enter a valid date range'
+      return false
+    }
+
+    const start = parseInputDate(options.adapter, parts[0], options.parseInput.value)
+    const end = parseInputDate(options.adapter, parts[1], options.parseInput.value)
+
+    if (!start || !end) {
+      inputError.value = 'Enter a valid date range'
+      return false
+    }
+
+    const ordered = orderRange(options.adapter, { start, end })
+    options.onUpdate(serializeModel(ordered, {
+      range: true,
+      returnObject: options.returnObject.value,
+    }))
+    text.value = formatInputValue(options.adapter, ordered, {
+      range: true,
+      displayFormat: options.displayFormat.value,
+      separator: options.rangeSeparator.value,
+    })
+
+    return true
+  }
+
+  function onFocus() {
+    isEditing.value = true
+  }
+
+  function onBlur(): boolean {
+    isEditing.value = false
+    const valid = commitInput()
+    if (valid) text.value = displayText.value
+    return valid
+  }
+
+  return {
+    text,
+    inputError,
+    errorMessages: computed(() => (inputError.value ? [inputError.value] : [])),
+    onFocus,
+    onBlur,
+    commitInput,
+    setText: (value: string) => {
+      inputError.value = null
+      text.value = value
+    },
+  }
+}
