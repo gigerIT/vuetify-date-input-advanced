@@ -1,7 +1,7 @@
 import type { PropType } from 'vue'
 import { computed, defineComponent, nextTick, ref, toRef } from 'vue'
 
-import { VBtn, VDivider, VSheet } from 'vuetify/components'
+import { VDivider, VSheet } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateGrid } from '@/composables/useAdvancedDateGrid'
@@ -10,7 +10,11 @@ import { useAdvancedDateNavigation } from '@/composables/useAdvancedDateNavigati
 import { usePresetRanges } from '@/composables/usePresetRanges'
 import { useRovingFocus } from '@/composables/useRovingFocus'
 import { useTouchSwipe } from '@/composables/useTouchSwipe'
-import type { AdvancedDateAdapter, AdvancedDateModel, PresetRange } from '@/types'
+import type {
+  AdvancedDateAdapter,
+  AdvancedDateModel,
+  PresetRange,
+} from '@/types'
 import { dateKey } from '@/util/dates'
 import { serializeModel } from '@/util/model'
 
@@ -29,7 +33,9 @@ export const VAdvancedDatePicker = defineComponent({
 
   props: {
     modelValue: {
-      type: [Object, Array, Date, String, Number] as PropType<AdvancedDateModel<unknown>>,
+      type: [Object, Array, Date, String, Number] as PropType<
+        AdvancedDateModel<unknown>
+      >,
       default: null,
     },
     range: {
@@ -123,7 +129,7 @@ export const VAdvancedDatePicker = defineComponent({
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
       allowedDates: toRef(props, 'allowedDates'),
-      onUpdate: value => emit('update:modelValue', value),
+      onUpdate: (value) => emit('update:modelValue', value),
       onCancel: () => emit('cancel'),
     })
 
@@ -136,8 +142,8 @@ export const VAdvancedDatePicker = defineComponent({
       year: yearRef,
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
-      onMonthChange: value => emit('update:month', value),
-      onYearChange: value => emit('update:year', value),
+      onMonthChange: (value) => emit('update:month', value),
+      onYearChange: (value) => emit('update:year', value),
     })
 
     const grid = useAdvancedDateGrid({
@@ -161,36 +167,35 @@ export const VAdvancedDatePicker = defineComponent({
 
     const dayLookup = computed(() => {
       return new Map(
-        grid.months.value.flatMap(month => month.weeks.flatMap(week => week.days.map(day => [day.key, day.date] as const))),
+        grid.months.value.flatMap((month) =>
+          month.weeks.flatMap((week) =>
+            week.days.map((day) => [day.key, day.date] as const),
+          ),
+        ),
       )
     })
 
-    const selectionSummary = computed(() => {
-      if (!model.normalized.value.start && !model.normalized.value.end) {
-        return props.range ? 'Select departure and return dates' : 'Select a date'
-      }
-
-      if (props.range && model.normalized.value.start && !model.normalized.value.end) {
-        return `${adapter.format(model.normalized.value.start, 'fullDate')} selected. Choose an end date.`
-      }
-
-      if (props.range && model.normalized.value.start && model.normalized.value.end) {
-        return `${adapter.format(model.normalized.value.start, 'shortDate')} - ${adapter.format(model.normalized.value.end, 'shortDate')}`
-      }
-
-      return model.normalized.value.start
-        ? adapter.format(model.normalized.value.start, 'fullDateWithWeekday')
-        : 'Select a date'
-    })
-
-    function findFocusableButton(targetKey: string, direction: 1 | -1): HTMLButtonElement | null {
-      const buttons = Array.from(containerRef.value?.querySelectorAll<HTMLButtonElement>('button[data-date]') ?? [])
-      const index = buttons.findIndex(button => button.dataset.date === targetKey)
+    function findFocusableButton(
+      targetKey: string,
+      direction: 1 | -1,
+    ): HTMLButtonElement | null {
+      const buttons = Array.from(
+        containerRef.value?.querySelectorAll<HTMLButtonElement>(
+          'button[data-date]',
+        ) ?? [],
+      )
+      const index = buttons.findIndex(
+        (button) => button.dataset.date === targetKey,
+      )
 
       if (index === -1) return null
       if (!buttons[index].disabled) return buttons[index]
 
-      for (let cursor = index + direction; buttons[cursor]; cursor += direction) {
+      for (
+        let cursor = index + direction;
+        buttons[cursor];
+        cursor += direction
+      ) {
         if (!buttons[cursor].disabled) return buttons[cursor]
       }
 
@@ -199,27 +204,38 @@ export const VAdvancedDatePicker = defineComponent({
 
     async function focusDate(date: unknown) {
       const targetMonth = adapter.startOfMonth(date)
-      const visible = navigation.visibleMonths.value.some(month => adapter.isSameMonth(month, targetMonth))
+      const visible = navigation.visibleMonths.value.some((month) =>
+        adapter.isSameMonth(month, targetMonth),
+      )
 
       if (!visible) navigation.setDisplayedMonth(targetMonth)
 
       await nextTick()
       const selector = `[data-date="${dateKey(adapter, date)}"]`
-      const referenceDate = focus.activeDate.value ?? model.normalized.value.start ?? date
+      const referenceDate =
+        focus.activeDate.value ?? model.normalized.value.start ?? date
       const direction = adapter.isBefore(date, referenceDate) ? -1 : 1
-      const direct = containerRef.value?.querySelector<HTMLButtonElement>(selector) ?? null
-      const button = direct?.disabled ? findFocusableButton(dateKey(adapter, date), direction) : direct
+      const direct =
+        containerRef.value?.querySelector<HTMLButtonElement>(selector) ?? null
+      const button = direct?.disabled
+        ? findFocusableButton(dateKey(adapter, date), direction)
+        : direct
 
       button?.focus()
 
-      const resolved = button?.dataset.date ? dayLookup.value.get(button.dataset.date) : null
+      const resolved = button?.dataset.date
+        ? dayLookup.value.get(button.dataset.date)
+        : null
       if (resolved) focus.setActiveDate(resolved)
     }
 
     function focusActiveDate() {
-      const fallback = focus.activeDate.value
-        ?? model.normalized.value.start
-        ?? grid.months.value[0]?.weeks.flatMap(week => week.days).find(day => !day.disabled)?.date
+      const fallback =
+        focus.activeDate.value ??
+        model.normalized.value.start ??
+        grid.months.value[0]?.weeks
+          .flatMap((week) => week.days)
+          .find((day) => !day.disabled)?.date
 
       if (!fallback) return
 
@@ -229,14 +245,18 @@ export const VAdvancedDatePicker = defineComponent({
     const focus = useRovingFocus({
       adapter,
       onFocusDate: focusDate,
-      onSelect: date => model.selectDate(date),
+      onSelect: (date) => model.selectDate(date),
       onEscape: () => emit('cancel'),
     })
 
     const activeDateKey = computed(() => {
-      if (focus.activeDate.value) return dateKey(adapter, focus.activeDate.value)
-      if (model.normalized.value.start) return dateKey(adapter, model.normalized.value.start)
-      const firstDay = grid.months.value[0]?.weeks.flatMap(week => week.days).find(day => !day.outside && !day.disabled)
+      if (focus.activeDate.value)
+        return dateKey(adapter, focus.activeDate.value)
+      if (model.normalized.value.start)
+        return dateKey(adapter, model.normalized.value.start)
+      const firstDay = grid.months.value[0]?.weeks
+        .flatMap((week) => week.days)
+        .find((day) => !day.outside && !day.disabled)
       return firstDay?.key ?? ''
     })
 
@@ -247,9 +267,13 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     const liveText = computed(() => {
-      const labels = grid.months.value.map(month => month.label).join(', ')
+      const labels = grid.months.value.map((month) => month.label).join(', ')
 
-      if (props.range && model.normalized.value.start && model.normalized.value.end) {
+      if (
+        props.range &&
+        model.normalized.value.start &&
+        model.normalized.value.end
+      ) {
         return `Selected range ${adapter.format(model.normalized.value.start, 'fullDate')} to ${adapter.format(model.normalized.value.end, 'fullDate')}. ${labels}`
       }
 
@@ -262,10 +286,13 @@ export const VAdvancedDatePicker = defineComponent({
 
     function handleApply() {
       model.apply()
-      emit('apply', serializeModel(model.normalized.value, {
-        range: props.range,
-        returnObject: props.returnObject,
-      }))
+      emit(
+        'apply',
+        serializeModel(model.normalized.value, {
+          range: props.range,
+          returnObject: props.returnObject,
+        }),
+      )
     }
 
     function handlePresetSelect(preset: PresetRange<unknown>) {
@@ -280,119 +307,92 @@ export const VAdvancedDatePicker = defineComponent({
       nextMonth: navigation.nextMonth,
     })
 
-    return () => {
-      const header = slots.header?.({
-        month: adapter.getMonth(navigation.displayedMonth.value),
-        year: adapter.getYear(navigation.displayedMonth.value),
-        next: navigation.nextMonth,
-        prev: navigation.prevMonth,
-        canNext: navigation.canNext.value,
-        canPrev: navigation.canPrev.value,
-      })
-
-      return (
-        <VSheet
-          class={[
-            'v-advanced-date-picker',
-            `v-advanced-date-picker--density-${props.density}`,
-            {
-              'v-advanced-date-picker--stacked': display.mobile.value,
-            },
-          ]}
-          color="surface"
-          theme={props.theme}
-          rounded={props.rounded}
-          border={props.border}
-          elevation={props.elevation}
-          width={props.width}
-          minWidth={props.minWidth}
-          maxWidth={props.maxWidth}
-          style={{ '--v-advanced-date-picker-color': `rgb(var(--v-theme-${props.color}))` }}
+    return () => (
+      <VSheet
+        class={[
+          'v-advanced-date-picker',
+          `v-advanced-date-picker--density-${props.density}`,
+          {
+            'v-advanced-date-picker--stacked': display.mobile.value,
+          },
+        ]}
+        color="surface"
+        theme={props.theme}
+        rounded={props.rounded}
+        border={props.border}
+        elevation={props.elevation}
+        width={props.width}
+        minWidth={props.minWidth}
+        maxWidth={props.maxWidth}
+        style={{
+          '--v-advanced-date-picker-color': `rgb(var(--v-theme-${props.color}))`,
+        }}
+      >
+        <div
+          class="v-advanced-date-picker__live"
+          aria-live="polite"
+          aria-atomic="true"
         >
-          <div class="v-advanced-date-picker__live" aria-live="polite" aria-atomic="true">
-            {liveText.value}
-          </div>
+          {liveText.value}
+        </div>
 
-          <div class="v-advanced-date-picker__header">
-            <VBtn
-              {...({
-                icon: 'mdi-chevron-left',
-                variant: 'text',
-                disabled: !navigation.canPrev.value || props.disabled,
-                onClick: navigation.prevMonth,
-              } as any)}
-            />
-            <div class="v-advanced-date-picker__header-content">
-              {header ?? (
-                <>
-                  <div class="v-advanced-date-picker__header-summary">{selectionSummary.value}</div>
-                  <div class="v-advanced-date-picker__header-text">
-                    {grid.months.value.map(month => month.label).join('  ')}
-                  </div>
-                </>
-              )}
-            </div>
-            <VBtn
-              {...({
-                icon: 'mdi-chevron-right',
-                variant: 'text',
-                disabled: !navigation.canNext.value || props.disabled,
-                onClick: navigation.nextMonth,
-              } as any)}
-            />
-          </div>
-
-          <VDivider />
-
-          <div class="v-advanced-date-picker__body">
-            {props.showPresets && props.range && presetRanges.presets.value.length ? (
-              <>
-                <VAdvancedDatePresets
-                  presets={presetRanges.presets.value}
-                  disabled={disabledRef.value}
-                  isActive={presetRanges.isPresetActive}
-                  onSelect={handlePresetSelect}
-                  v-slots={slots}
-                />
-                <VDivider vertical={!display.mobile.value} />
-              </>
-            ) : null}
-
-            <div
-              ref={containerRef}
-              class="v-advanced-date-picker__months"
-              style={{ touchAction: 'pan-y' }}
-              {...swipe.touchHandlers}
-            >
-              {grid.months.value.map(month => (
-                <VAdvancedDateMonth
-                  key={month.key}
-                  month={month}
-                  activeDateKey={activeDateKey.value}
-                  showWeekNumbers={props.showWeekNumbers}
-                  onSelect={model.selectDate}
-                  onHover={model.setHoverDate}
-                  onFocusDate={focus.setActiveDate}
-                  onKeydown={focus.onKeydown}
-                  v-slots={slots}
-                />
-              ))}
-            </div>
-          </div>
-
-          {!props.autoApply && !props.readonly ? (
+        <div class="v-advanced-date-picker__body">
+          {props.showPresets &&
+          props.range &&
+          presetRanges.presets.value.length ? (
             <>
-              <VDivider />
-              <VAdvancedDateActions
-                disabled={props.disabled}
-                onApply={handleApply}
-                onCancel={model.cancel}
+              <VAdvancedDatePresets
+                presets={presetRanges.presets.value}
+                disabled={disabledRef.value}
+                isActive={presetRanges.isPresetActive}
+                onSelect={handlePresetSelect}
                 v-slots={slots}
               />
+              <VDivider vertical={!display.mobile.value} />
             </>
           ) : null}
-        </VSheet>
-      )
-    }
+
+          <div
+            ref={containerRef}
+            class="v-advanced-date-picker__months"
+            style={{ touchAction: 'pan-y' }}
+            {...swipe.touchHandlers}
+          >
+            {grid.months.value.map((month, index) => (
+              <VAdvancedDateMonth
+                key={month.key}
+                month={month}
+                activeDateKey={activeDateKey.value}
+                showWeekNumbers={props.showWeekNumbers}
+                showPrevious={index === 0}
+                showNext={index === grid.months.value.length - 1}
+                canPrevious={navigation.canPrev.value}
+                canNext={navigation.canNext.value}
+                disabled={props.disabled}
+                onPrevious={navigation.prevMonth}
+                onNext={navigation.nextMonth}
+                onSelect={model.selectDate}
+                onHover={model.setHoverDate}
+                onFocusDate={focus.setActiveDate}
+                onKeydown={focus.onKeydown}
+                v-slots={slots}
+              />
+            ))}
+          </div>
+        </div>
+
+        {!props.autoApply && !props.readonly ? (
+          <>
+            <VDivider />
+            <VAdvancedDateActions
+              disabled={props.disabled}
+              onApply={handleApply}
+              onCancel={model.cancel}
+              v-slots={slots}
+            />
+          </>
+        ) : null}
+      </VSheet>
+    )
   },
 })

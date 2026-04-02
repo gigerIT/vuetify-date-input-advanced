@@ -77,7 +77,7 @@ describe('VAdvancedDatePicker', () => {
     ).toBeGreaterThan(0)
   })
 
-  it('renders navigation buttons inside the months container without a header section', () => {
+  it('renders navigation buttons inside the month labels without a header section', () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
         modelValue: null,
@@ -86,15 +86,15 @@ describe('VAdvancedDatePicker', () => {
       },
     })
 
-    const months = wrapper.get('.v-advanced-date-picker__months')
+    const labels = wrapper.findAll('.v-advanced-date-picker__month-label')
 
     expect(wrapper.find('.v-advanced-date-picker__header').exists()).toBe(false)
-    expect(months.find('.v-advanced-date-picker__nav--prev').exists()).toBe(
+    expect(labels[0].find('.v-advanced-date-picker__nav--prev').exists()).toBe(
       true,
     )
-    expect(months.find('.v-advanced-date-picker__nav--next').exists()).toBe(
-      true,
-    )
+    expect(
+      labels.at(-1)?.find('.v-advanced-date-picker__nav--next').exists(),
+    ).toBe(true)
   })
 
   it('moves focus with arrow keys and selects with enter', async () => {

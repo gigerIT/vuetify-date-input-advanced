@@ -12,28 +12,6 @@
   clip-path: inset(50%)
   white-space: nowrap
 
-.v-advanced-date-picker__header
-  display: flex
-  align-items: center
-  justify-content: space-between
-  gap: 12px
-  padding: 14px 18px
-
-.v-advanced-date-picker__header-content
-  flex: 1
-  text-align: center
-
-.v-advanced-date-picker__header-summary
-  color: rgb(var(--v-theme-on-surface-variant))
-  font-size: 0.85rem
-  letter-spacing: 0.01em
-  margin-bottom: 4px
-
-.v-advanced-date-picker__header-text
-  font-size: 1.05rem
-  font-weight: 600
-  letter-spacing: 0.01em
-
 .v-advanced-date-picker__body
   display: flex
   min-inline-size: 0
@@ -60,14 +38,33 @@
 .v-advanced-date-picker--stacked .v-advanced-date-picker__months
   flex-direction: column
 
+.v-advanced-date-picker__nav
+  position: absolute
+  inset-block-start: 50%
+  transform: translateY(-50%)
+
+.v-advanced-date-picker__nav--prev
+  inset-inline-start: 0
+
+.v-advanced-date-picker__nav--next
+  inset-inline-end: 0
+
 .v-advanced-date-picker__month
   flex: 1 1 0
   min-inline-size: 0
 
 .v-advanced-date-picker__month-label
+  position: relative
+  display: flex
+  align-items: center
+  justify-content: center
   text-align: center
-  font-weight: 600
+  min-block-size: 36px
+  padding-inline: 40px
   margin-bottom: 14px
+
+.v-advanced-date-picker__month-label-text
+  font-weight: 600
 
 .v-advanced-date-picker__weekday-row,
 .v-advanced-date-picker__week
@@ -103,6 +100,10 @@
 .v-advanced-date-picker__day-cell
   position: relative
   isolation: isolate
+  display: grid
+  place-items: center
+  min-inline-size: var(--v-advanced-date-cell-size)
+  block-size: var(--v-advanced-date-cell-size)
 
 .v-advanced-date-picker__day-cell--outside::before
   display: none
@@ -115,7 +116,7 @@
 .v-advanced-date-picker__day-cell::before
   content: ''
   position: absolute
-  inset-block: 5px
+  inset-block: 1px
   inset-inline: 0
   background: transparent
   z-index: 0
@@ -136,16 +137,20 @@
   inset-inline: 0
 
 .v-advanced-date-picker__day
-  inline-size: 100%
-  min-inline-size: var(--v-advanced-date-cell-size)
-  block-size: var(--v-advanced-date-cell-size)
+  inline-size: calc(var(--v-advanced-date-cell-size) - 8px)
+  min-inline-size: 0
+  block-size: calc(var(--v-advanced-date-cell-size) - 8px)
   border: 0
+  border-radius: 999px
   background: transparent
   color: inherit
   cursor: pointer
   transition: background-color 0.16s ease, color 0.16s ease, opacity 0.16s ease
   position: relative
   z-index: 1
+  display: inline-flex
+  align-items: center
+  justify-content: center
 
 .v-advanced-date-picker__day:hover:not(:disabled),
 .v-advanced-date-picker__day:focus-visible
