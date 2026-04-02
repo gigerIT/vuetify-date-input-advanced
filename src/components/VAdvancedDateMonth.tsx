@@ -1,8 +1,6 @@
 import type { PropType } from 'vue'
 import { defineComponent } from 'vue'
 
-import { VBtn } from 'vuetify/components'
-
 import type { AdvancedDateMonthData } from '@/types'
 
 export const VAdvancedDateMonth = defineComponent({
@@ -18,22 +16,9 @@ export const VAdvancedDateMonth = defineComponent({
       default: '',
     },
     showWeekNumbers: Boolean,
-    showPrevious: Boolean,
-    showNext: Boolean,
-    canPrevious: {
-      type: Boolean,
-      default: true,
-    },
-    canNext: {
-      type: Boolean,
-      default: true,
-    },
-    disabled: Boolean,
   },
 
   emits: {
-    previous: () => true,
-    next: () => true,
     select: (_date: unknown) => true,
     hover: (_date: unknown | null) => true,
     focusDate: (_date: unknown) => true,
@@ -47,46 +32,12 @@ export const VAdvancedDateMonth = defineComponent({
         aria-labelledby={`month-${props.month.key}`}
       >
         <div class="v-advanced-date-picker__month-label">
-          {props.showPrevious ? (
-            <VBtn
-              {...({
-                key: 'previous',
-                class: [
-                  'v-advanced-date-picker__nav',
-                  'v-advanced-date-picker__nav--prev',
-                ],
-                icon: 'mdi-chevron-left',
-                variant: 'text',
-                disabled: !props.canPrevious || props.disabled,
-                'aria-label': 'Previous month',
-                onClick: () => emit('previous'),
-              } as any)}
-            />
-          ) : null}
-
           <span
             id={`month-${props.month.key}`}
             class="v-advanced-date-picker__month-label-text"
           >
             {props.month.label}
           </span>
-
-          {props.showNext ? (
-            <VBtn
-              {...({
-                key: 'next',
-                class: [
-                  'v-advanced-date-picker__nav',
-                  'v-advanced-date-picker__nav--next',
-                ],
-                icon: 'mdi-chevron-right',
-                variant: 'text',
-                disabled: !props.canNext || props.disabled,
-                'aria-label': 'Next month',
-                onClick: () => emit('next'),
-              } as any)}
-            />
-          ) : null}
         </div>
 
         <div class="v-advanced-date-picker__weekday-row" aria-hidden="true">

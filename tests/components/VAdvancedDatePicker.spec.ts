@@ -77,7 +77,7 @@ describe('VAdvancedDatePicker', () => {
     ).toBeGreaterThan(0)
   })
 
-  it('renders navigation buttons inside the month labels without a header section', () => {
+  it('renders fixed navigation buttons outside the animated month labels', () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
         modelValue: null,
@@ -87,14 +87,21 @@ describe('VAdvancedDatePicker', () => {
     })
 
     const labels = wrapper.findAll('.v-advanced-date-picker__month-label')
+    const months = wrapper.find('.v-advanced-date-picker__months')
 
     expect(wrapper.find('.v-advanced-date-picker__header').exists()).toBe(false)
-    expect(labels[0].find('.v-advanced-date-picker__nav--prev').exists()).toBe(
+    expect(months.find('.v-advanced-date-picker__nav--prev').exists()).toBe(
       true,
+    )
+    expect(months.find('.v-advanced-date-picker__nav--next').exists()).toBe(
+      true,
+    )
+    expect(labels[0].find('.v-advanced-date-picker__nav--prev').exists()).toBe(
+      false,
     )
     expect(
       labels.at(-1)?.find('.v-advanced-date-picker__nav--next').exists(),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('does not reuse the clicked previous button as the next button after navigation', async () => {
@@ -153,6 +160,29 @@ describe('VAdvancedDatePicker', () => {
 
     expect(toLocalYmd(finalValue[0])).toBe('2026-01-02')
     expect(finalValue[1]).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('focuses a date after navigating to a different month view', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.vm.focusDate(new Date('2026-03-05'))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date'),
+    ).toBe('2026-03-05')
+    expect(wrapper.text()).toContain('March 2026')
+    expect(wrapper.text()).toContain('April 2026')
 
     wrapper.unmount()
   })

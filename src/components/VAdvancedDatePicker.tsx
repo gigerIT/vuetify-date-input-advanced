@@ -1,7 +1,15 @@
 import type { PropType } from 'vue'
-import { computed, defineComponent, nextTick, ref, toRef } from 'vue'
+import {
+  Transition,
+  computed,
+  defineComponent,
+  nextTick,
+  ref,
+  toRef,
+  watch,
+} from 'vue'
 
-import { VDivider, VSheet } from 'vuetify/components'
+import { VBtn, VDivider, VSheet } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateGrid } from '@/composables/useAdvancedDateGrid'
@@ -113,6 +121,7 @@ export const VAdvancedDatePicker = defineComponent({
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
     const containerRef = ref<HTMLElement | null>(null)
+    const monthsTrackRef = ref<HTMLElement | null>(null)
     const now = adapter.startOfDay(adapter.date() as unknown)
 
     const monthRef = computed(() => props.month ?? adapter.getMonth(now))
@@ -146,6 +155,14 @@ export const VAdvancedDatePicker = defineComponent({
       onYearChange: (value) => emit('update:year', value),
     })
 
+    const isReverse = ref(false)
+
+    watch(navigation.displayedMonth, (value, oldValue) => {
+      if (!oldValue) return
+
+      isReverse.value = adapter.isBefore(value, oldValue)
+    })
+
     const grid = useAdvancedDateGrid({
       adapter,
       visibleMonths: navigation.visibleMonths,
@@ -175,14 +192,26 @@ export const VAdvancedDatePicker = defineComponent({
       )
     })
 
+    const monthsTrackKey = computed(() =>
+      grid.months.value.map((month) => month.key).join(':'),
+    )
+
+    const monthTransition = computed(() =>
+      isReverse.value ? 'picker-reverse-transition' : 'picker-transition',
+    )
+
+    function setMonthsTrackRef(element: unknown) {
+      if (element instanceof HTMLElement) monthsTrackRef.value = element
+    }
+
     function findFocusableButton(
       targetKey: string,
       direction: 1 | -1,
     ): HTMLButtonElement | null {
       const buttons = Array.from(
-        containerRef.value?.querySelectorAll<HTMLButtonElement>(
-          'button[data-date]',
-        ) ?? [],
+        (
+          monthsTrackRef.value ?? containerRef.value
+        )?.querySelectorAll<HTMLButtonElement>('button[data-date]') ?? [],
       )
       const index = buttons.findIndex(
         (button) => button.dataset.date === targetKey,
@@ -216,7 +245,9 @@ export const VAdvancedDatePicker = defineComponent({
         focus.activeDate.value ?? model.normalized.value.start ?? date
       const direction = adapter.isBefore(date, referenceDate) ? -1 : 1
       const direct =
-        containerRef.value?.querySelector<HTMLButtonElement>(selector) ?? null
+        (
+          monthsTrackRef.value ?? containerRef.value
+        )?.querySelector<HTMLButtonElement>(selector) ?? null
       const button = direct?.disabled
         ? findFocusableButton(dateKey(adapter, date), direction)
         : direct
@@ -359,26 +390,55 @@ export const VAdvancedDatePicker = defineComponent({
             onMouseleave={() => model.setHoverDate(null)}
             {...swipe.touchHandlers}
           >
-            {grid.months.value.map((month, index) => (
-              <VAdvancedDateMonth
-                key={month.key}
-                month={month}
-                activeDateKey={activeDateKey.value}
-                showWeekNumbers={props.showWeekNumbers}
-                showPrevious={index === 0}
-                showNext={index === grid.months.value.length - 1}
-                canPrevious={navigation.canPrev.value}
-                canNext={navigation.canNext.value}
-                disabled={props.disabled}
-                onPrevious={navigation.prevMonth}
-                onNext={navigation.nextMonth}
-                onSelect={model.selectDate}
-                onHover={model.setHoverDate}
-                onFocusDate={focus.setActiveDate}
-                onKeydown={focus.onKeydown}
-                v-slots={slots}
-              />
-            ))}
+            <VBtn
+              {...({
+                class: [
+                  'v-advanced-date-picker__nav',
+                  'v-advanced-date-picker__nav--prev',
+                ],
+                icon: 'mdi-chevron-left',
+                variant: 'text',
+                disabled: !navigation.canPrev.value || props.disabled,
+                'aria-label': 'Previous month',
+                onClick: navigation.prevMonth,
+              } as any)}
+            />
+
+            <Transition name={monthTransition.value}>
+              <div
+                ref={setMonthsTrackRef}
+                key={monthsTrackKey.value}
+                class="v-advanced-date-picker__months-track"
+              >
+                {grid.months.value.map((month) => (
+                  <VAdvancedDateMonth
+                    key={month.key}
+                    month={month}
+                    activeDateKey={activeDateKey.value}
+                    showWeekNumbers={props.showWeekNumbers}
+                    onSelect={model.selectDate}
+                    onHover={model.setHoverDate}
+                    onFocusDate={focus.setActiveDate}
+                    onKeydown={focus.onKeydown}
+                    v-slots={slots}
+                  />
+                ))}
+              </div>
+            </Transition>
+
+            <VBtn
+              {...({
+                class: [
+                  'v-advanced-date-picker__nav',
+                  'v-advanced-date-picker__nav--next',
+                ],
+                icon: 'mdi-chevron-right',
+                variant: 'text',
+                disabled: !navigation.canNext.value || props.disabled,
+                'aria-label': 'Next month',
+                onClick: navigation.nextMonth,
+              } as any)}
+            />
           </div>
         </div>
 

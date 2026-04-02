@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { VMenu } from 'vuetify/components'
 
 import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 
@@ -67,17 +66,38 @@ describe('VAdvancedDateInput', () => {
   })
 
   it('does not force the menu overlay to match the activator width', () => {
-    const wrapper = render(VAdvancedDateInput, {
-      props: {
-        modelValue: null,
-      },
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
     })
+    window.dispatchEvent(new Event('resize'))
 
-    const menu = wrapper.findComponent(VMenu)
+    let wrapper: ReturnType<typeof render> | null = null
 
-    expect(menu.props('minWidth')).toBe(0)
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+        },
+      })
 
-    wrapper.unmount()
+      const menu = wrapper.findComponent({ name: 'VMenu' })
+
+      expect(menu.exists()).toBe(true)
+      expect(menu.props('minWidth')).toBe(0)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
   })
 
   it('shows an error for invalid typed ranges', async () => {

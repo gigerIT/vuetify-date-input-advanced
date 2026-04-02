@@ -34,25 +34,32 @@
   flex-basis: auto
 
 .v-advanced-date-picker__months
-  display: flex
-  gap: var(--v-advanced-date-gap)
-  padding: 18px 20px 20px
   flex: 1 1 auto
   min-inline-size: 0
+  position: relative
+  overflow: hidden
+  padding: 18px 20px 20px
 
-.v-advanced-date-picker--stacked .v-advanced-date-picker__months
+.v-advanced-date-picker__months-track
+  display: flex
+  gap: var(--v-advanced-date-gap)
+  inline-size: 100%
+  min-inline-size: 0
+
+.v-advanced-date-picker--stacked .v-advanced-date-picker__months-track
   flex-direction: column
 
 .v-advanced-date-picker__nav
   position: absolute
-  inset-block-start: 50%
+  inset-block-start: 36px
   transform: translateY(-50%)
+  z-index: 1
 
 .v-advanced-date-picker__nav--prev
-  inset-inline-start: 0
+  inset-inline-start: 20px
 
 .v-advanced-date-picker__nav--next
-  inset-inline-end: 0
+  inset-inline-end: 20px
 
 .v-advanced-date-picker__month
   flex: 1 1 0
