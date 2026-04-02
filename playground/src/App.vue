@@ -117,7 +117,34 @@ const output = computed(() => ({
                       v-model:menu="menu"
                       label="Travel dates"
                       :months="2"
+                      :show-presets="false"
+                    />
+                  </v-card-text>
+                </v-card>
+
+                <v-card variant="outlined">
+                  <v-card-title>Range Input with presets</v-card-title>
+                  <v-card-text>
+                    <v-advanced-date-input
+                      v-model="rangeValue"
+                      v-model:menu="menu"
+                      label="Travel dates"
+                      :months="2"
                       show-presets
+                    />
+                  </v-card-text>
+                </v-card>
+
+                <v-card variant="outlined">
+                  <v-card-title>Range Input with custom presets</v-card-title>
+                  <v-card-text>
+                    <v-advanced-date-input
+                      v-model="rangeValue"
+                      v-model:menu="menu"
+                      label="Travel dates"
+                      :months="2"
+                      show-presets
+                      :presets="customPresets"
                     />
                   </v-card-text>
                 </v-card>
