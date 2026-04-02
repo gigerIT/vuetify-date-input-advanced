@@ -5,7 +5,11 @@ import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateInput } from '@/composables/useAdvancedDateInput'
-import type { AdvancedDateAdapter, AdvancedDateModel, PresetRange } from '@/types'
+import type {
+  AdvancedDateAdapter,
+  AdvancedDateModel,
+  PresetRange,
+} from '@/types'
 import { normalizeModel } from '@/util/model'
 
 import '@/styles/VAdvancedDateInput.sass'
@@ -27,7 +31,9 @@ export const VAdvancedDateInput = defineComponent({
 
   props: {
     modelValue: {
-      type: [Object, Array, Date, String, Number] as PropType<AdvancedDateModel<unknown>>,
+      type: [Object, Array, Date, String, Number] as PropType<
+        AdvancedDateModel<unknown>
+      >,
       default: null,
     },
     menu: Boolean,
@@ -151,7 +157,7 @@ export const VAdvancedDateInput = defineComponent({
 
     watch(
       () => props.menu,
-      value => {
+      (value) => {
         menu.value = value
       },
     )
@@ -167,10 +173,10 @@ export const VAdvancedDateInput = defineComponent({
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
       allowedDates: toRef(props, 'allowedDates'),
-      onUpdate: value => emit('update:modelValue', value),
+      onUpdate: (value) => emit('update:modelValue', value),
     })
 
-    watch(menu, async value => {
+    watch(menu, async (value) => {
       if (!value) return
       await nextTick()
       pickerRef.value?.focusActiveDate?.()
@@ -179,7 +185,9 @@ export const VAdvancedDateInput = defineComponent({
     const mergedErrorMessages = computed(() => {
       const base = Array.isArray(props.errorMessages)
         ? props.errorMessages
-        : props.errorMessages ? [props.errorMessages] : []
+        : props.errorMessages
+          ? [props.errorMessages]
+          : []
 
       return [...base, ...input.errorMessages.value]
     })
@@ -191,7 +199,11 @@ export const VAdvancedDateInput = defineComponent({
 
     function handlePickerUpdate(value: AdvancedDateModel<unknown>) {
       emit('update:modelValue', value)
-      if (!props.inline && props.autoApply && shouldCloseOnSelection(adapter, value, props.range)) {
+      if (
+        !props.inline &&
+        props.autoApply &&
+        shouldCloseOnSelection(adapter, value, props.range)
+      ) {
         setMenu(false)
       }
     }
@@ -249,11 +261,11 @@ export const VAdvancedDateInput = defineComponent({
           ref={pickerRef}
           {...pickerProps.value}
           onUpdate:modelValue={handlePickerUpdate}
-          onUpdate:month={value => emit('update:month', value)}
-          onUpdate:year={value => emit('update:year', value)}
+          onUpdate:month={(value) => emit('update:month', value)}
+          onUpdate:year={(value) => emit('update:year', value)}
           onApply={handleApply}
           onCancel={handleCancel}
-          onPresetSelect={preset => emit('presetSelect', preset)}
+          onPresetSelect={(preset) => emit('presetSelect', preset)}
           v-slots={slots}
         />
       )
@@ -321,7 +333,7 @@ export const VAdvancedDateInput = defineComponent({
         return (
           <div class="v-advanced-date-input-shell">
             {renderField()}
-            <VDialog v-model={menu.value} maxWidth="960">
+            <VDialog v-model={menu.value} fullscreen>
               {renderPicker()}
             </VDialog>
           </div>
@@ -331,7 +343,11 @@ export const VAdvancedDateInput = defineComponent({
       return (
         <VMenu v-model={menu.value} closeOnContentClick={false} offset={8}>
           {{
-            activator: ({ props: activatorProps }: { props: Record<string, unknown> }) => renderField(activatorProps),
+            activator: ({
+              props: activatorProps,
+            }: {
+              props: Record<string, unknown>
+            }) => renderField(activatorProps),
             default: () => renderPicker(),
           }}
         </VMenu>

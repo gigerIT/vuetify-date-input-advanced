@@ -5,6 +5,42 @@ import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 import { render } from '../render'
 
 describe('VAdvancedDateInput', () => {
+  it('uses a fullscreen dialog on mobile', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+        },
+        attachTo: document.body,
+      })
+
+      const dialog = wrapper.findComponent({ name: 'VDialog' })
+
+      expect(dialog.exists()).toBe(true)
+      expect(dialog.props('fullscreen')).toBe(true)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
   it('parses a typed range and emits the normalized tuple on enter', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {
