@@ -356,6 +356,7 @@ export const VAdvancedDatePicker = defineComponent({
             ref={containerRef}
             class="v-advanced-date-picker__months"
             style={{ touchAction: 'pan-y' }}
+            onMouseleave={() => model.setHoverDate(null)}
             {...swipe.touchHandlers}
           >
             {grid.months.value.map((month, index) => (

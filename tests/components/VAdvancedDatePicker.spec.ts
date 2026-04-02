@@ -195,4 +195,33 @@ describe('VAdvancedDatePicker', () => {
     expect(toLocalYmd(finalValue[0])).toBe('2026-04-01')
     expect(toLocalYmd(finalValue[1])).toBe('2026-04-10')
   })
+
+  it('keeps the range preview visible while crossing gaps between weeks', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-02"]').trigger('click')
+    await wrapper.find('[data-date="2026-01-10"]').trigger('mouseenter')
+
+    expect(
+      wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
+    ).toBeGreaterThan(0)
+
+    await wrapper.find('[data-date="2026-01-10"]').trigger('mouseleave')
+
+    expect(
+      wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
+    ).toBeGreaterThan(0)
+
+    await wrapper.find('.v-advanced-date-picker__months').trigger('mouseleave')
+
+    expect(
+      wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
+    ).toBe(0)
+  })
 })

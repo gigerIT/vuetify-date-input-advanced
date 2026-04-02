@@ -150,7 +150,6 @@ export const VAdvancedDateMonth = defineComponent({
                   onClick: () => emit('select', day.date),
                   onFocus: () => emit('focusDate', day.date),
                   onMouseenter: () => emit('hover', day.date),
-                  onMouseleave: () => emit('hover', null),
                   onKeydown: (event: KeyboardEvent) =>
                     emit('keydown', event, day.date),
                 }
