@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import type { AdvancedDateModel, PresetRange } from 'vuetify-date-input-advanced'
+import type {
+  AdvancedDateModel,
+  PresetRange,
+} from 'vuetify-date-input-advanced'
 
 const today = new Date()
 const inSevenDays = new Date(today)
@@ -27,7 +30,7 @@ const customPresets: PresetRange<Date>[] = [
     value: () => {
       const start = new Date()
       const day = start.getDay()
-      const delta = ((5 - day) + 7) % 7
+      const delta = (5 - day + 7) % 7
       start.setDate(start.getDate() + delta)
       const end = new Date(start)
       end.setDate(start.getDate() + 2)
@@ -51,14 +54,24 @@ function disableWeekends(date: Date) {
   return day !== 0 && day !== 6
 }
 
+function toLocalYmd(date: Date | null | undefined) {
+  if (!date) return null
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
 function serializeModel(value: AdvancedDateModel<Date>) {
   if (value == null) return null
-  if (Array.isArray(value)) return value.map(item => item?.toISOString().slice(0, 10) ?? null)
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  if (Array.isArray(value)) return value.map((item) => toLocalYmd(item))
+  if (value instanceof Date) return toLocalYmd(value)
   if ('start' in value && 'end' in value) {
     return {
-      start: value.start?.toISOString().slice(0, 10) ?? null,
-      end: value.end?.toISOString().slice(0, 10) ?? null,
+      start: toLocalYmd(value.start),
+      end: toLocalYmd(value.end),
     }
   }
 
@@ -84,9 +97,12 @@ const output = computed(() => ({
         <div class="d-flex flex-column ga-8">
           <div>
             <div class="text-overline text-medium-emphasis">Playground</div>
-            <h1 class="text-h4 font-weight-bold mb-2">Vuetify Advanced Date Picker</h1>
+            <h1 class="text-h4 font-weight-bold mb-2">
+              Vuetify Advanced Date Picker
+            </h1>
             <p class="text-body-1 text-medium-emphasis">
-              Baseline manual QA app for range, single, inline, constrained, and typed-input flows.
+              Baseline manual QA app for range, single, inline, constrained, and
+              typed-input flows.
             </p>
           </div>
 
@@ -161,9 +177,13 @@ const output = computed(() => ({
                       :presets="customPresets"
                     >
                       <template #preset-highlight="{ preset }">
-                        <div class="d-flex align-center justify-space-between w-100">
+                        <div
+                          class="d-flex align-center justify-space-between w-100"
+                        >
                           <span>{{ preset.label }}</span>
-                          <v-chip size="x-small" color="primary" variant="tonal">Custom</v-chip>
+                          <v-chip size="x-small" color="primary" variant="tonal"
+                            >Custom</v-chip
+                          >
                         </div>
                       </template>
                     </v-advanced-date-input>
@@ -173,7 +193,9 @@ const output = computed(() => ({
                 <v-card variant="outlined">
                   <v-card-title>Emitted Model</v-card-title>
                   <v-card-text>
-                    <pre class="text-body-2">{{ JSON.stringify(output, null, 2) }}</pre>
+                    <pre class="text-body-2">{{
+                      JSON.stringify(output, null, 2)
+                    }}</pre>
                   </v-card-text>
                 </v-card>
               </div>

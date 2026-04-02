@@ -72,7 +72,29 @@ describe('VAdvancedDatePicker', () => {
     expect(january.find('[data-date="2025-12-31"]').exists()).toBe(false)
     expect(january.find('[data-date="2026-02-01"]').exists()).toBe(false)
     expect(january.findAll('button[data-date]').length).toBe(31)
-    expect(january.findAll('.v-advanced-date-picker__day-placeholder').length).toBeGreaterThan(0)
+    expect(
+      january.findAll('.v-advanced-date-picker__day-placeholder').length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('renders navigation buttons inside the months container without a header section', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    const months = wrapper.get('.v-advanced-date-picker__months')
+
+    expect(wrapper.find('.v-advanced-date-picker__header').exists()).toBe(false)
+    expect(months.find('.v-advanced-date-picker__nav--prev').exists()).toBe(
+      true,
+    )
+    expect(months.find('.v-advanced-date-picker__nav--next').exists()).toBe(
+      true,
+    )
   })
 
   it('moves focus with arrow keys and selects with enter', async () => {
@@ -92,9 +114,13 @@ describe('VAdvancedDatePicker', () => {
     await wrapper.vm.$nextTick()
     await wrapper.vm.$nextTick()
 
-    expect((document.activeElement as HTMLElement | null)?.getAttribute('data-date')).toBe('2026-01-02')
+    expect(
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date'),
+    ).toBe('2026-01-02')
 
-    await wrapper.find('[data-date="2026-01-02"]').trigger('keydown', { key: 'Enter' })
+    await wrapper
+      .find('[data-date="2026-01-02"]')
+      .trigger('keydown', { key: 'Enter' })
 
     const emissions = wrapper.emitted('update:modelValue') ?? []
     const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
@@ -123,5 +149,24 @@ describe('VAdvancedDatePicker', () => {
 
     expect(toLocalYmd(finalValue[0])).toBe('2026-01-12')
     expect(finalValue[1]).toBeNull()
+  })
+
+  it('emits the local calendar days for april ranges', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 3,
+        year: 2026,
+      },
+    })
+
+    await wrapper.find('[data-date="2026-04-01"]').trigger('click')
+    await wrapper.find('[data-date="2026-04-10"]').trigger('click')
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
+
+    expect(toLocalYmd(finalValue[0])).toBe('2026-04-01')
+    expect(toLocalYmd(finalValue[1])).toBe('2026-04-10')
   })
 })
