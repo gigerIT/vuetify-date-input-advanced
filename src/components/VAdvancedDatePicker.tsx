@@ -87,6 +87,7 @@ export const VAdvancedDatePicker = defineComponent({
     },
     allowedDates: Function as PropType<(date: unknown) => boolean>,
     showWeekNumbers: Boolean,
+    firstDayOfWeek: [String, Number] as PropType<string | number>,
     disabled: Boolean,
     readonly: Boolean,
     color: {
@@ -254,6 +255,7 @@ export const VAdvancedDatePicker = defineComponent({
       hoveredDate: model.hoveredDate,
       range: toRef(props, 'range'),
       showWeekNumbers: toRef(props, 'showWeekNumbers'),
+      firstDayOfWeek: toRef(props, 'firstDayOfWeek'),
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
       allowedDates: toRef(props, 'allowedDates'),
@@ -639,6 +641,7 @@ export const VAdvancedDatePicker = defineComponent({
 
     const focus = useRovingFocus({
       adapter,
+      firstDayOfWeek: toRef(props, 'firstDayOfWeek'),
       onFocusDate: focusDate,
       onSelect: (date) => model.selectDate(date),
       onEscape: () => emit('cancel'),

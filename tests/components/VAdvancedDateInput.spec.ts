@@ -232,6 +232,23 @@ describe('VAdvancedDateInput', () => {
     wrapper.unmount()
   })
 
+  it('forwards firstDayOfWeek to the inline picker', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        inline: true,
+        months: 1,
+        month: 0,
+        year: 2026,
+        firstDayOfWeek: 1,
+      },
+    })
+
+    expect(wrapper.findAll('.v-advanced-date-picker__weekday')[0].text()).toBe(
+      'M',
+    )
+  })
+
   it('does not force the menu overlay to match the activator width', () => {
     const originalWidth = window.innerWidth
 

@@ -1,10 +1,11 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 import type { AdvancedDateAdapter } from '@/types'
 import { getWeekdayIndex } from '@/util/week'
 
 export function useRovingFocus<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
+  firstDayOfWeek?: Ref<number | string | undefined>
   onFocusDate?: (date: TDate) => void
   onSelect?: (date: TDate) => void
   onEscape?: () => void
@@ -13,6 +14,16 @@ export function useRovingFocus<TDate>(options: {
 
   function setActiveDate(date: TDate | null) {
     activeDate.value = date
+  }
+
+  function getWeekStart(date: TDate): TDate {
+    return (
+      options.adapter.startOfWeek?.(date, options.firstDayOfWeek?.value) ??
+      options.adapter.addDays(
+        date,
+        -getWeekdayIndex(options.adapter, date, options.firstDayOfWeek?.value),
+      )
+    )
   }
 
   function onKeydown(event: KeyboardEvent, date: TDate) {
@@ -32,10 +43,10 @@ export function useRovingFocus<TDate>(options: {
         next = options.adapter.addDays(date, 7)
         break
       case 'Home':
-        next = options.adapter.addDays(date, -getWeekdayIndex(options.adapter, date))
+        next = getWeekStart(date)
         break
       case 'End':
-        next = options.adapter.addDays(date, 6 - getWeekdayIndex(options.adapter, date))
+        next = options.adapter.addDays(getWeekStart(date), 6)
         break
       case 'PageUp':
         next = event.shiftKey

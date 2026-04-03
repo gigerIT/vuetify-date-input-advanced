@@ -5,7 +5,20 @@ function toLocalMidday(iso: string): Date {
   return new Date(`${datePart}T12:00:00`)
 }
 
-export function getIsoWeekNumber<TDate>(adapter: AdvancedDateAdapter<TDate>, date: TDate): number {
+function normalizeFirstDayOfWeek(firstDayOfWeek?: number | string): number {
+  if (firstDayOfWeek === undefined) return 0
+
+  const normalized = Number(firstDayOfWeek)
+
+  if (!Number.isInteger(normalized)) return 0
+
+  return ((normalized % 7) + 7) % 7
+}
+
+export function getIsoWeekNumber<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date: TDate,
+): number {
   const jsDate = toLocalMidday(adapter.toISO(date))
   const weekday = (jsDate.getDay() + 6) % 7
   jsDate.setDate(jsDate.getDate() + 3 - weekday)
@@ -19,6 +32,13 @@ export function getIsoWeekNumber<TDate>(adapter: AdvancedDateAdapter<TDate>, dat
   return 1 + Math.round(diff / 604800000)
 }
 
-export function getWeekdayIndex<TDate>(adapter: AdvancedDateAdapter<TDate>, date: TDate): number {
-  return toLocalMidday(adapter.toISO(date)).getDay()
+export function getWeekdayIndex<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date: TDate,
+  firstDayOfWeek?: number | string,
+): number {
+  const weekday = toLocalMidday(adapter.toISO(date)).getDay()
+  const offset = normalizeFirstDayOfWeek(firstDayOfWeek)
+
+  return (weekday - offset + 7) % 7
 }

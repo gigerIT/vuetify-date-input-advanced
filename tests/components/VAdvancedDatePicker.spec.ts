@@ -102,6 +102,31 @@ describe('VAdvancedDatePicker', () => {
     }
   })
 
+  it('applies firstDayOfWeek to the weekday order and grid alignment', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        months: 1,
+        month: 0,
+        year: 2026,
+        firstDayOfWeek: 1,
+      },
+    })
+
+    const weekdays = wrapper
+      .findAll('.v-advanced-date-picker__weekday')
+      .map((node) => node.text())
+    const firstWeek = wrapper.findAll('.v-advanced-date-picker__week')[0]
+    const firstWeekCells = firstWeek.findAll(
+      '.v-advanced-date-picker__day-cell',
+    )
+
+    expect(weekdays[0]).toBe('M')
+    expect(firstWeekCells[3].find('[data-date="2026-01-01"]').exists()).toBe(
+      true,
+    )
+  })
+
   it('renders fixed navigation buttons outside the animated month labels', () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
@@ -231,6 +256,42 @@ describe('VAdvancedDatePicker', () => {
 
     expect(toLocalYmd(finalValue[0])).toBe('2026-01-02')
     expect(finalValue[1]).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('aligns Home and End keyboard navigation with firstDayOfWeek', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        months: 1,
+        month: 0,
+        year: 2026,
+        firstDayOfWeek: 1,
+      },
+      attachTo: document.body,
+    })
+
+    const first = wrapper.find('[data-date="2026-01-01"]')
+
+    await first.trigger('focus')
+    await first.trigger('keydown', { key: 'End' })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date'),
+    ).toBe('2026-01-04')
+
+    await wrapper
+      .find('[data-date="2026-01-04"]')
+      .trigger('keydown', { key: 'Home' })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date'),
+    ).toBe('2025-12-29')
 
     wrapper.unmount()
   })

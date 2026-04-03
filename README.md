@@ -18,7 +18,8 @@ The components use Vuetify's active date adapter through `useDate()`, so locale,
 - Typed input parsing and validation
 - Built-in range presets plus custom preset slots
 - `min`, `max`, and `allowedDates` constraints
-- Optional ISO week numbers
+- Configurable week start via `firstDayOfWeek`
+- Optional week numbers
 - Keyboard navigation and live announcements
 - Theme-aware styling with CSS custom properties
 
@@ -125,12 +126,14 @@ const year = ref(2026)
     v-model:month="month"
     v-model:year="year"
     :months="2"
+    :first-day-of-week="1"
     :auto-apply="false"
   />
 </template>
 ```
 
 In the current implementation and tests, `month` is zero-based, so `0` is January.
+Use `first-day-of-week` in templates to match Vuetify's `VDatePicker` behavior, where `0` is Sunday, `1` is Monday, and so on.
 
 ## Model Shapes
 
@@ -248,33 +251,34 @@ On mobile, the picker switches to a vertically scrollable, windowed month list i
 
 These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 
-| Prop              | Type                                       | Default                | Notes                                                                                                    |
-| ----------------- | ------------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| `modelValue`      | `AdvancedDateModel<TDate>`                 | `null`                 | Current value                                                                                            |
-| `range`           | `boolean`                                  | `true`                 | Set `false` for single-date mode                                                                         |
-| `returnObject`    | `boolean`                                  | `false`                | Range mode only; emits `{ start, end }` instead of a tuple                                               |
-| `months`          | `number`                                   | `2`                    | Visible month count, clamped to at least `1`                                                             |
-| `month`           | `number \| undefined`                      | current month          | Leading visible month                                                                                    |
-| `year`            | `number \| undefined`                      | current year           | Leading visible year                                                                                     |
-| `presets`         | `PresetRange<TDate>[] \| undefined`        | built-in range presets | Ignored when `range=false`                                                                               |
-| `showPresets`     | `boolean`                                  | `true`                 | Shows or hides the preset list in range mode                                                             |
-| `swipeable`       | `boolean`                                  | `true`                 | Public prop; the current source does not attach swipe handlers                                           |
-| `autoApply`       | `boolean`                                  | `true`                 | `false` enables draft selection and footer actions                                                       |
-| `min`             | `TDate \| null`                            | `null`                 | Minimum selectable date                                                                                  |
-| `max`             | `TDate \| null`                            | `null`                 | Maximum selectable date                                                                                  |
-| `allowedDates`    | `(date: TDate) => boolean`                 | `undefined`            | Additional per-day availability check                                                                    |
-| `showWeekNumbers` | `boolean`                                  | `false`                | Displays ISO week numbers                                                                                |
-| `disabled`        | `boolean`                                  | `false`                | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints |
-| `readonly`        | `boolean`                                  | `false`                | Marks the input readonly; the manual action footer is hidden                                             |
-| `color`           | `string`                                   | `primary`              | Accent color for selected days and range previews                                                        |
-| `theme`           | `string \| undefined`                      | inherited              | Passed to the picker `VSheet`                                                                            |
-| `rounded`         | `string \| number \| boolean \| undefined` | `undefined`            | Passed to the picker `VSheet`                                                                            |
-| `border`          | `string \| number \| boolean`              | `true`                 | Passed to the picker `VSheet`                                                                            |
-| `elevation`       | `string \| number`                         | `2`                    | Passed to the picker `VSheet`                                                                            |
-| `width`           | `string \| number \| undefined`            | `undefined`            | Picker width                                                                                             |
-| `minWidth`        | `string \| number \| undefined`            | `undefined`            | Picker min width; also used for the desktop menu wrapper                                                 |
-| `maxWidth`        | `string \| number \| undefined`            | `undefined`            | Picker max width                                                                                         |
-| `density`         | `'default' \| 'comfortable' \| 'compact'`  | `default`              | Picker density and input density                                                                         |
+| Prop              | Type                                       | Default                   | Notes                                                                                                             |
+| ----------------- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `modelValue`      | `AdvancedDateModel<TDate>`                 | `null`                    | Current value                                                                                                     |
+| `range`           | `boolean`                                  | `true`                    | Set `false` for single-date mode                                                                                  |
+| `returnObject`    | `boolean`                                  | `false`                   | Range mode only; emits `{ start, end }` instead of a tuple                                                        |
+| `months`          | `number`                                   | `2`                       | Visible month count, clamped to at least `1`                                                                      |
+| `month`           | `number \| undefined`                      | current month             | Leading visible month                                                                                             |
+| `year`            | `number \| undefined`                      | current year              | Leading visible year                                                                                              |
+| `presets`         | `PresetRange<TDate>[] \| undefined`        | built-in range presets    | Ignored when `range=false`                                                                                        |
+| `showPresets`     | `boolean`                                  | `true`                    | Shows or hides the preset list in range mode                                                                      |
+| `swipeable`       | `boolean`                                  | `true`                    | Public prop; the current source does not attach swipe handlers                                                    |
+| `autoApply`       | `boolean`                                  | `true`                    | `false` enables draft selection and footer actions                                                                |
+| `min`             | `TDate \| null`                            | `null`                    | Minimum selectable date                                                                                           |
+| `max`             | `TDate \| null`                            | `null`                    | Maximum selectable date                                                                                           |
+| `allowedDates`    | `(date: TDate) => boolean`                 | `undefined`               | Additional per-day availability check                                                                             |
+| `showWeekNumbers` | `boolean`                                  | `false`                   | Displays week numbers; uses adapter week calculations when available and otherwise falls back to ISO week numbers |
+| `firstDayOfWeek`  | `string \| number \| undefined`            | adapter or locale default | Mirrors Vuetify `VDatePicker`; `0` starts weeks on Sunday, `1` on Monday, and so on                               |
+| `disabled`        | `boolean`                                  | `false`                   | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints          |
+| `readonly`        | `boolean`                                  | `false`                   | Marks the input readonly; the manual action footer is hidden                                                      |
+| `color`           | `string`                                   | `primary`                 | Accent color for selected days and range previews                                                                 |
+| `theme`           | `string \| undefined`                      | inherited                 | Passed to the picker `VSheet`                                                                                     |
+| `rounded`         | `string \| number \| boolean \| undefined` | `undefined`               | Passed to the picker `VSheet`                                                                                     |
+| `border`          | `string \| number \| boolean`              | `true`                    | Passed to the picker `VSheet`                                                                                     |
+| `elevation`       | `string \| number`                         | `2`                       | Passed to the picker `VSheet`                                                                                     |
+| `width`           | `string \| number \| undefined`            | `undefined`               | Picker width                                                                                                      |
+| `minWidth`        | `string \| number \| undefined`            | `undefined`               | Picker min width; also used for the desktop menu wrapper                                                          |
+| `maxWidth`        | `string \| number \| undefined`            | `undefined`               | Picker max width                                                                                                  |
+| `density`         | `'default' \| 'comfortable' \| 'compact'`  | `default`                 | Picker density and input density                                                                                  |
 
 ### `VAdvancedDateInput`-Only Props
 
@@ -377,15 +381,15 @@ The current implementation includes:
 
 Keyboard shortcuts:
 
-| Key                               | Behavior                     |
-| --------------------------------- | ---------------------------- |
-| `ArrowLeft` / `ArrowRight`        | Move 1 day                   |
-| `ArrowUp` / `ArrowDown`           | Move 1 week                  |
-| `Home` / `End`                    | Move to start or end of week |
-| `PageUp` / `PageDown`             | Move 1 month                 |
-| `Shift+PageUp` / `Shift+PageDown` | Move 1 year                  |
-| `Enter` / `Space`                 | Select active day            |
-| `Escape`                          | Cancel picker interaction    |
+| Key                               | Behavior                                                           |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `ArrowLeft` / `ArrowRight`        | Move 1 day                                                         |
+| `ArrowUp` / `ArrowDown`           | Move 1 week                                                        |
+| `Home` / `End`                    | Move to start or end of the current week based on `firstDayOfWeek` |
+| `PageUp` / `PageDown`             | Move 1 month                                                       |
+| `Shift+PageUp` / `Shift+PageDown` | Move 1 year                                                        |
+| `Enter` / `Space`                 | Select active day                                                  |
+| `Escape`                          | Cancel picker interaction                                          |
 
 ## Development
 

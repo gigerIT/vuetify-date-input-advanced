@@ -1,10 +1,14 @@
 export interface AdvancedDateAdapter<TDate = Date> {
   date: (value?: any) => TDate | null
-  format: (date: TDate, formatString: string | Record<string, unknown>) => string
+  format: (
+    date: TDate,
+    formatString: string | Record<string, unknown>,
+  ) => string
   toISO: (date: TDate) => string
   parseISO: (value: string) => TDate
   startOfDay: (date: TDate) => TDate
   endOfDay: (date: TDate) => TDate
+  startOfWeek?: (date: TDate, firstDayOfWeek?: number | string) => TDate
   startOfMonth: (date: TDate) => TDate
   endOfMonth: (date: TDate) => TDate
   startOfYear: (date: TDate) => TDate
@@ -22,8 +26,16 @@ export interface AdvancedDateAdapter<TDate = Date> {
   setYear: (date: TDate, year: number) => TDate
   getMonth: (date: TDate) => number
   setMonth: (date: TDate, month: number) => TDate
-  getWeekArray: (date: TDate) => TDate[][]
-  getWeekdays: () => string[]
+  getWeek?: (
+    date: TDate,
+    firstDayOfWeek?: number | string,
+    firstDayOfYear?: number | string,
+  ) => number
+  getWeekArray: (date: TDate, firstDayOfWeek?: number | string) => TDate[][]
+  getWeekdays: (
+    firstDayOfWeek?: number | string,
+    weekdayFormat?: string,
+  ) => string[]
 }
 
 export type AdvancedDateRangeTuple<TDate = Date> = readonly [

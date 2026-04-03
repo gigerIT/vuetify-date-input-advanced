@@ -111,6 +111,7 @@ export const VAdvancedDateInput = defineComponent({
     },
     allowedDates: Function as PropType<(date: unknown) => boolean>,
     showWeekNumbers: Boolean,
+    firstDayOfWeek: [String, Number] as PropType<string | number>,
     displayFormat: {
       type: String,
       default: 'fullDate',
@@ -256,6 +257,7 @@ export const VAdvancedDateInput = defineComponent({
       max: props.max,
       allowedDates: props.allowedDates,
       showWeekNumbers: props.showWeekNumbers,
+      firstDayOfWeek: props.firstDayOfWeek,
       disabled: props.disabled,
       readonly: props.readonly,
       color: props.color,

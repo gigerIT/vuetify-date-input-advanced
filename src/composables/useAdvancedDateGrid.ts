@@ -50,6 +50,7 @@ export function useAdvancedDateGrid<TDate>(options: {
   hoveredDate: Ref<TDate | null>
   range: Ref<boolean>
   showWeekNumbers: Ref<boolean>
+  firstDayOfWeek: Ref<number | string | undefined>
   min: Ref<TDate | null | undefined>
   max: Ref<TDate | null | undefined>
   allowedDates: Ref<((date: TDate) => boolean) | undefined>
@@ -78,26 +79,30 @@ export function useAdvancedDateGrid<TDate>(options: {
 
   // Keep expensive calendar metadata stable so hover only recomputes selection state.
   const staticMonths = computed<AdvancedDateMonthMeta<TDate>[]>(() => {
-    const weekdays = options.adapter.getWeekdays()
+    const firstDayOfWeek = options.firstDayOfWeek.value
+    const weekdays = options.adapter.getWeekdays(firstDayOfWeek)
 
     return options.visibleMonths.value.map((month) => {
-      const weeks = options.adapter.getWeekArray(month).map((week, index) => {
-        return {
-          index,
-          weekNumber: options.showWeekNumbers.value
-            ? getIsoWeekNumber(options.adapter, week[0])
-            : undefined,
-          days: week.map((day) => ({
-            date: day,
-            key: dateKey(options.adapter, day),
-            label: options.adapter.format(day, 'dayOfMonth'),
-            ariaLabel: options.adapter.format(day, 'fullDateWithWeekday'),
-            outside: !options.adapter.isSameMonth(day, month),
-            disabled: isDateDisabled(options.adapter, day, bounds.value),
-            today: isSameDay(options.adapter, day, todayValue),
-          })),
-        }
-      })
+      const weeks = options.adapter
+        .getWeekArray(month, firstDayOfWeek)
+        .map((week, index) => {
+          return {
+            index,
+            weekNumber: options.showWeekNumbers.value
+              ? (options.adapter.getWeek?.(week[0], firstDayOfWeek) ??
+                getIsoWeekNumber(options.adapter, week[0]))
+              : undefined,
+            days: week.map((day) => ({
+              date: day,
+              key: dateKey(options.adapter, day),
+              label: options.adapter.format(day, 'dayOfMonth'),
+              ariaLabel: options.adapter.format(day, 'fullDateWithWeekday'),
+              outside: !options.adapter.isSameMonth(day, month),
+              disabled: isDateDisabled(options.adapter, day, bounds.value),
+              today: isSameDay(options.adapter, day, todayValue),
+            })),
+          }
+        })
 
       return {
         date: month,
