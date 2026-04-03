@@ -14,6 +14,14 @@ function toLocalYmd(date: Date | null | undefined) {
   ].join('-')
 }
 
+function allowOnly(...allowedDates: string[]) {
+  const allowed = new Set(allowedDates)
+
+  return (date: unknown) => {
+    return date instanceof Date && allowed.has(toLocalYmd(date) ?? '')
+  }
+}
+
 describe('VAdvancedDatePicker', () => {
   it('emits a completed range after two valid clicks', async () => {
     const wrapper = render(VAdvancedDatePicker, {
@@ -37,6 +45,76 @@ describe('VAdvancedDatePicker', () => {
     expect(finalValue[1]).toBeInstanceOf(Date)
   })
 
+  it('uses allowedStartDates before a range start is chosen', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        allowedStartDates: allowOnly('2026-01-05'),
+      },
+    })
+
+    expect(
+      wrapper.find('[data-date="2026-01-04"]').attributes('disabled'),
+    ).toBeDefined()
+    expect(
+      wrapper.find('[data-date="2026-01-05"]').attributes('disabled'),
+    ).toBeUndefined()
+  })
+
+  it('uses allowedEndDates while completing a range', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        allowedStartDates: allowOnly('2026-01-05'),
+        allowedEndDates: allowOnly('2026-01-09'),
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-05"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(
+      wrapper.find('[data-date="2026-01-08"]').attributes('disabled'),
+    ).toBeDefined()
+    expect(
+      wrapper.find('[data-date="2026-01-09"]').attributes('disabled'),
+    ).toBeUndefined()
+  })
+
+  it('validates the second click against the ordered range endpoints', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        allowedStartDates: allowOnly('2026-01-05', '2026-01-10'),
+        allowedEndDates: allowOnly('2026-01-10'),
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-10"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(
+      wrapper.find('[data-date="2026-01-05"]').attributes('disabled'),
+    ).toBeUndefined()
+    expect(
+      wrapper.find('[data-date="2026-01-06"]').attributes('disabled'),
+    ).toBeDefined()
+
+    await wrapper.find('[data-date="2026-01-05"]').trigger('click')
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
+
+    expect(toLocalYmd(finalValue[0])).toBe('2026-01-05')
+    expect(toLocalYmd(finalValue[1])).toBe('2026-01-10')
+  })
+
   it('emits presetSelect when a preset is clicked', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
@@ -55,6 +133,33 @@ describe('VAdvancedDatePicker', () => {
     await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
 
     expect(wrapper.emitted('presetSelect')).toHaveLength(1)
+  })
+
+  it('disables presets that violate start or end constraints', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        presets: [
+          {
+            label: 'Blocked',
+            value: () => [new Date('2026-01-08'), new Date('2026-01-10')],
+          },
+        ],
+        allowedStartDates: allowOnly('2026-01-09'),
+        allowedEndDates: allowOnly('2026-01-10'),
+      },
+    })
+
+    expect(wrapper.find('.v-advanced-date-picker__preset').classes()).toContain(
+      'v-list-item--disabled',
+    )
+
+    await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('presetSelect')).toBeUndefined()
   })
 
   it('hides adjacent month days from the visible grids', () => {
@@ -339,6 +444,34 @@ describe('VAdvancedDatePicker', () => {
     expect(finalValue[1]).toBeNull()
   })
 
+  it('returns to start constraints after a completed range', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        allowedStartDates: allowOnly('2026-01-10', '2026-01-12'),
+        allowedEndDates: allowOnly('2026-01-15'),
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-10"]').trigger('click')
+    await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(
+      wrapper.find('[data-date="2026-01-11"]').attributes('disabled'),
+    ).toBeDefined()
+
+    await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
+
+    expect(toLocalYmd(finalValue[0])).toBe('2026-01-12')
+    expect(finalValue[1]).toBeNull()
+  })
+
   it('emits the local calendar days for april ranges', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
@@ -356,6 +489,28 @@ describe('VAdvancedDatePicker', () => {
 
     expect(toLocalYmd(finalValue[0])).toBe('2026-04-01')
     expect(toLocalYmd(finalValue[1])).toBe('2026-04-10')
+  })
+
+  it('includes the preselected start day in the initial range highlight', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: [new Date(2026, 0, 2, 12), new Date(2026, 0, 5, 12)],
+        months: 1,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    const inRangeDays = wrapper.findAll(
+      '.v-advanced-date-picker__day-cell--in-range button[data-date]',
+    )
+
+    expect(inRangeDays.map((node) => node.attributes('data-date'))).toEqual([
+      '2026-01-02',
+      '2026-01-03',
+      '2026-01-04',
+      '2026-01-05',
+    ])
   })
 
   it('keeps the range preview visible while crossing gaps between weeks', async () => {
@@ -385,6 +540,31 @@ describe('VAdvancedDatePicker', () => {
     expect(
       wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
     ).toBe(0)
+  })
+
+  it('suppresses the range preview for invalid hovered completions', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        allowedStartDates: allowOnly('2026-01-05'),
+        allowedEndDates: allowOnly('2026-01-09'),
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-05"]').trigger('click')
+    await wrapper.find('[data-date="2026-01-08"]').trigger('mouseenter')
+
+    expect(
+      wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
+    ).toBe(0)
+
+    await wrapper.find('[data-date="2026-01-09"]').trigger('mouseenter')
+
+    expect(
+      wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
+    ).toBeGreaterThan(0)
   })
 
   it('shows a Vuetify ripple when pressing a date', async () => {
