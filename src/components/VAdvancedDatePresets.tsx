@@ -29,7 +29,7 @@ export const VAdvancedDatePresets = defineComponent({
       if (!props.presets.length) return null
 
       return (
-        <VList class="v-advanced-date-picker__presets" density="comfortable" nav>
+        <VList class="v-advanced-date-picker__presets" density="compact" nav>
           {props.presets.map(preset => {
             const active = props.isActive(preset)
             const slotName = preset.slot ? `preset-${preset.slot}` : 'preset'
