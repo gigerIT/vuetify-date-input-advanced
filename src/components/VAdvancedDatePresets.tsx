@@ -18,6 +18,10 @@ export const VAdvancedDatePresets = defineComponent({
       type: Function as PropType<(preset: PresetRange<unknown>) => boolean>,
       required: true,
     },
+    isDisabled: {
+      type: Function as PropType<(preset: PresetRange<unknown>) => boolean>,
+      required: true,
+    },
   },
 
   emits: {
@@ -30,8 +34,9 @@ export const VAdvancedDatePresets = defineComponent({
 
       return (
         <VList class="v-advanced-date-picker__presets" density="compact" nav>
-          {props.presets.map(preset => {
+          {props.presets.map((preset) => {
             const active = props.isActive(preset)
+            const disabled = props.disabled || props.isDisabled(preset)
             const slotName = preset.slot ? `preset-${preset.slot}` : 'preset'
             const slot = slots[slotName] ?? slots.preset
 
@@ -39,15 +44,21 @@ export const VAdvancedDatePresets = defineComponent({
               <VListItem
                 key={preset.label}
                 active={active}
-                disabled={props.disabled}
+                disabled={disabled}
                 class="v-advanced-date-picker__preset"
-                onClick={() => emit('select', preset)}
+                onClick={() => {
+                  if (!disabled) emit('select', preset)
+                }}
               >
                 {slot?.({
                   preset,
                   active,
+                  disabled,
                   props: {
-                    onClick: () => emit('select', preset),
+                    disabled,
+                    onClick: () => {
+                      if (!disabled) emit('select', preset)
+                    },
                   },
                 }) ?? <VListItemTitle>{preset.label}</VListItemTitle>}
               </VListItem>

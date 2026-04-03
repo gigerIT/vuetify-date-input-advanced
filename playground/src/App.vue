@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import type {
   AdvancedDateModel,
   PresetRange,
 } from 'vuetify-date-input-advanced'
+
+type InlinePresetMode = 'hidden' | 'default' | 'custom'
+type InlineDensity = 'default' | 'comfortable' | 'compact'
 
 const today = new Date()
 const inSevenDays = new Date(today)
@@ -24,6 +27,49 @@ const typedValue = ref<AdvancedDateModel<Date>>(null)
 const rangeMenu = ref(false)
 const presetMenu = ref(false)
 const customPresetMenu = ref(false)
+
+const inlineOptions = reactive({
+  range: true,
+  months: 2,
+  autoApply: false,
+  returnObject: false,
+  presetMode: 'default' as InlinePresetMode,
+  showWeekNumbers: false,
+  firstDayOfWeek: 0,
+  density: 'default' as InlineDensity,
+  color: 'primary',
+  disabled: false,
+  readonly: false,
+})
+
+const monthOptions = [1, 2, 3, 4].map((value) => ({
+  title: `${value} month${value === 1 ? '' : 's'}`,
+  value,
+}))
+
+const presetModeOptions = [
+  { title: 'Hidden', value: 'hidden' },
+  { title: 'Built-in', value: 'default' },
+  { title: 'Custom', value: 'custom' },
+] satisfies { title: string; value: InlinePresetMode }[]
+
+const firstDayOfWeekOptions = [
+  { title: 'Sunday', value: 0 },
+  { title: 'Monday', value: 1 },
+  { title: 'Tuesday', value: 2 },
+  { title: 'Wednesday', value: 3 },
+  { title: 'Thursday', value: 4 },
+  { title: 'Friday', value: 5 },
+  { title: 'Saturday', value: 6 },
+]
+
+const densityOptions = [
+  { title: 'Default', value: 'default' },
+  { title: 'Comfortable', value: 'comfortable' },
+  { title: 'Compact', value: 'compact' },
+] satisfies { title: string; value: InlineDensity }[]
+
+const colorOptions = ['primary', 'secondary', 'success', 'warning', 'error']
 
 const customPresets: PresetRange<Date>[] = [
   {
@@ -56,6 +102,14 @@ function disableWeekends(date: Date) {
   return day !== 0 && day !== 6
 }
 
+function allowMondays(date: Date) {
+  return date.getDay() === 1
+}
+
+function allowFridays(date: Date) {
+  return date.getDay() === 5
+}
+
 function toLocalYmd(date: Date | null | undefined) {
   if (!date) return null
 
@@ -66,7 +120,7 @@ function toLocalYmd(date: Date | null | undefined) {
   ].join('-')
 }
 
-function serializeModel(value: AdvancedDateModel<Date>) {
+function serializePreviewModel(value: AdvancedDateModel<Date>) {
   if (value == null) return null
   if (Array.isArray(value)) return value.map((item) => toLocalYmd(item))
   if (value instanceof Date) return toLocalYmd(value)
@@ -82,12 +136,112 @@ function serializeModel(value: AdvancedDateModel<Date>) {
   }
 }
 
+function cloneDate(date: Date | null | undefined) {
+  return date ? new Date(date) : null
+}
+
+function normalizeInlineValue(value: AdvancedDateModel<Date>) {
+  if (Array.isArray(value)) {
+    return {
+      start: cloneDate(value[0]),
+      end: cloneDate(value[1]),
+    }
+  }
+
+  if (value instanceof Date) {
+    return {
+      start: cloneDate(value),
+      end: null,
+    }
+  }
+
+  if (
+    value &&
+    typeof value === 'object' &&
+    'start' in value &&
+    'end' in value
+  ) {
+    return {
+      start: cloneDate(value.start),
+      end: cloneDate(value.end),
+    }
+  }
+
+  return {
+    start: null,
+    end: null,
+  }
+}
+
+function coerceInlineModel(value: AdvancedDateModel<Date>) {
+  const normalized = normalizeInlineValue(value)
+
+  if (!inlineOptions.range) return normalized.start
+  if (!normalized.start && !normalized.end) return null
+
+  if (inlineOptions.returnObject) {
+    return {
+      start: normalized.start,
+      end: normalized.end,
+    }
+  }
+
+  return [normalized.start, normalized.end] as const
+}
+
+const inlineShowPresets = computed(
+  () => inlineOptions.range && inlineOptions.presetMode !== 'hidden',
+)
+
+const inlinePresets = computed(() =>
+  inlineOptions.range && inlineOptions.presetMode === 'custom'
+    ? customPresets
+    : undefined,
+)
+
+const inlineInputProps = computed(() => ({
+  inline: true,
+  range: inlineOptions.range,
+  months: inlineOptions.months,
+  autoApply: inlineOptions.autoApply,
+  returnObject: inlineOptions.returnObject,
+  showPresets: inlineShowPresets.value,
+  presets: inlinePresets.value,
+  showWeekNumbers: inlineOptions.showWeekNumbers,
+  firstDayOfWeek: inlineOptions.firstDayOfWeek,
+  density: inlineOptions.density,
+  color: inlineOptions.color,
+  disabled: inlineOptions.disabled,
+  readonly: inlineOptions.readonly,
+}))
+
+watch(
+  () => [inlineOptions.range, inlineOptions.returnObject] as const,
+  () => {
+    inlineValue.value = coerceInlineModel(inlineValue.value)
+  },
+)
+
 const output = computed(() => ({
-  range: serializeModel(rangeValue.value),
-  single: serializeModel(singleValue.value),
-  inline: serializeModel(inlineValue.value),
-  constrained: serializeModel(constrainedValue.value),
-  typed: serializeModel(typedValue.value),
+  inlineOptions: {
+    range: inlineOptions.range,
+    months: inlineOptions.months,
+    autoApply: inlineOptions.autoApply,
+    returnObject: inlineOptions.returnObject,
+    showPresets: inlineShowPresets.value,
+    presetMode: inlineOptions.range ? inlineOptions.presetMode : 'hidden',
+    showWeekNumbers: inlineOptions.showWeekNumbers,
+    firstDayOfWeek: inlineOptions.firstDayOfWeek,
+    density: inlineOptions.density,
+    color: inlineOptions.color,
+    disabled: inlineOptions.disabled,
+    readonly: inlineOptions.readonly,
+  },
+  range: serializePreviewModel(rangeValue.value),
+  single: serializePreviewModel(singleValue.value),
+  inline: serializePreviewModel(inlineValue.value),
+  constrained: serializePreviewModel(constrainedValue.value),
+  typed: serializePreviewModel(typedValue.value),
   menus: {
     range: rangeMenu.value,
     presets: presetMenu.value,
@@ -106,34 +260,20 @@ const output = computed(() => ({
             <h1 class="text-h4 font-weight-bold mb-2">
               Vuetify Advanced Date Picker
             </h1>
-            <p class="text-body-1 text-medium-emphasis">
-              Baseline manual QA app for range, single, inline, constrained, and
-              typed-input flows.
-            </p>
           </div>
 
           <v-row align="start" class="ga-2">
             <v-col cols="12" lg="8">
               <div class="d-flex flex-column ga-6">
-                <div>
-                  <div class="text-overline text-medium-emphasis">Examples</div>
-                  <p class="text-body-2 text-medium-emphasis mb-0">
-                    Interact with each state and watch the serialized model
-                    update live in the right-hand panel.
-                  </p>
-                </div>
-
                 <v-card variant="flat">
-                  <v-card-title>Inline Dashboard Mode</v-card-title>
+                  <v-card-title>Inline</v-card-title>
                   <v-card-subtitle>
-                    Persistent inline picker for multi-month range selection.
+                    Persistent inline picker with a live-configurable prop set.
                   </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="inlineValue"
-                      inline
-                      :months="2"
-                      :auto-apply="false"
+                      v-bind="inlineInputProps"
                     >
                       <template #preset-highlight="{ preset }">
                         <div
@@ -149,7 +289,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card variant="outlined">
+                <v-card variant="flat">
                   <v-card-title>Range Input</v-card-title>
                   <v-card-subtitle>
                     Baseline popup flow with range selection and no presets.
@@ -165,7 +305,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card variant="outlined">
+                <v-card variant="flat">
                   <v-card-title>Range Input with presets</v-card-title>
                   <v-card-subtitle>
                     Quick-select ranges with the built-in preset list.
@@ -181,7 +321,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card variant="outlined">
+                <v-card variant="flat">
                   <v-card-title>Range Input with custom presets</v-card-title>
                   <v-card-subtitle>
                     Exercises custom preset data and slot rendering.
@@ -198,7 +338,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card variant="outlined">
+                <v-card variant="flat">
                   <v-card-title>Single Date Mode</v-card-title>
                   <v-card-subtitle>
                     Confirms the component switches cleanly out of range mode.
@@ -214,7 +354,7 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card variant="outlined">
+                <v-card variant="flat">
                   <v-card-title>Typed Input + Validation</v-card-title>
                   <v-card-subtitle>
                     Test paste and keyboard entry before applying the value.
@@ -230,19 +370,22 @@ const output = computed(() => ({
                   </v-card-text>
                 </v-card>
 
-                <v-card variant="outlined">
+                <v-card variant="flat">
                   <v-card-title>Constrained Selection</v-card-title>
                   <v-card-subtitle>
-                    Limits dates to the configured window and weekdays only.
+                    Limits dates to weekdays, with Monday-only starts and
+                    Friday-only ends.
                   </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="constrainedValue"
-                      label="Non-weekend dates only"
+                      label="Start Monday, end Friday"
                       :months="2"
                       :min="minDate"
                       :max="maxDate"
                       :allowed-dates="disableWeekends"
+                      :allowed-start-dates="allowMondays"
+                      :allowed-end-dates="allowFridays"
                     />
                   </v-card-text>
                 </v-card>
@@ -250,12 +393,119 @@ const output = computed(() => ({
             </v-col>
 
             <v-col cols="12" lg="4">
-              <div class="preview-column">
-                <v-card class="preview-card" variant="outlined">
+              <div class="preview-column d-flex flex-column ga-4">
+                <v-card variant="flat">
+                  <v-card-title>Inline Demo Options</v-card-title>
+                  <v-card-subtitle>
+                    Adjust verified picker props and watch the inline demo
+                    update immediately.
+                  </v-card-subtitle>
+                  <v-card-text>
+                    <div class="config-grid">
+                      <v-select
+                        v-model="inlineOptions.months"
+                        label="Months"
+                        :items="monthOptions"
+                        density="comfortable"
+                        hide-details
+                      />
+
+                      <v-select
+                        v-model="inlineOptions.firstDayOfWeek"
+                        label="First day of week"
+                        :items="firstDayOfWeekOptions"
+                        density="comfortable"
+                        hide-details
+                      />
+
+                      <v-select
+                        v-model="inlineOptions.density"
+                        label="Density"
+                        :items="densityOptions"
+                        density="comfortable"
+                        hide-details
+                      />
+
+                      <v-select
+                        v-model="inlineOptions.color"
+                        label="Color"
+                        :items="colorOptions"
+                        density="comfortable"
+                        hide-details
+                      />
+
+                      <v-select
+                        v-model="inlineOptions.presetMode"
+                        label="Presets"
+                        :items="presetModeOptions"
+                        :disabled="!inlineOptions.range"
+                        density="comfortable"
+                        hide-details
+                      />
+
+                      <v-switch
+                        v-model="inlineOptions.range"
+                        color="primary"
+                        density="comfortable"
+                        hide-details
+                        label="Range mode"
+                      />
+
+                      <v-switch
+                        v-model="inlineOptions.autoApply"
+                        color="primary"
+                        density="comfortable"
+                        hide-details
+                        label="Auto apply"
+                      />
+
+                      <v-switch
+                        v-model="inlineOptions.returnObject"
+                        :disabled="!inlineOptions.range"
+                        color="primary"
+                        density="comfortable"
+                        hide-details
+                        label="Return object"
+                      />
+
+                      <v-switch
+                        v-model="inlineOptions.showWeekNumbers"
+                        color="primary"
+                        density="comfortable"
+                        hide-details
+                        label="Week numbers"
+                      />
+
+                      <v-switch
+                        v-model="inlineOptions.disabled"
+                        color="primary"
+                        density="comfortable"
+                        hide-details
+                        label="Disabled"
+                      />
+
+                      <v-switch
+                        v-model="inlineOptions.readonly"
+                        color="primary"
+                        density="comfortable"
+                        hide-details
+                        label="Readonly"
+                      />
+                    </div>
+
+                    <div class="mt-4 text-caption text-medium-emphasis">
+                      `returnObject` and presets only affect range mode,
+                      matching the picker's current serialization and preset
+                      behavior.
+                    </div>
+                  </v-card-text>
+                </v-card>
+
+                <v-card class="preview-card" variant="flat">
                   <v-card-title>Live Model Output</v-card-title>
                   <v-card-subtitle>
-                    Serialized values and menu state for the current playground
-                    session.
+                    Serialized values, inline config, and menu state for the
+                    current playground session.
                   </v-card-subtitle>
                   <v-card-text>
                     <pre class="model-output text-body-2">{{
@@ -278,12 +528,18 @@ const output = computed(() => ({
   top: 24px;
 }
 
+.config-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .preview-card {
   border-color: rgba(var(--v-theme-primary), 0.2);
 }
 
 .model-output {
-  max-height: calc(100vh - 180px);
+  max-height: clamp(240px, 35vh, 420px);
   overflow: auto;
   padding: 16px;
   border-radius: 12px;

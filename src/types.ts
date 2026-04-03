@@ -98,4 +98,6 @@ export interface DateBounds<TDate = Date> {
   min?: TDate | null
   max?: TDate | null
   allowedDates?: ((date: TDate) => boolean) | undefined
+  allowedStartDates?: ((date: TDate) => boolean) | undefined
+  allowedEndDates?: ((date: TDate) => boolean) | undefined
 }

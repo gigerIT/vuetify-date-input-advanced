@@ -16,6 +16,24 @@ const menuStub = {
   template: '<div><slot name="activator" :props="{}" /><slot /></div>',
 }
 
+function toLocalYmd(date: Date | null | undefined) {
+  if (!date) return null
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function allowOnly(...allowedDates: string[]) {
+  const allowed = new Set(allowedDates)
+
+  return (date: unknown) => {
+    return date instanceof Date && allowed.has(toLocalYmd(date) ?? '')
+  }
+}
+
 describe('VAdvancedDateInput', () => {
   it('uses a fullscreen dialog on mobile', () => {
     const originalWidth = window.innerWidth
@@ -367,6 +385,96 @@ describe('VAdvancedDateInput', () => {
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(wrapper.text()).toContain('Date is unavailable')
+
+    wrapper.unmount()
+  })
+
+  it('applies allowedStartDates to typed single dates', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        allowedStartDates: allowOnly('2026-01-12'),
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 13, 2026')
+    await input.trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.text()).toContain('Date is unavailable')
+
+    wrapper.unmount()
+  })
+
+  it('rejects typed ranges when the ordered start is unavailable', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        allowedStartDates: allowOnly('2026-01-13'),
+        allowedEndDates: allowOnly('2026-01-19'),
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 19, 2026 - Jan 12, 2026')
+    await input.trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.text()).toContain('One or more dates are unavailable')
+
+    wrapper.unmount()
+  })
+
+  it('rejects typed ranges when the ordered end is unavailable', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        allowedStartDates: allowOnly('2026-01-12'),
+        allowedEndDates: allowOnly('2026-01-18'),
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 12, 2026 - Jan 19, 2026')
+    await input.trigger('keydown', { key: 'Enter' })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.text()).toContain('One or more dates are unavailable')
+
+    wrapper.unmount()
+  })
+
+  it('accepts reversed typed ranges when the ordered endpoints are allowed', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        allowedStartDates: allowOnly('2026-01-12'),
+        allowedEndDates: allowOnly('2026-01-19'),
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 19, 2026 - Jan 12, 2026')
+    await input.trigger('keydown', { key: 'Enter' })
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as [Date | null, Date | null]
+
+    expect(toLocalYmd(finalValue[0])).toBe('2026-01-12')
+    expect(toLocalYmd(finalValue[1])).toBe('2026-01-19')
 
     wrapper.unmount()
   })

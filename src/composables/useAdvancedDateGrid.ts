@@ -9,8 +9,9 @@ import type {
 import {
   dateKey,
   intersectsRange,
-  isDateDisabled,
+  isRangeDisabled,
   isSameDay,
+  isSelectionDateDisabled,
 } from '@/util/dates'
 import { orderRange } from '@/util/model'
 import { getIsoWeekNumber } from '@/util/week'
@@ -21,7 +22,6 @@ interface AdvancedDateDayMeta<TDate> {
   label: string
   ariaLabel: string
   outside: boolean
-  disabled: boolean
   today: boolean
 }
 
@@ -54,6 +54,8 @@ export function useAdvancedDateGrid<TDate>(options: {
   min: Ref<TDate | null | undefined>
   max: Ref<TDate | null | undefined>
   allowedDates: Ref<((date: TDate) => boolean) | undefined>
+  allowedStartDates: Ref<((date: TDate) => boolean) | undefined>
+  allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
 }) {
   const todayValue = today(options.adapter)
 
@@ -61,6 +63,8 @@ export function useAdvancedDateGrid<TDate>(options: {
     min: options.min.value,
     max: options.max.value,
     allowedDates: options.allowedDates.value,
+    allowedStartDates: options.allowedStartDates.value,
+    allowedEndDates: options.allowedEndDates.value,
   }))
 
   const previewRange = computed(() => {
@@ -69,15 +73,18 @@ export function useAdvancedDateGrid<TDate>(options: {
 
     if (!options.range.value) return null
     if (!selection.start || selection.end || !hoveredDate) return null
-    if (isDateDisabled(options.adapter, hoveredDate, bounds.value)) return null
 
-    return orderRange(options.adapter, {
+    const preview = orderRange(options.adapter, {
       start: selection.start,
       end: hoveredDate,
     })
+
+    if (isRangeDisabled(options.adapter, preview, bounds.value)) return null
+
+    return preview
   })
 
-  // Keep expensive calendar metadata stable so hover only recomputes selection state.
+  // Keep expensive calendar metadata stable while selection-specific state stays dynamic.
   const staticMonths = computed<AdvancedDateMonthMeta<TDate>[]>(() => {
     const firstDayOfWeek = options.firstDayOfWeek.value
     const weekdays = options.adapter.getWeekdays(firstDayOfWeek)
@@ -98,7 +105,6 @@ export function useAdvancedDateGrid<TDate>(options: {
               label: options.adapter.format(day, 'dayOfMonth'),
               ariaLabel: options.adapter.format(day, 'fullDateWithWeekday'),
               outside: !options.adapter.isSameMonth(day, month),
-              disabled: isDateDisabled(options.adapter, day, bounds.value),
               today: isSameDay(options.adapter, day, todayValue),
             })),
           }
@@ -124,6 +130,13 @@ export function useAdvancedDateGrid<TDate>(options: {
       weeks: month.weeks.map((week) => ({
         ...week,
         days: week.days.map((day) => {
+          const disabled = isSelectionDateDisabled(
+            options.adapter,
+            day.date,
+            selection,
+            isRangeSelection,
+            bounds.value,
+          )
           const rangeStart = isSameDay(
             options.adapter,
             day.date,
@@ -133,6 +146,7 @@ export function useAdvancedDateGrid<TDate>(options: {
 
           return {
             ...day,
+            disabled,
             selected: isRangeSelection ? rangeStart || rangeEnd : rangeStart,
             rangeStart,
             rangeEnd,

@@ -110,6 +110,8 @@ export const VAdvancedDateInput = defineComponent({
       default: null,
     },
     allowedDates: Function as PropType<(date: unknown) => boolean>,
+    allowedStartDates: Function as PropType<(date: unknown) => boolean>,
+    allowedEndDates: Function as PropType<(date: unknown) => boolean>,
     showWeekNumbers: Boolean,
     firstDayOfWeek: [String, Number] as PropType<string | number>,
     displayFormat: {
@@ -188,6 +190,8 @@ export const VAdvancedDateInput = defineComponent({
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
       allowedDates: toRef(props, 'allowedDates'),
+      allowedStartDates: toRef(props, 'allowedStartDates'),
+      allowedEndDates: toRef(props, 'allowedEndDates'),
       onUpdate: (value) => emit('update:modelValue', value),
     })
 
@@ -256,6 +260,8 @@ export const VAdvancedDateInput = defineComponent({
       min: props.min,
       max: props.max,
       allowedDates: props.allowedDates,
+      allowedStartDates: props.allowedStartDates,
+      allowedEndDates: props.allowedEndDates,
       showWeekNumbers: props.showWeekNumbers,
       firstDayOfWeek: props.firstDayOfWeek,
       disabled: props.disabled,

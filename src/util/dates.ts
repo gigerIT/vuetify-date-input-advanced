@@ -1,4 +1,5 @@
 import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
+import { orderRange } from '@/util/model'
 
 export function dateKey<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
@@ -28,12 +29,68 @@ export function clampToBounds<TDate>(
 export function isDateDisabled<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
   date: TDate,
-  bounds: DateBounds<TDate>,
+  bounds: Pick<DateBounds<TDate>, 'min' | 'max' | 'allowedDates'>,
 ): boolean {
   if (bounds.min && adapter.isBefore(date, bounds.min)) return true
   if (bounds.max && adapter.isAfter(date, bounds.max)) return true
   if (bounds.allowedDates && !bounds.allowedDates(date)) return true
   return false
+}
+
+export function isStartDateDisabled<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date: TDate,
+  bounds: DateBounds<TDate>,
+): boolean {
+  if (isDateDisabled(adapter, date, bounds)) return true
+  if (bounds.allowedStartDates && !bounds.allowedStartDates(date)) return true
+  return false
+}
+
+export function isEndDateDisabled<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date: TDate,
+  bounds: DateBounds<TDate>,
+): boolean {
+  if (isDateDisabled(adapter, date, bounds)) return true
+  if (bounds.allowedEndDates && !bounds.allowedEndDates(date)) return true
+  return false
+}
+
+export function isRangeDisabled<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  range: NormalizedRange<TDate>,
+  bounds: DateBounds<TDate>,
+): boolean {
+  if (!range.start && !range.end) return false
+  if (range.start && !range.end)
+    return isStartDateDisabled(adapter, range.start, bounds)
+  if (!range.start || !range.end) return true
+
+  return (
+    isStartDateDisabled(adapter, range.start, bounds) ||
+    isEndDateDisabled(adapter, range.end, bounds)
+  )
+}
+
+export function isSelectionDateDisabled<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date: TDate,
+  selection: NormalizedRange<TDate>,
+  range: boolean,
+  bounds: DateBounds<TDate>,
+): boolean {
+  if (!range) return isStartDateDisabled(adapter, date, bounds)
+  if (!selection.start || selection.end) {
+    return isStartDateDisabled(adapter, date, bounds)
+  }
+
+  const next = orderRange(adapter, {
+    start: selection.start,
+    end: date,
+  }) as NormalizedRange<TDate>
+
+  return isRangeDisabled(adapter, next, bounds)
 }
 
 export function intersectsRange<TDate>(
@@ -42,7 +99,10 @@ export function intersectsRange<TDate>(
   range: NormalizedRange<TDate> | null | undefined,
 ): boolean {
   if (!range?.start || !range.end) return false
-  return adapter.isWithinRange(date, [range.start, range.end])
+  return adapter.isWithinRange(date, [
+    adapter.startOfDay(range.start),
+    adapter.endOfDay(range.end),
+  ])
 }
 
 export function monthIntersectsBounds<TDate>(

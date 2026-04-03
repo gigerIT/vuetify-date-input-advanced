@@ -22,9 +22,10 @@ import { useRovingFocus } from '@/composables/useRovingFocus'
 import type {
   AdvancedDateAdapter,
   AdvancedDateModel,
+  DateBounds,
   PresetRange,
 } from '@/types'
-import { dateKey } from '@/util/dates'
+import { dateKey, isRangeDisabled } from '@/util/dates'
 import { serializeModel } from '@/util/model'
 
 import '@/styles/VAdvancedDatePicker.sass'
@@ -86,6 +87,8 @@ export const VAdvancedDatePicker = defineComponent({
       default: null,
     },
     allowedDates: Function as PropType<(date: unknown) => boolean>,
+    allowedStartDates: Function as PropType<(date: unknown) => boolean>,
+    allowedEndDates: Function as PropType<(date: unknown) => boolean>,
     showWeekNumbers: Boolean,
     firstDayOfWeek: [String, Number] as PropType<string | number>,
     disabled: Boolean,
@@ -173,9 +176,19 @@ export const VAdvancedDatePicker = defineComponent({
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
       allowedDates: toRef(props, 'allowedDates'),
+      allowedStartDates: toRef(props, 'allowedStartDates'),
+      allowedEndDates: toRef(props, 'allowedEndDates'),
       onUpdate: (value) => emit('update:modelValue', value),
       onCancel: () => emit('cancel'),
     })
+
+    const constraints = computed<DateBounds<unknown>>(() => ({
+      min: props.min,
+      max: props.max,
+      allowedDates: props.allowedDates,
+      allowedStartDates: props.allowedStartDates,
+      allowedEndDates: props.allowedEndDates,
+    }))
 
     const navigation = useAdvancedDateNavigation({
       adapter,
@@ -259,6 +272,8 @@ export const VAdvancedDatePicker = defineComponent({
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
       allowedDates: toRef(props, 'allowedDates'),
+      allowedStartDates: toRef(props, 'allowedStartDates'),
+      allowedEndDates: toRef(props, 'allowedEndDates'),
     })
 
     const presetRanges = usePresetRanges({
@@ -266,6 +281,7 @@ export const VAdvancedDatePicker = defineComponent({
       presets: toRef(props, 'presets'),
       range: toRef(props, 'range'),
       selection: model.normalized,
+      isDisabled: (range) => isRangeDisabled(adapter, range, constraints.value),
     })
 
     const dayLookup = computed(() => {
@@ -276,6 +292,13 @@ export const VAdvancedDatePicker = defineComponent({
           ),
         ),
       )
+    })
+
+    const firstAvailableDay = computed(() => {
+      return grid.months.value
+        .flatMap((month) => month.weeks)
+        .flatMap((week) => week.days)
+        .find((day) => !day.outside && !day.disabled)
     })
 
     const monthLookup = computed(
@@ -630,9 +653,7 @@ export const VAdvancedDatePicker = defineComponent({
       const fallback =
         focus.activeDate.value ??
         model.normalized.value.start ??
-        grid.staticMonths.value[0]?.weeks
-          .flatMap((week) => week.days)
-          .find((day) => !day.outside && !day.disabled)?.date
+        firstAvailableDay.value?.date
 
       if (!fallback) return
 
@@ -648,14 +669,24 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     const activeDateKey = computed(() => {
-      if (focus.activeDate.value)
-        return dateKey(adapter, focus.activeDate.value)
-      if (model.normalized.value.start)
-        return dateKey(adapter, model.normalized.value.start)
-      const firstDay = grid.staticMonths.value[0]?.weeks
-        .flatMap((week) => week.days)
-        .find((day) => !day.outside && !day.disabled)
-      return firstDay?.key ?? ''
+      const preferredKey = focus.activeDate.value
+        ? dateKey(adapter, focus.activeDate.value)
+        : model.normalized.value.start
+          ? dateKey(adapter, model.normalized.value.start)
+          : ''
+
+      if (preferredKey) {
+        const preferredDay = grid.months.value
+          .flatMap((month) => month.weeks)
+          .flatMap((week) => week.days)
+          .find(
+            (day) => day.key === preferredKey && !day.outside && !day.disabled,
+          )
+
+        if (preferredDay) return preferredDay.key
+      }
+
+      return firstAvailableDay.value?.key ?? ''
     })
 
     const liveText = computed(() => {
@@ -679,7 +710,7 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     function handleApply() {
-      model.apply()
+      if (!model.apply()) return
       emit(
         'apply',
         serializeModel(model.normalized.value, {
@@ -690,7 +721,7 @@ export const VAdvancedDatePicker = defineComponent({
     }
 
     function handlePresetSelect(preset: PresetRange<unknown>) {
-      model.selectPreset(preset)
+      if (!model.selectPreset(preset)) return
       emit('presetSelect', preset)
     }
 
@@ -772,6 +803,7 @@ export const VAdvancedDatePicker = defineComponent({
                 presets={presetRanges.presets.value}
                 disabled={disabledRef.value}
                 isActive={presetRanges.isPresetActive}
+                isDisabled={presetRanges.isPresetDisabled}
                 onSelect={handlePresetSelect}
                 v-slots={slots}
               />
