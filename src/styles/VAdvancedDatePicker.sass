@@ -128,7 +128,7 @@
 .v-advanced-date-picker__day-cell::before
   content: ''
   position: absolute
-  inset-block: 1px
+  inset-block: var(--v-advanced-date-day-inset)
   inset-inline: 0
   background: transparent
   z-index: 0
@@ -140,18 +140,23 @@
   background: var(--v-advanced-date-range-preview-bg)
 
 .v-advanced-date-picker__day-cell--range-start::before
-  inset-inline-start: 50%
+  inset-inline-start: calc(50% - var(--v-advanced-date-day-inset))
+  border-start-start-radius: 999px
+  border-end-start-radius: 999px
 
 .v-advanced-date-picker__day-cell--range-end::before
-  inset-inline-end: 50%
+  inset-inline-end: calc(50% - var(--v-advanced-date-day-inset))
+  border-start-end-radius: 999px
+  border-end-end-radius: 999px
 
 .v-advanced-date-picker__day-cell--range-start.v-advanced-date-picker__day-cell--range-end::before
   inset-inline: 0
+  border-radius: 999px
 
 .v-advanced-date-picker__day
-  inline-size: calc(var(--v-advanced-date-cell-size) - 8px)
+  inline-size: var(--v-advanced-date-day-size)
   min-inline-size: 0
-  block-size: calc(var(--v-advanced-date-cell-size) - 8px)
+  block-size: var(--v-advanced-date-day-size)
   border: 0
   border-radius: 999px
   background: transparent

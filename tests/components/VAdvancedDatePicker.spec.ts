@@ -254,4 +254,23 @@ describe('VAdvancedDatePicker', () => {
       wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
     ).toBe(0)
   })
+
+  it('shows a Vuetify ripple when pressing a date', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const day = wrapper.find('[data-date="2026-01-02"]')
+
+    await day.trigger('mousedown', { clientX: 12, clientY: 12 })
+
+    expect(day.find('.v-ripple__container').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
 })

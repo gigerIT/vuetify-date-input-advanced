@@ -1,5 +1,7 @@
 import type { PropType } from 'vue'
-import { defineComponent } from 'vue'
+import { defineComponent, withDirectives } from 'vue'
+
+import { Ripple } from 'vuetify/directives'
 
 import type { AdvancedDateMonthData } from '@/types'
 
@@ -146,7 +148,11 @@ export const VAdvancedDateMonth = defineComponent({
                           inRange: day.inRange,
                           preview: day.preview,
                           props: dayProps,
-                        }) ?? <button {...dayProps}>{day.label}</button>)}
+                        }) ??
+                        withDirectives(
+                          <button {...dayProps}>{day.label}</button>,
+                          [[Ripple, !day.disabled]],
+                        ))}
                   </div>
                 )
               })}
