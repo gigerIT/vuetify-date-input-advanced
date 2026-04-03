@@ -13,6 +13,7 @@ export const VAdvancedDateMonth = defineComponent({
       type: Object as PropType<AdvancedDateMonthData<unknown>>,
       required: true,
     },
+    disabled: Boolean,
     activeDateKey: {
       type: String,
       default: '',
@@ -78,13 +79,14 @@ export const VAdvancedDateMonth = defineComponent({
               ) : null}
 
               {week.days.map((day) => {
+                const disabled = props.disabled || day.disabled
                 const dayProps = {
                   type: 'button' as const,
                   class: [
                     'v-advanced-date-picker__day',
                     {
                       'v-advanced-date-picker__day--outside': day.outside,
-                      'v-advanced-date-picker__day--disabled': day.disabled,
+                      'v-advanced-date-picker__day--disabled': disabled,
                       'v-advanced-date-picker__day--today': day.today,
                       'v-advanced-date-picker__day--selected': day.selected,
                       'v-advanced-date-picker__day--range-start':
@@ -94,12 +96,12 @@ export const VAdvancedDateMonth = defineComponent({
                       'v-advanced-date-picker__day--preview': day.preview,
                     },
                   ],
-                  disabled: day.disabled,
+                  disabled,
                   tabindex: props.activeDateKey === day.key ? 0 : -1,
                   'data-date': day.key,
                   'aria-label': day.ariaLabel,
                   'aria-selected': day.selected || day.inRange,
-                  'aria-disabled': day.disabled,
+                  'aria-disabled': disabled,
                   'aria-current': day.today ? ('date' as const) : undefined,
                   onClick: () => emit('select', day.date),
                   onFocus: () => emit('focusDate', day.date),
@@ -141,7 +143,7 @@ export const VAdvancedDateMonth = defineComponent({
                       : (slots.day?.({
                           date: day.date,
                           outside: day.outside,
-                          disabled: day.disabled,
+                          disabled,
                           today: day.today,
                           selected: day.selected,
                           rangeStart: day.rangeStart,
@@ -152,7 +154,7 @@ export const VAdvancedDateMonth = defineComponent({
                         }) ??
                         withDirectives(
                           <button {...dayProps}>{day.label}</button>,
-                          [[Ripple, !day.disabled]],
+                          [[Ripple, !disabled]],
                         ))}
                   </div>
                 )

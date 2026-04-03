@@ -592,6 +592,20 @@ export const VAdvancedDatePicker = defineComponent({
       { immediate: true },
     )
 
+    watch(disabledRef, (value) => {
+      if (value) model.setHoverDate(null)
+    })
+
+    function handleSelectDate(date: unknown) {
+      if (disabledRef.value) return
+      model.selectDate(date)
+    }
+
+    function handleHoverDate(date: unknown | null) {
+      if (disabledRef.value && date) return
+      model.setHoverDate(date)
+    }
+
     function findFocusableButton(
       targetKey: string,
       direction: 1 | -1,
@@ -664,7 +678,7 @@ export const VAdvancedDatePicker = defineComponent({
       adapter,
       firstDayOfWeek: toRef(props, 'firstDayOfWeek'),
       onFocusDate: focusDate,
-      onSelect: (date) => model.selectDate(date),
+      onSelect: handleSelectDate,
       onEscape: () => emit('cancel'),
     })
 
@@ -710,6 +724,7 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     function handleApply() {
+      if (disabledRef.value) return
       if (!model.apply()) return
       emit(
         'apply',
@@ -721,6 +736,7 @@ export const VAdvancedDatePicker = defineComponent({
     }
 
     function handlePresetSelect(preset: PresetRange<unknown>) {
+      if (disabledRef.value) return
       if (!model.selectPreset(preset)) return
       emit('presetSelect', preset)
     }
@@ -821,7 +837,7 @@ export const VAdvancedDatePicker = defineComponent({
               },
             ]}
             style={monthsStyle.value}
-            onMouseleave={() => model.setHoverDate(null)}
+            onMouseleave={() => handleHoverDate(null)}
             onScroll={isMobileScroll.value ? onMonthsScroll : undefined}
           >
             {!isMobileScroll.value ? (
@@ -851,10 +867,11 @@ export const VAdvancedDatePicker = defineComponent({
                     <VAdvancedDateMonth
                       key={month.key}
                       month={month}
+                      disabled={disabledRef.value}
                       activeDateKey={activeDateKey.value}
                       showWeekNumbers={props.showWeekNumbers}
-                      onSelect={model.selectDate}
-                      onHover={model.setHoverDate}
+                      onSelect={handleSelectDate}
+                      onHover={handleHoverDate}
                       onFocusDate={focus.setActiveDate}
                       onKeydown={focus.onKeydown}
                       v-slots={slots}
@@ -871,10 +888,11 @@ export const VAdvancedDatePicker = defineComponent({
                   <VAdvancedDateMonth
                     key={month.key}
                     month={month}
+                    disabled={disabledRef.value}
                     activeDateKey={activeDateKey.value}
                     showWeekNumbers={props.showWeekNumbers}
-                    onSelect={model.selectDate}
-                    onHover={model.setHoverDate}
+                    onSelect={handleSelectDate}
+                    onHover={handleHoverDate}
                     onFocusDate={focus.setActiveDate}
                     onKeydown={focus.onKeydown}
                     v-slots={slots}

@@ -135,6 +135,30 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.emitted('presetSelect')).toHaveLength(1)
   })
 
+  for (const propName of ['readonly', 'disabled'] as const) {
+    it(`prevents date selection when ${propName} is enabled`, async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+          [propName]: true,
+        },
+        attachTo: document.body,
+      })
+
+      const day = wrapper.find('[data-date="2026-01-02"]')
+
+      expect(day.attributes('disabled')).toBeDefined()
+
+      await day.trigger('keydown', { key: 'Enter' })
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      wrapper.unmount()
+    })
+  }
+
   it('disables presets that violate start or end constraints', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
