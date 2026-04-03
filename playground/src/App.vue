@@ -37,7 +37,6 @@ const inlineOptions = reactive({
   showWeekNumbers: false,
   firstDayOfWeek: 0,
   density: 'default' as InlineDensity,
-  color: 'primary',
   disabled: false,
   readonly: false,
 })
@@ -68,8 +67,6 @@ const densityOptions = [
   { title: 'Comfortable', value: 'comfortable' },
   { title: 'Compact', value: 'compact' },
 ] satisfies { title: string; value: InlineDensity }[]
-
-const colorOptions = ['primary', 'secondary', 'success', 'warning', 'error']
 
 const customPresets: PresetRange<Date>[] = [
   {
@@ -210,7 +207,6 @@ const inlineInputProps = computed(() => ({
   showWeekNumbers: inlineOptions.showWeekNumbers,
   firstDayOfWeek: inlineOptions.firstDayOfWeek,
   density: inlineOptions.density,
-  color: inlineOptions.color,
   disabled: inlineOptions.disabled,
   readonly: inlineOptions.readonly,
 }))
@@ -233,7 +229,6 @@ const output = computed(() => ({
     showWeekNumbers: inlineOptions.showWeekNumbers,
     firstDayOfWeek: inlineOptions.firstDayOfWeek,
     density: inlineOptions.density,
-    color: inlineOptions.color,
     disabled: inlineOptions.disabled,
     readonly: inlineOptions.readonly,
   },
@@ -422,14 +417,6 @@ const output = computed(() => ({
                         v-model="inlineOptions.density"
                         label="Density"
                         :items="densityOptions"
-                        density="comfortable"
-                        hide-details
-                      />
-
-                      <v-select
-                        v-model="inlineOptions.color"
-                        label="Color"
-                        :items="colorOptions"
                         density="comfortable"
                         hide-details
                       />
