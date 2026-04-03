@@ -195,6 +195,7 @@ npm run lint
 - Treat `src/` as the source of truth; regenerate `dist/` from source instead of
   patching built output.
 - Never modify `node_modules/`.
+- Keep performance in mind when making changes, the component should be performant and efficient.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and
@@ -202,6 +203,7 @@ npm run lint
 - If a change affects packaging, also run `npm run build`.
 - Keep public API changes synchronized across `src/types.ts`, component props,
   exports, playground examples, and tests.
+- Whenever a new feature is added, add a new example to the playground.
 - Prefer small edits inside the existing composable/component split instead of
   creating parallel abstractions.
 - If this repo grows, nested `AGENTS.md` files would make sense under `src/`
