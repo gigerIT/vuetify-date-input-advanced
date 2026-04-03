@@ -1,13 +1,8 @@
 # @gigerit/vuetify-date-input-advanced
 
-Advanced date selection components for Vuetify 4.
+<img src="./docs/images/screenshot1.png" alt="Advanced Date Input" width="700" />
 
-`@gigerit/vuetify-date-input-advanced` provides two components:
-
-- `VAdvancedDatePicker`: a standalone multi-month calendar panel
-- `VAdvancedDateInput`: a `VTextField` wrapper that adds typed input, overlay behavior, and the same picker surface
-
-The components use Vuetify's active date adapter through `useDate()`, so locale, formatting, and runtime value types follow your app's Vuetify date configuration.
+<img src="./docs/images/screenshot1_dark.png" alt="Advanced Date Input" width="700" />
 
 ## Features
 
@@ -22,6 +17,15 @@ The components use Vuetify's active date adapter through `useDate()`, so locale,
 - Optional week numbers
 - Keyboard navigation and live announcements
 - Theme-aware styling with CSS custom properties
+
+Advanced date selection components for Vuetify 4.
+
+`@gigerit/vuetify-date-input-advanced` provides two components:
+
+- `VAdvancedDatePicker`: a standalone multi-month calendar panel
+- `VAdvancedDateInput`: a `VTextField` wrapper that adds typed input, overlay behavior, and the same picker surface
+
+The components use Vuetify's active date adapter through `useDate()`, so locale, formatting, and runtime value types follow your app's Vuetify date configuration.
 
 ## Exports
 
