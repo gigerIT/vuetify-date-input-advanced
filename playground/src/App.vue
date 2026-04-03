@@ -18,6 +18,12 @@ const localeOptions = [
   { title: 'Deutsch', value: 'de' },
 ] satisfies { title: string; value: PlaygroundLocale }[]
 
+const themeModeOptions = [
+  { title: 'Light', value: 'light' },
+  { title: 'Dark', value: 'dark' },
+  { title: 'System', value: 'system' },
+] satisfies { title: string; value: ThemeMode }[]
+
 const localeLabels = Object.fromEntries(
   localeOptions.map(({ title, value }) => [value, title]),
 ) as Record<PlaygroundLocale, string>
@@ -53,16 +59,8 @@ const resolvedThemeLabel = computed(() =>
   theme.global.current.value.dark ? 'Dark' : 'Light',
 )
 
-const themeModeSummary = computed(() =>
-  themeMode.value === 'system'
-    ? `Following your system preference (${resolvedThemeLabel.value}).`
-    : `Playground forced to ${themeMode.value} mode.`,
-)
 
-const localeSummary = computed(
-  () =>
-    `Vuetify dates and locale-aware copy use ${localeLabels[playgroundLocale.value]}.`,
-)
+
 
 const today = new Date()
 const inSevenDays = new Date(today)
@@ -320,48 +318,30 @@ const output = computed(() => ({
           <v-col cols="12" md="4">
             <v-card variant="flat">
               <v-card-text>
-                <div class="text-caption text-medium-emphasis mb-3">Theme</div>
+                <div class="playground-controls-row">
+                  <v-select
+                    v-model="themeMode"
+                    label="Theme"
+                    :items="themeModeOptions"
+                    item-title="title"
+                    item-value="value"
+                    density="comfortable"
+                    hide-details
+                    variant="outlined"
+                    prepend-inner-icon="mdi-theme-light-dark"
+                  />
 
-                <v-btn-toggle
-                  v-model="themeMode"
-                  class="theme-toggle"
-                  color="primary"
-                  density="comfortable"
-                  mandatory
-                >
-                  <v-btn prepend-icon="mdi-white-balance-sunny" value="light">
-                    Light
-                  </v-btn>
-                  <v-btn prepend-icon="mdi-weather-night" value="dark">
-                    Dark
-                  </v-btn>
-                  <v-btn prepend-icon="mdi-monitor" value="system">
-                    System
-                  </v-btn>
-                </v-btn-toggle>
-
-                <div class="text-caption text-medium-emphasis mt-3">
-                  {{ themeModeSummary }}
-                </div>
-
-                <div class="text-caption text-medium-emphasis mt-5 mb-3">
-                  Locale
-                </div>
-
-                <v-btn-toggle
-                  v-model="playgroundLocale"
-                  class="theme-toggle"
-                  color="primary"
-                  density="comfortable"
-                  mandatory
-                >
-                  <v-btn value="en">English</v-btn>
-                  <v-btn value="fr">Français</v-btn>
-                  <v-btn value="de">Deutsch</v-btn>
-                </v-btn-toggle>
-
-                <div class="text-caption text-medium-emphasis mt-3">
-                  {{ localeSummary }}
+                  <v-select
+                    v-model="playgroundLocale"
+                    label="Locale"
+                    :items="localeOptions"
+                    item-title="title"
+                    item-value="value"
+                    density="comfortable"
+                    hide-details
+                    variant="outlined"
+                    prepend-inner-icon="mdi-translate"
+                  />
                 </div>
               </v-card-text>
             </v-card>
@@ -617,14 +597,10 @@ const output = computed(() => ({
 </template>
 
 <style scoped>
-.theme-toggle {
-  display: flex;
-  width: 100%;
-  flex-wrap: wrap;
-}
-
-.theme-toggle :deep(.v-btn) {
-  flex: 1 1 110px;
+.playground-controls-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .preview-column {
