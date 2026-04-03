@@ -77,6 +77,31 @@ describe('VAdvancedDatePicker', () => {
     ).toBeGreaterThan(0)
   })
 
+  it('renders only the week rows each month needs', () => {
+    const cases = [
+      { month: 1, year: 2026, rows: 4 },
+      { month: 0, year: 2026, rows: 5 },
+      { month: 7, year: 2026, rows: 6 },
+    ]
+
+    for (const testCase of cases) {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          months: 1,
+          month: testCase.month,
+          year: testCase.year,
+        },
+      })
+
+      expect(wrapper.findAll('.v-advanced-date-picker__week').length).toBe(
+        testCase.rows,
+      )
+
+      wrapper.unmount()
+    }
+  })
+
   it('renders fixed navigation buttons outside the animated month labels', () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {

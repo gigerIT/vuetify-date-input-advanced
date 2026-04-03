@@ -8,7 +8,6 @@ import type {
 } from '@/types'
 import {
   dateKey,
-  expandWeekArray,
   intersectsRange,
   isDateDisabled,
   isSameDay,
@@ -82,25 +81,23 @@ export function useAdvancedDateGrid<TDate>(options: {
     const weekdays = options.adapter.getWeekdays()
 
     return options.visibleMonths.value.map((month) => {
-      const weeks = expandWeekArray(options.adapter, month).map(
-        (week, index) => {
-          return {
-            index,
-            weekNumber: options.showWeekNumbers.value
-              ? getIsoWeekNumber(options.adapter, week[0])
-              : undefined,
-            days: week.map((day) => ({
-              date: day,
-              key: dateKey(options.adapter, day),
-              label: options.adapter.format(day, 'dayOfMonth'),
-              ariaLabel: options.adapter.format(day, 'fullDateWithWeekday'),
-              outside: !options.adapter.isSameMonth(day, month),
-              disabled: isDateDisabled(options.adapter, day, bounds.value),
-              today: isSameDay(options.adapter, day, todayValue),
-            })),
-          }
-        },
-      )
+      const weeks = options.adapter.getWeekArray(month).map((week, index) => {
+        return {
+          index,
+          weekNumber: options.showWeekNumbers.value
+            ? getIsoWeekNumber(options.adapter, week[0])
+            : undefined,
+          days: week.map((day) => ({
+            date: day,
+            key: dateKey(options.adapter, day),
+            label: options.adapter.format(day, 'dayOfMonth'),
+            ariaLabel: options.adapter.format(day, 'fullDateWithWeekday'),
+            outside: !options.adapter.isSameMonth(day, month),
+            disabled: isDateDisabled(options.adapter, day, bounds.value),
+            today: isSameDay(options.adapter, day, todayValue),
+          })),
+        }
+      })
 
       return {
         date: month,

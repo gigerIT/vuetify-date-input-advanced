@@ -1,6 +1,9 @@
 import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
 
-export function dateKey<TDate>(adapter: AdvancedDateAdapter<TDate>, date: TDate | null | undefined): string {
+export function dateKey<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date: TDate | null | undefined,
+): string {
   return date ? adapter.toISO(date).split('T')[0] : ''
 }
 
@@ -42,23 +45,6 @@ export function intersectsRange<TDate>(
   return adapter.isWithinRange(date, [range.start, range.end])
 }
 
-export function expandWeekArray<TDate>(
-  adapter: AdvancedDateAdapter<TDate>,
-  month: TDate,
-  weekCount = 6,
-): TDate[][] {
-  const weeks = adapter.getWeekArray(month).map(week => [...week])
-
-  while (weeks.length < weekCount) {
-    const lastWeek = weeks[weeks.length - 1]
-    const seed = lastWeek[lastWeek.length - 1]
-    const nextWeek = Array.from({ length: 7 }, (_, index) => adapter.addDays(seed, index + 1))
-    weeks.push(nextWeek)
-  }
-
-  return weeks
-}
-
 export function monthIntersectsBounds<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
   month: TDate,
@@ -67,8 +53,10 @@ export function monthIntersectsBounds<TDate>(
   const start = adapter.startOfMonth(month)
   const end = adapter.endOfMonth(month)
 
-  if (bounds.min && adapter.isBefore(end, adapter.startOfMonth(bounds.min))) return false
-  if (bounds.max && adapter.isAfter(start, adapter.endOfMonth(bounds.max))) return false
+  if (bounds.min && adapter.isBefore(end, adapter.startOfMonth(bounds.min)))
+    return false
+  if (bounds.max && adapter.isAfter(start, adapter.endOfMonth(bounds.max)))
+    return false
 
   return true
 }
@@ -84,7 +72,9 @@ export function formatInputValue<TDate>(
     return range.start ? adapter.format(range.start, options.displayFormat) : ''
   }
 
-  const start = range.start ? adapter.format(range.start, options.displayFormat) : ''
+  const start = range.start
+    ? adapter.format(range.start, options.displayFormat)
+    : ''
   const end = range.end ? adapter.format(range.end, options.displayFormat) : ''
 
   return [start, end].filter(Boolean).join(options.separator)

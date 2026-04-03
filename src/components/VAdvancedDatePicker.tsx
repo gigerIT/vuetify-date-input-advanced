@@ -347,8 +347,8 @@ export const VAdvancedDatePicker = defineComponent({
         return
       }
 
-      const firstMonth = getMonthElements()[0]
-      if (!firstMonth) return
+      const months = getMonthElements().slice(0, monthsRef.value)
+      if (!months.length) return
 
       const trackStyles = monthsTrackRef.value
         ? getComputedStyle(monthsTrackRef.value)
@@ -357,8 +357,8 @@ export const VAdvancedDatePicker = defineComponent({
         Number.parseFloat(trackStyles?.rowGap || trackStyles?.gap || '0') || 0
 
       mobileInlineHeight.value =
-        firstMonth.offsetHeight * monthsRef.value +
-        gap * Math.max(monthsRef.value - 1, 0)
+        months.reduce((height, month) => height + month.offsetHeight, 0) +
+        gap * Math.max(months.length - 1, 0)
     }
 
     function refreshDayButtons() {
