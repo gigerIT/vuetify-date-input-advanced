@@ -1,6 +1,6 @@
 # Project Overview
 
-`vuetify-date-input-advanced` is a Vue 3 and Vuetify 4 library that exposes
+`@gigerit/vuetify-date-input-advanced` is a Vue 3 and Vuetify 4 library that exposes
 an advanced date picker panel and a text-input wrapper for multi-month,
 range-focused date selection. The repo includes the source library in `src/`,
 a local playground in `playground/`, Vitest coverage in `tests/`, and a

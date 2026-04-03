@@ -13,7 +13,9 @@ export default defineConfig({
     vuetify({ autoImport: true }),
     dts({
       include: ['src'],
-      tsconfigPath: fileURLToPath(new URL('./tsconfig.build.json', import.meta.url)),
+      tsconfigPath: fileURLToPath(
+        new URL('./tsconfig.build.json', import.meta.url),
+      ),
     }),
   ],
   resolve: {
@@ -26,7 +28,8 @@ export default defineConfig({
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
       name: 'VuetifyDateInputAdvanced',
       formats: ['es', 'cjs'],
-      fileName: format => format === 'es' ? 'index.js' : 'index.cjs',
+      fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
+      cssFileName: 'gigerit-vuetify-date-input-advanced',
     },
     rollupOptions: {
       external: ['vue', 'vuetify'],

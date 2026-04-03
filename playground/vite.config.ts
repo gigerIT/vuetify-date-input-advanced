@@ -11,7 +11,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('../src', import.meta.url)),
-      'vuetify-date-input-advanced': fileURLToPath(new URL('../src/index.ts', import.meta.url)),
+      '@gigerit/vuetify-date-input-advanced': fileURLToPath(
+        new URL('../src/index.ts', import.meta.url),
+      ),
     },
   },
 })

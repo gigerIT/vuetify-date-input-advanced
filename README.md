@@ -1,8 +1,8 @@
-# vuetify-date-input-advanced
+# @gigerit/vuetify-date-input-advanced
 
 Advanced date selection components for Vuetify 4.
 
-`vuetify-date-input-advanced` provides two components:
+`@gigerit/vuetify-date-input-advanced` provides two components:
 
 - `VAdvancedDatePicker`: a standalone multi-month calendar panel
 - `VAdvancedDateInput`: a `VTextField` wrapper that adds typed input, overlay behavior, and the same picker surface
@@ -43,7 +43,7 @@ The components use Vuetify's active date adapter through `useDate()`, so locale,
 
 ```sh
 npm install vue vuetify
-npm install vuetify-date-input-advanced
+npm install @gigerit/vuetify-date-input-advanced
 ```
 
 > Assumption: the command above uses the package name from `package.json`. This repository is currently marked `"private": true`, so consume it from a workspace, local path, or Git source unless or until you publish it.
@@ -51,7 +51,7 @@ npm install vuetify-date-input-advanced
 Import the stylesheet once in your app entry:
 
 ```ts
-import 'vuetify-date-input-advanced/style.css'
+import '@gigerit/vuetify-date-input-advanced/style.css'
 ```
 
 Register the components globally:
@@ -61,8 +61,8 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import vuetify from './plugins/vuetify'
 
-import { AdvancedDatePlugin } from 'vuetify-date-input-advanced'
-import 'vuetify-date-input-advanced/style.css'
+import { AdvancedDatePlugin } from '@gigerit/vuetify-date-input-advanced'
+import '@gigerit/vuetify-date-input-advanced/style.css'
 
 createApp(App).use(vuetify).use(AdvancedDatePlugin).mount('#app')
 ```
@@ -74,7 +74,7 @@ If you prefer local registration, import `VAdvancedDateInput` and `VAdvancedDate
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { AdvancedDateModel } from 'vuetify-date-input-advanced'
+import type { AdvancedDateModel } from '@gigerit/vuetify-date-input-advanced'
 
 const today = new Date()
 const inSevenDays = new Date(today)
@@ -93,7 +93,7 @@ Single-date mode:
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { AdvancedDateModel } from 'vuetify-date-input-advanced'
+import type { AdvancedDateModel } from '@gigerit/vuetify-date-input-advanced'
 
 const value = ref<AdvancedDateModel<Date>>(new Date())
 </script>
@@ -113,7 +113,7 @@ Standalone inline picker with controlled visible month:
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { AdvancedDateModel } from 'vuetify-date-input-advanced'
+import type { AdvancedDateModel } from '@gigerit/vuetify-date-input-advanced'
 
 const value = ref<AdvancedDateModel<Date>>(null)
 const month = ref(0)
@@ -186,7 +186,7 @@ Example:
 
 ```vue
 <script setup lang="ts">
-import type { PresetRange } from 'vuetify-date-input-advanced'
+import type { PresetRange } from '@gigerit/vuetify-date-input-advanced'
 
 const presets: PresetRange<Date>[] = [
   {
@@ -345,7 +345,7 @@ A `ref` on `VAdvancedDatePicker` exposes these methods:
 
 ## Styling and Theming
 
-Import `vuetify-date-input-advanced/style.css` once. The picker uses `.v-advanced-date-picker` as its root class. The input wrapper uses `.v-advanced-date-input`.
+Import `@gigerit/vuetify-date-input-advanced/style.css` once. The picker uses `.v-advanced-date-picker` as its root class. The input wrapper uses `.v-advanced-date-input`.
 
 Key CSS custom properties:
 
@@ -421,7 +421,7 @@ Verified from the repository configuration:
 - The library is built with Vite in library mode
 - Output formats are ESM and CommonJS
 - Declaration files are generated from `src/`
-- Styles are exported as `vuetify-date-input-advanced/style.css`
+- Styles are exported as `@gigerit/vuetify-date-input-advanced/style.css`
 - Tests run in `jsdom` with Vuetify bootstrapped in Vue Test Utils
 
 ## Notes

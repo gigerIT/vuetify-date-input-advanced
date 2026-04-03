@@ -10,27 +10,16 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "vuetify-date-input-advanced": [
-        "src/index.ts"
-      ]
+      "@/*": ["src/*"],
+      "@gigerit/vuetify-date-input-advanced": ["src/index.ts"]
     },
-    "types": [
-      "node",
-      "vitest/globals"
-    ]
+    "types": ["node", "vitest/globals"]
   },
   "include": [
     "src/**/*.ts",

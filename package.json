@@ -1,5 +1,5 @@
 {
-  "name": "vuetify-date-input-advanced",
+  "name": "@gigerit/vuetify-date-input-advanced",
   "version": "0.1.0",
   "private": true,
   "description": "Advanced Vuetify 4 date picker and input components with multi-month range selection.",
@@ -13,7 +13,7 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./style.css": "./dist/vuetify-date-input-advanced.css"
+    "./style.css": "./dist/gigerit-vuetify-date-input-advanced.css"
   },
   "files": [
     "dist"

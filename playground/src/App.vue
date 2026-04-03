@@ -4,7 +4,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import type {
   AdvancedDateModel,
   PresetRange,
-} from 'vuetify-date-input-advanced'
+} from '@gigerit/vuetify-date-input-advanced'
 
 type InlinePresetMode = 'hidden' | 'default' | 'custom'
 type InlineDensity = 'default' | 'comfortable' | 'compact'
