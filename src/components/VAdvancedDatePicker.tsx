@@ -122,6 +122,8 @@ export const VAdvancedDatePicker = defineComponent({
     const display = useDisplay()
     const containerRef = ref<HTMLElement | null>(null)
     const monthsTrackRef = ref<HTMLElement | null>(null)
+    const dayButtons = ref<HTMLButtonElement[]>([])
+    const dayButtonLookup = ref(new Map<string, HTMLButtonElement>())
     const now = adapter.startOfDay(adapter.date() as unknown)
 
     const monthRef = computed(() => props.month ?? adapter.getMonth(now))
@@ -184,7 +186,7 @@ export const VAdvancedDatePicker = defineComponent({
 
     const dayLookup = computed(() => {
       return new Map(
-        grid.months.value.flatMap((month) =>
+        grid.staticMonths.value.flatMap((month) =>
           month.weeks.flatMap((week) =>
             week.days.map((day) => [day.key, day.date] as const),
           ),
@@ -193,7 +195,7 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     const monthsTrackKey = computed(() =>
-      grid.months.value.map((month) => month.key).join(':'),
+      grid.staticMonths.value.map((month) => month.key).join(':'),
     )
 
     const monthTransition = computed(() =>
@@ -204,28 +206,47 @@ export const VAdvancedDatePicker = defineComponent({
       if (element instanceof HTMLElement) monthsTrackRef.value = element
     }
 
-    function findFocusableButton(
-      targetKey: string,
-      direction: 1 | -1,
-    ): HTMLButtonElement | null {
+    function refreshDayButtons() {
       const buttons = Array.from(
         (
           monthsTrackRef.value ?? containerRef.value
         )?.querySelectorAll<HTMLButtonElement>('button[data-date]') ?? [],
       )
-      const index = buttons.findIndex(
+
+      dayButtons.value = buttons
+      dayButtonLookup.value = new Map(
+        buttons.flatMap((button) =>
+          button.dataset.date ? [[button.dataset.date, button] as const] : [],
+        ),
+      )
+    }
+
+    watch(
+      monthsTrackKey,
+      async () => {
+        await nextTick()
+        refreshDayButtons()
+      },
+      { immediate: true },
+    )
+
+    function findFocusableButton(
+      targetKey: string,
+      direction: 1 | -1,
+    ): HTMLButtonElement | null {
+      const index = dayButtons.value.findIndex(
         (button) => button.dataset.date === targetKey,
       )
 
       if (index === -1) return null
-      if (!buttons[index].disabled) return buttons[index]
+      if (!dayButtons.value[index].disabled) return dayButtons.value[index]
 
       for (
         let cursor = index + direction;
-        buttons[cursor];
+        dayButtons.value[cursor];
         cursor += direction
       ) {
-        if (!buttons[cursor].disabled) return buttons[cursor]
+        if (!dayButtons.value[cursor].disabled) return dayButtons.value[cursor]
       }
 
       return null
@@ -240,16 +261,15 @@ export const VAdvancedDatePicker = defineComponent({
       if (!visible) navigation.setDisplayedMonth(targetMonth)
 
       await nextTick()
-      const selector = `[data-date="${dateKey(adapter, date)}"]`
+      refreshDayButtons()
+
+      const targetKey = dateKey(adapter, date)
       const referenceDate =
         focus.activeDate.value ?? model.normalized.value.start ?? date
       const direction = adapter.isBefore(date, referenceDate) ? -1 : 1
-      const direct =
-        (
-          monthsTrackRef.value ?? containerRef.value
-        )?.querySelector<HTMLButtonElement>(selector) ?? null
+      const direct = dayButtonLookup.value.get(targetKey) ?? null
       const button = direct?.disabled
-        ? findFocusableButton(dateKey(adapter, date), direction)
+        ? findFocusableButton(targetKey, direction)
         : direct
 
       button?.focus()
@@ -264,9 +284,9 @@ export const VAdvancedDatePicker = defineComponent({
       const fallback =
         focus.activeDate.value ??
         model.normalized.value.start ??
-        grid.months.value[0]?.weeks
+        grid.staticMonths.value[0]?.weeks
           .flatMap((week) => week.days)
-          .find((day) => !day.disabled)?.date
+          .find((day) => !day.outside && !day.disabled)?.date
 
       if (!fallback) return
 
@@ -285,7 +305,7 @@ export const VAdvancedDatePicker = defineComponent({
         return dateKey(adapter, focus.activeDate.value)
       if (model.normalized.value.start)
         return dateKey(adapter, model.normalized.value.start)
-      const firstDay = grid.months.value[0]?.weeks
+      const firstDay = grid.staticMonths.value[0]?.weeks
         .flatMap((week) => week.days)
         .find((day) => !day.outside && !day.disabled)
       return firstDay?.key ?? ''
@@ -298,7 +318,9 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     const liveText = computed(() => {
-      const labels = grid.months.value.map((month) => month.label).join(', ')
+      const labels = grid.staticMonths.value
+        .map((month) => month.label)
+        .join(', ')
 
       if (
         props.range &&

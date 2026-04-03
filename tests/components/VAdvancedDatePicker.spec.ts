@@ -130,6 +130,52 @@ describe('VAdvancedDatePicker', () => {
     wrapper.unmount()
   })
 
+  it('emits month updates when navigating with the controls', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    await wrapper.find('button[aria-label="Next month"]').trigger('click')
+
+    expect(wrapper.emitted('update:month')).toEqual([[1]])
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+  })
+
+  it('does not echo synced month props back to the parent', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    await wrapper.setProps({ month: 2 })
+
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+  })
+
+  it('does not emit month updates when only the visible month count changes', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        months: 2,
+      },
+    })
+
+    await wrapper.setProps({ months: 3 })
+
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+  })
+
   it('moves focus with arrow keys and selects with enter', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
