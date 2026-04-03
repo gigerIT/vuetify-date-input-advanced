@@ -1,0 +1,12 @@
+export-ignore:
+  - playground/
+  - tests/
+  - .github/
+  - .vscode/
+  - .editorconfig
+  - .eslintrc.js
+  - .prettierrc.js
+  - .vite.config.ts
+  - .vitest.config.ts
+  - .vue-eslint-parser.config.js
+  - .vue-eslint-parser.config.js
