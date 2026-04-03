@@ -4,7 +4,7 @@
 
 <img src="./docs/images/screenshot1_dark.png" alt="Advanced Date Input" width="700" />
 
-## [Demo](https://stackblitz.com/github/gigerIT/vuetify-date-input-advanced?embed=1&file=README.md&view=preview)
+## [Demo](https://stackblitz.com/github/gigerIT/vuetify-date-input-advanced?embed=1&file=README.md&view=preview){ target="_blank" }
 
 ## Features
 
