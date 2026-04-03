@@ -112,11 +112,22 @@ const output = computed(() => ({
             </p>
           </div>
 
-          <v-row>
-            <v-col cols="12" >
+          <v-row align="start" class="ga-2">
+            <v-col cols="12" lg="8">
               <div class="d-flex flex-column ga-6">
+                <div>
+                  <div class="text-overline text-medium-emphasis">Examples</div>
+                  <p class="text-body-2 text-medium-emphasis mb-0">
+                    Interact with each state and watch the serialized model
+                    update live in the right-hand panel.
+                  </p>
+                </div>
+
                 <v-card variant="flat">
                   <v-card-title>Inline Dashboard Mode</v-card-title>
+                  <v-card-subtitle>
+                    Persistent inline picker for multi-month range selection.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="inlineValue"
@@ -139,19 +150,10 @@ const output = computed(() => ({
                 </v-card>
 
                 <v-card variant="outlined">
-                  <v-card-title>Emitted Model</v-card-title>
-                  <v-card-text>
-                    <pre class="text-body-2">{{
-                      JSON.stringify(output, null, 2)
-                    }}</pre>
-                  </v-card-text>
-                </v-card>
-              </div>
-
-
-              <div class="d-flex flex-column ga-6">
-                <v-card variant="outlined">
                   <v-card-title>Range Input</v-card-title>
+                  <v-card-subtitle>
+                    Baseline popup flow with range selection and no presets.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="rangeValue"
@@ -165,6 +167,9 @@ const output = computed(() => ({
 
                 <v-card variant="outlined">
                   <v-card-title>Range Input with presets</v-card-title>
+                  <v-card-subtitle>
+                    Quick-select ranges with the built-in preset list.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="rangeValue"
@@ -178,6 +183,9 @@ const output = computed(() => ({
 
                 <v-card variant="outlined">
                   <v-card-title>Range Input with custom presets</v-card-title>
+                  <v-card-subtitle>
+                    Exercises custom preset data and slot rendering.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="rangeValue"
@@ -192,6 +200,9 @@ const output = computed(() => ({
 
                 <v-card variant="outlined">
                   <v-card-title>Single Date Mode</v-card-title>
+                  <v-card-subtitle>
+                    Confirms the component switches cleanly out of range mode.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="singleValue"
@@ -205,6 +216,9 @@ const output = computed(() => ({
 
                 <v-card variant="outlined">
                   <v-card-title>Typed Input + Validation</v-card-title>
+                  <v-card-subtitle>
+                    Test paste and keyboard entry before applying the value.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="typedValue"
@@ -218,6 +232,9 @@ const output = computed(() => ({
 
                 <v-card variant="outlined">
                   <v-card-title>Constrained Selection</v-card-title>
+                  <v-card-subtitle>
+                    Limits dates to the configured window and weekdays only.
+                  </v-card-subtitle>
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="constrainedValue"
@@ -232,10 +249,56 @@ const output = computed(() => ({
               </div>
             </v-col>
 
- 
+            <v-col cols="12" lg="4">
+              <div class="preview-column">
+                <v-card class="preview-card" variant="outlined">
+                  <v-card-title>Live Model Output</v-card-title>
+                  <v-card-subtitle>
+                    Serialized values and menu state for the current playground
+                    session.
+                  </v-card-subtitle>
+                  <v-card-text>
+                    <pre class="model-output text-body-2">{{
+                      JSON.stringify(output, null, 2)
+                    }}</pre>
+                  </v-card-text>
+                </v-card>
+              </div>
+            </v-col>
           </v-row>
         </div>
       </v-container>
     </v-main>
   </v-app>
 </template>
+
+<style scoped>
+.preview-column {
+  position: sticky;
+  top: 24px;
+}
+
+.preview-card {
+  border-color: rgba(var(--v-theme-primary), 0.2);
+}
+
+.model-output {
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 1279px) {
+  .preview-column {
+    position: static;
+  }
+
+  .model-output {
+    max-height: none;
+  }
+}
+</style>
