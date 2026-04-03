@@ -248,10 +248,9 @@ const output = computed(() => ({
 <template>
   <v-app>
     <v-main>
-      <v-container class="py-10" max-width="1400">
-        <div class="d-flex flex-column ga-8">
+      <v-container  max-width="1400">
+        <div class="d-flex flex-column">
           <div>
-            <div class="text-overline text-medium-emphasis">Playground</div>
             <h1 class="text-h4 font-weight-bold mb-2">
               Vuetify Advanced Date Picker
             </h1>
