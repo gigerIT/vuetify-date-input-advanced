@@ -81,7 +81,10 @@ Debug workflow:
 npm run test:watch
 ```
 
-> TODO: No dedicated debug script, preview script, or deploy script is defined.
+- GitHub release automation lives in `.github/workflows/release.yml`; `release-please` manages release PRs and npm publication uses GitHub OIDC trusted publishing instead of an `NPM_TOKEN`.
+- npm trusted publishers only work after the package already exists on npm, so the first release still needs a manual publish by an authenticated maintainer before the OIDC workflow can take over.
+
+> TODO: No dedicated debug script or preview script is defined.
 
 ## Code Style & Conventions
 
@@ -150,6 +153,7 @@ render layer.
 - Current coverage is unit and component focused.
 - Existing suites cover model utilities, swipe composables, and picker/input
   interactions.
+- A GitHub Actions release workflow runs the same validation steps before npm publication.
 - Local workflow:
 
 ```sh
@@ -170,7 +174,6 @@ npm run test
 npm run lint
 ```
 
-> TODO: No CI workflow file is present in the repo to document automation.
 > TODO: No end-to-end test harness is present.
 
 ## Security & Compliance
@@ -183,6 +186,10 @@ npm run lint
 - Do not edit `node_modules/` or generated `dist/` files by hand.
 - Keep date parsing changes conservative because user-entered text reaches the
   adapter and native `Date.parse` fallback paths.
+- npm publication is intended to use trusted publishing with GitHub OIDC; avoid
+  adding long-lived publish tokens unless there is a concrete operational need.
+- npm trusted publisher management requires npm 11.10.0+ with package write
+  access and 2FA enabled, and the package must already exist on the registry.
 - The repo does not currently define a dependency scanning tool, SBOM process,
   or secret scanning config.
 - The repo does not currently include a license file.

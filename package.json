@@ -1,9 +1,19 @@
 {
   "name": "@gigerit/vuetify-date-input-advanced",
   "version": "0.1.0",
-  "private": true,
   "description": "Advanced Vuetify 4 date picker and input components with multi-month range selection.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gigerIT/vuetify-date-input-advanced.git"
+  },
+  "homepage": "https://github.com/gigerIT/vuetify-date-input-advanced#readme",
+  "bugs": {
+    "url": "https://github.com/gigerIT/vuetify-date-input-advanced/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

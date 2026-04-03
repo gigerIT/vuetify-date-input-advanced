@@ -46,8 +46,6 @@ npm install vue vuetify
 npm install @gigerit/vuetify-date-input-advanced
 ```
 
-> Assumption: the command above uses the package name from `package.json`. This repository is currently marked `"private": true`, so consume it from a workspace, local path, or Git source unless or until you publish it.
-
 Import the stylesheet once in your app entry:
 
 ```ts
@@ -416,6 +414,24 @@ npm run build
 npm run format
 ```
 
+## Releases
+
+Releases are automated from `.github/workflows/release.yml`.
+
+- `googleapis/release-please-action` opens and maintains the release PR from conventional commits on `main`
+- when that release PR is merged, GitHub Actions builds, validates, and publishes the package to npm with provenance
+- npm publishing is configured for trusted publishing via GitHub OIDC, so no long-lived `NPM_TOKEN` is required in the workflow
+
+Because npm trusted publishers can only be configured for packages that already exist on the registry, the first publish still has to be done manually by an authenticated maintainer.
+
+After the initial publish, configure the package as a trusted publisher for this repository and workflow in npm, or with npm CLI v11.10.0+:
+
+```sh
+npm trust github @gigerit/vuetify-date-input-advanced \
+  --repo gigerIT/vuetify-date-input-advanced \
+  --file .github/workflows/release.yml
+```
+
 Verified from the repository configuration:
 
 - The library is built with Vite in library mode
@@ -428,4 +444,3 @@ Verified from the repository configuration:
 
 - Examples in this README use native `Date`, but the actual value type follows your configured Vuetify date adapter.
 - The default input icon is `mdi-calendar`. If your app does not provide that icon, configure an icon set or override `appendInnerIcon`.
-- Installation examples assume publication under the package name in `package.json`; the checked repository state is currently private.

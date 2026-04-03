@@ -7,7 +7,12 @@ import vueParser from 'vue-eslint-parser'
 
 export default [
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**'],
+    ignores: [
+      'dist/**',
+      'playground/dist/**',
+      'coverage/**',
+      'node_modules/**',
+    ],
   },
   js.configs.recommended,
   ...vue.configs['flat/recommended'],
@@ -27,7 +32,10 @@ export default [
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
       'no-unused-vars': 'off',
       'no-undef': 'off',
       'vue/multi-word-component-names': 'off',
