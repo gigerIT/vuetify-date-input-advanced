@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useTheme } from 'vuetify'
 
 import type {
   AdvancedDateModel,
@@ -8,6 +9,32 @@ import type {
 
 type InlinePresetMode = 'hidden' | 'default' | 'custom'
 type InlineDensity = 'default' | 'comfortable' | 'compact'
+type ThemeMode = 'dark' | 'light' | 'system'
+
+const theme = useTheme()
+
+function normalizeThemeMode(value: string): ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system'
+    ? value
+    : 'system'
+}
+
+const themeMode = computed<ThemeMode>({
+  get: () => normalizeThemeMode(theme.global.name.value),
+  set: (value) => {
+    theme.global.name.value = value
+  },
+})
+
+const resolvedThemeLabel = computed(() =>
+  theme.global.current.value.dark ? 'Dark' : 'Light',
+)
+
+const themeModeSummary = computed(() =>
+  themeMode.value === 'system'
+    ? `Following your system preference (${resolvedThemeLabel.value}).`
+    : `Playground forced to ${themeMode.value} mode.`,
+)
 
 const today = new Date()
 const inSevenDays = new Date(today)
@@ -248,17 +275,54 @@ const output = computed(() => ({
 <template>
   <v-app>
     <v-main>
-      <v-container  max-width="1400">
-        <div class="d-flex flex-column">
-          <div>
-            <h1 class="text-h4 font-weight-bold mb-2">
-              Vuetify Advanced Date Picker
-            </h1>
-          </div>
-
-          <v-row align="start" class="ga-2">
+      <v-container max-width="1400">
+        
+        <v-row>
             <v-col cols="12" lg="8">
-              <div class="d-flex flex-column ga-6">
+ 
+              <h1 class="text-h4 font-weight-bold mb-2">
+                Vuetify Advanced Date Picker
+              </h1>
+              <div class="text-body-2 text-medium-emphasis">
+                Preview the picker in light, dark, or system mode.
+              </div>
+
+            </v-col>
+            <v-col cols="12" md="4">
+
+            <v-card  variant="flat">
+              <v-card-text >
+                <div class="text-caption text-medium-emphasis mb-3">Theme</div>
+
+                <v-btn-toggle
+                  v-model="themeMode"
+                  class="theme-toggle"
+                  color="primary"
+                  density="comfortable"
+                  mandatory
+                >
+                  <v-btn prepend-icon="mdi-white-balance-sunny" value="light">
+                    Light
+                  </v-btn>
+                  <v-btn prepend-icon="mdi-weather-night" value="dark">
+                    Dark
+                  </v-btn>
+                  <v-btn prepend-icon="mdi-monitor" value="system">
+                    System
+                  </v-btn>
+                </v-btn-toggle>
+
+                <div class="text-caption text-medium-emphasis mt-3">
+                  {{ themeModeSummary }}
+                </div>
+              </v-card-text>
+
+            </v-card>
+          </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12" lg="8">
                 <v-card variant="flat">
                   <v-card-title>Inline</v-card-title>
                   <v-card-subtitle>
@@ -383,7 +447,6 @@ const output = computed(() => ({
                     />
                   </v-card-text>
                 </v-card>
-              </div>
             </v-col>
 
             <v-col cols="12" lg="4">
@@ -502,13 +565,24 @@ const output = computed(() => ({
               </div>
             </v-col>
           </v-row>
-        </div>
       </v-container>
     </v-main>
   </v-app>
 </template>
 
 <style scoped>
+
+
+.theme-toggle {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.theme-toggle :deep(.v-btn) {
+  flex: 1 1 110px;
+}
+
 .preview-column {
   position: sticky;
   top: 24px;
