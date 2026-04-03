@@ -125,10 +125,6 @@ export const VAdvancedDateInput = defineComponent({
     parseInput: Function as PropType<(value: string) => unknown | null>,
     disabled: Boolean,
     readonly: Boolean,
-    color: {
-      type: String,
-      default: 'primary',
-    },
     theme: String,
     rounded: {
       type: [String, Number, Boolean],
@@ -266,7 +262,6 @@ export const VAdvancedDateInput = defineComponent({
       firstDayOfWeek: props.firstDayOfWeek,
       disabled: props.disabled,
       readonly: props.readonly,
-      color: props.color,
       theme: props.theme,
       rounded: props.rounded,
       border: props.border,

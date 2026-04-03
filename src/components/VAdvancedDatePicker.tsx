@@ -93,10 +93,6 @@ export const VAdvancedDatePicker = defineComponent({
     firstDayOfWeek: [String, Number] as PropType<string | number>,
     disabled: Boolean,
     readonly: Boolean,
-    color: {
-      type: String,
-      default: 'primary',
-    },
     theme: String,
     rounded: {
       type: [String, Number, Boolean],
@@ -798,9 +794,6 @@ export const VAdvancedDatePicker = defineComponent({
         width={props.width}
         minWidth={props.minWidth}
         maxWidth={props.maxWidth}
-        style={{
-          '--v-advanced-date-picker-color': `rgb(var(--v-theme-${props.color}))`,
-        }}
       >
         <div
           class="v-advanced-date-picker__live"
