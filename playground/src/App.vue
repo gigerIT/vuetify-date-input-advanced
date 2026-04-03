@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { useTheme } from 'vuetify'
+import { useLocale, useTheme } from 'vuetify'
 
 import type {
   AdvancedDateModel,
@@ -9,15 +9,38 @@ import type {
 
 type InlinePresetMode = 'hidden' | 'default' | 'custom'
 type InlineDensity = 'default' | 'comfortable' | 'compact'
+type PlaygroundLocale = 'de' | 'en' | 'fr'
 type ThemeMode = 'dark' | 'light' | 'system'
 
+const localeOptions = [
+  { title: 'English', value: 'en' },
+  { title: 'Français', value: 'fr' },
+  { title: 'Deutsch', value: 'de' },
+] satisfies { title: string; value: PlaygroundLocale }[]
+
+const localeLabels = Object.fromEntries(
+  localeOptions.map(({ title, value }) => [value, title]),
+) as Record<PlaygroundLocale, string>
+
+const { current: currentLocale } = useLocale()
 const theme = useTheme()
+
+function normalizePlaygroundLocale(value: string): PlaygroundLocale {
+  return value === 'de' || value === 'en' || value === 'fr' ? value : 'en'
+}
 
 function normalizeThemeMode(value: string): ThemeMode {
   return value === 'light' || value === 'dark' || value === 'system'
     ? value
     : 'system'
 }
+
+const playgroundLocale = computed<PlaygroundLocale>({
+  get: () => normalizePlaygroundLocale(currentLocale.value),
+  set: (value) => {
+    currentLocale.value = value
+  },
+})
 
 const themeMode = computed<ThemeMode>({
   get: () => normalizeThemeMode(theme.global.name.value),
@@ -34,6 +57,11 @@ const themeModeSummary = computed(() =>
   themeMode.value === 'system'
     ? `Following your system preference (${resolvedThemeLabel.value}).`
     : `Playground forced to ${themeMode.value} mode.`,
+)
+
+const localeSummary = computed(
+  () =>
+    `Vuetify dates and locale-aware copy use ${localeLabels[playgroundLocale.value]}.`,
 )
 
 const today = new Date()
@@ -246,6 +274,10 @@ watch(
 )
 
 const output = computed(() => ({
+  playground: {
+    locale: playgroundLocale.value,
+    themeMode: themeMode.value,
+  },
   inlineOptions: {
     range: inlineOptions.range,
     months: inlineOptions.months,
@@ -276,22 +308,18 @@ const output = computed(() => ({
   <v-app>
     <v-main>
       <v-container max-width="1400">
-        
         <v-row>
-            <v-col cols="12" lg="8">
- 
-              <h1 class="text-h4 font-weight-bold mb-2">
-                Vuetify Advanced Date Picker
-              </h1>
-              <div class="text-body-2 text-medium-emphasis">
-                Preview the picker in light, dark, or system mode.
-              </div>
-
-            </v-col>
-            <v-col cols="12" md="4">
-
-            <v-card  variant="flat">
-              <v-card-text >
+          <v-col cols="12" lg="8">
+            <h1 class="text-h4 font-weight-bold mb-2">
+              Vuetify Advanced Date Picker
+            </h1>
+            <div class="text-body-2 text-medium-emphasis">
+              Preview the picker in different theme and locale settings.
+            </div>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-card variant="flat">
+              <v-card-text>
                 <div class="text-caption text-medium-emphasis mb-3">Theme</div>
 
                 <v-btn-toggle
@@ -315,264 +343,280 @@ const output = computed(() => ({
                 <div class="text-caption text-medium-emphasis mt-3">
                   {{ themeModeSummary }}
                 </div>
-              </v-card-text>
 
+                <div class="text-caption text-medium-emphasis mt-5 mb-3">
+                  Locale
+                </div>
+
+                <v-btn-toggle
+                  v-model="playgroundLocale"
+                  class="theme-toggle"
+                  color="primary"
+                  density="comfortable"
+                  mandatory
+                >
+                  <v-btn value="en">English</v-btn>
+                  <v-btn value="fr">Français</v-btn>
+                  <v-btn value="de">Deutsch</v-btn>
+                </v-btn-toggle>
+
+                <div class="text-caption text-medium-emphasis mt-3">
+                  {{ localeSummary }}
+                </div>
+              </v-card-text>
             </v-card>
           </v-col>
-          </v-row>
+        </v-row>
 
-          <v-row>
-            <v-col cols="12" lg="8">
-                <v-card variant="flat">
-                  <v-card-title>Inline</v-card-title>
-                  <v-card-subtitle>
-                    Persistent inline picker with a live-configurable prop set.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="inlineValue"
-                      v-bind="inlineInputProps"
+        <v-row>
+          <v-col cols="12" lg="8">
+            <v-card variant="flat">
+              <v-card-title>Inline</v-card-title>
+              <v-card-subtitle>
+                Persistent inline picker with a live-configurable prop set.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="inlineValue"
+                  v-bind="inlineInputProps"
+                >
+                  <template #preset-highlight="{ preset }">
+                    <div
+                      class="d-flex align-center justify-space-between w-100"
                     >
-                      <template #preset-highlight="{ preset }">
-                        <div
-                          class="d-flex align-center justify-space-between w-100"
-                        >
-                          <span>{{ preset.label }}</span>
-                          <v-chip size="x-small" color="primary" variant="tonal"
-                            >Custom</v-chip
-                          >
-                        </div>
-                      </template>
-                    </v-advanced-date-input>
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="flat">
-                  <v-card-title>Range Input</v-card-title>
-                  <v-card-subtitle>
-                    Baseline popup flow with range selection and no presets.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="rangeValue"
-                      v-model:menu="rangeMenu"
-                      label="Travel dates"
-                      :months="2"
-                      :show-presets="false"
-                    />
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="flat">
-                  <v-card-title>Range Input with presets</v-card-title>
-                  <v-card-subtitle>
-                    Quick-select ranges with the built-in preset list.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="rangeValue"
-                      v-model:menu="presetMenu"
-                      label="Travel dates"
-                      :months="2"
-                      show-presets
-                    />
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="flat">
-                  <v-card-title>Range Input with custom presets</v-card-title>
-                  <v-card-subtitle>
-                    Exercises custom preset data and slot rendering.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="rangeValue"
-                      v-model:menu="customPresetMenu"
-                      label="Travel dates"
-                      :months="2"
-                      show-presets
-                      :presets="customPresets"
-                    />
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="flat">
-                  <v-card-title>Single Date Mode</v-card-title>
-                  <v-card-subtitle>
-                    Confirms the component switches cleanly out of range mode.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="singleValue"
-                      label="Departure date"
-                      :range="false"
-                      :months="2"
-                      :show-presets="false"
-                    />
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="flat">
-                  <v-card-title>Typed Input + Validation</v-card-title>
-                  <v-card-subtitle>
-                    Test paste and keyboard entry before applying the value.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="typedValue"
-                      label="Paste a range"
-                      placeholder="Jan 12, 2026 – Jan 19, 2026"
-                      :months="2"
-                      :auto-apply="false"
-                    />
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="flat">
-                  <v-card-title>Constrained Selection</v-card-title>
-                  <v-card-subtitle>
-                    Limits dates to weekdays, with Monday-only starts and
-                    Friday-only ends.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="constrainedValue"
-                      label="Start Monday, end Friday"
-                      :months="2"
-                      :min="minDate"
-                      :max="maxDate"
-                      :allowed-dates="disableWeekends"
-                      :allowed-start-dates="allowMondays"
-                      :allowed-end-dates="allowFridays"
-                    />
-                  </v-card-text>
-                </v-card>
-            </v-col>
-
-            <v-col cols="12" lg="4">
-              <div class="preview-column d-flex flex-column ga-4">
-                <v-card variant="flat">
-                  <v-card-title>Inline Demo Options</v-card-title>
-                  <v-card-subtitle>
-                    Adjust verified picker props and watch the inline demo
-                    update immediately.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <div class="config-grid">
-                      <v-select
-                        v-model="inlineOptions.months"
-                        label="Months"
-                        :items="monthOptions"
-                        density="comfortable"
-                        hide-details
-                      />
-
-                      <v-select
-                        v-model="inlineOptions.firstDayOfWeek"
-                        label="First day of week"
-                        :items="firstDayOfWeekOptions"
-                        density="comfortable"
-                        hide-details
-                      />
-
-                      <v-select
-                        v-model="inlineOptions.density"
-                        label="Density"
-                        :items="densityOptions"
-                        density="comfortable"
-                        hide-details
-                      />
-
-                      <v-select
-                        v-model="inlineOptions.presetMode"
-                        label="Presets"
-                        :items="presetModeOptions"
-                        :disabled="!inlineOptions.range"
-                        density="comfortable"
-                        hide-details
-                      />
-
-                      <v-switch
-                        v-model="inlineOptions.range"
-                        color="primary"
-                        density="comfortable"
-                        hide-details
-                        label="Range mode"
-                      />
-
-                      <v-switch
-                        v-model="inlineOptions.autoApply"
-                        color="primary"
-                        density="comfortable"
-                        hide-details
-                        label="Auto apply"
-                      />
-
-                      <v-switch
-                        v-model="inlineOptions.returnObject"
-                        :disabled="!inlineOptions.range"
-                        color="primary"
-                        density="comfortable"
-                        hide-details
-                        label="Return object"
-                      />
-
-                      <v-switch
-                        v-model="inlineOptions.showWeekNumbers"
-                        color="primary"
-                        density="comfortable"
-                        hide-details
-                        label="Week numbers"
-                      />
-
-                      <v-switch
-                        v-model="inlineOptions.disabled"
-                        color="primary"
-                        density="comfortable"
-                        hide-details
-                        label="Disabled"
-                      />
-
-                      <v-switch
-                        v-model="inlineOptions.readonly"
-                        color="primary"
-                        density="comfortable"
-                        hide-details
-                        label="Readonly"
-                      />
+                      <span>{{ preset.label }}</span>
+                      <v-chip size="x-small" color="primary" variant="tonal"
+                        >Custom</v-chip
+                      >
                     </div>
+                  </template>
+                </v-advanced-date-input>
+              </v-card-text>
+            </v-card>
 
-                    <div class="mt-4 text-caption text-medium-emphasis">
-                      `returnObject` and presets only affect range mode,
-                      matching the picker's current serialization and preset
-                      behavior.
-                    </div>
-                  </v-card-text>
-                </v-card>
+            <v-card variant="flat">
+              <v-card-title>Range Input</v-card-title>
+              <v-card-subtitle>
+                Baseline popup flow with range selection and no presets.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="rangeValue"
+                  v-model:menu="rangeMenu"
+                  label="Travel dates"
+                  :months="2"
+                  :show-presets="false"
+                />
+              </v-card-text>
+            </v-card>
 
-                <v-card class="preview-card" variant="flat">
-                  <v-card-title>Live Model Output</v-card-title>
-                  <v-card-subtitle>
-                    Serialized values, inline config, and menu state for the
-                    current playground session.
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <pre class="model-output text-body-2">{{
-                      JSON.stringify(output, null, 2)
-                    }}</pre>
-                  </v-card-text>
-                </v-card>
-              </div>
-            </v-col>
-          </v-row>
+            <v-card variant="flat">
+              <v-card-title>Range Input with presets</v-card-title>
+              <v-card-subtitle>
+                Quick-select ranges with the built-in preset list.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="rangeValue"
+                  v-model:menu="presetMenu"
+                  label="Travel dates"
+                  :months="2"
+                  show-presets
+                />
+              </v-card-text>
+            </v-card>
+
+            <v-card variant="flat">
+              <v-card-title>Range Input with custom presets</v-card-title>
+              <v-card-subtitle>
+                Exercises custom preset data and slot rendering.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="rangeValue"
+                  v-model:menu="customPresetMenu"
+                  label="Travel dates"
+                  :months="2"
+                  show-presets
+                  :presets="customPresets"
+                />
+              </v-card-text>
+            </v-card>
+
+            <v-card variant="flat">
+              <v-card-title>Single Date Mode</v-card-title>
+              <v-card-subtitle>
+                Confirms the component switches cleanly out of range mode.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="singleValue"
+                  label="Departure date"
+                  :range="false"
+                  :months="2"
+                  :show-presets="false"
+                />
+              </v-card-text>
+            </v-card>
+
+            <v-card variant="flat">
+              <v-card-title>Typed Input + Validation</v-card-title>
+              <v-card-subtitle>
+                Test paste and keyboard entry before applying the value.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="typedValue"
+                  label="Paste a range"
+                  placeholder="Jan 12, 2026 – Jan 19, 2026"
+                  :months="2"
+                  :auto-apply="false"
+                />
+              </v-card-text>
+            </v-card>
+
+            <v-card variant="flat">
+              <v-card-title>Constrained Selection</v-card-title>
+              <v-card-subtitle>
+                Limits dates to weekdays, with Monday-only starts and
+                Friday-only ends.
+              </v-card-subtitle>
+              <v-card-text>
+                <v-advanced-date-input
+                  v-model="constrainedValue"
+                  label="Start Monday, end Friday"
+                  :months="2"
+                  :min="minDate"
+                  :max="maxDate"
+                  :allowed-dates="disableWeekends"
+                  :allowed-start-dates="allowMondays"
+                  :allowed-end-dates="allowFridays"
+                />
+              </v-card-text>
+            </v-card>
+          </v-col>
+
+          <v-col cols="12" lg="4">
+            <div class="preview-column d-flex flex-column ga-4">
+              <v-card variant="flat">
+                <v-card-title>Inline Demo Options</v-card-title>
+                <v-card-subtitle>
+                  Adjust verified picker props and watch the inline demo update
+                  immediately.
+                </v-card-subtitle>
+                <v-card-text>
+                  <div class="config-grid">
+                    <v-select
+                      v-model="inlineOptions.months"
+                      label="Months"
+                      :items="monthOptions"
+                      density="comfortable"
+                      hide-details
+                    />
+
+                    <v-select
+                      v-model="inlineOptions.firstDayOfWeek"
+                      label="First day of week"
+                      :items="firstDayOfWeekOptions"
+                      density="comfortable"
+                      hide-details
+                    />
+
+                    <v-select
+                      v-model="inlineOptions.density"
+                      label="Density"
+                      :items="densityOptions"
+                      density="comfortable"
+                      hide-details
+                    />
+
+                    <v-select
+                      v-model="inlineOptions.presetMode"
+                      label="Presets"
+                      :items="presetModeOptions"
+                      :disabled="!inlineOptions.range"
+                      density="comfortable"
+                      hide-details
+                    />
+
+                    <v-switch
+                      v-model="inlineOptions.range"
+                      color="primary"
+                      density="comfortable"
+                      hide-details
+                      label="Range mode"
+                    />
+
+                    <v-switch
+                      v-model="inlineOptions.autoApply"
+                      color="primary"
+                      density="comfortable"
+                      hide-details
+                      label="Auto apply"
+                    />
+
+                    <v-switch
+                      v-model="inlineOptions.returnObject"
+                      :disabled="!inlineOptions.range"
+                      color="primary"
+                      density="comfortable"
+                      hide-details
+                      label="Return object"
+                    />
+
+                    <v-switch
+                      v-model="inlineOptions.showWeekNumbers"
+                      color="primary"
+                      density="comfortable"
+                      hide-details
+                      label="Week numbers"
+                    />
+
+                    <v-switch
+                      v-model="inlineOptions.disabled"
+                      color="primary"
+                      density="comfortable"
+                      hide-details
+                      label="Disabled"
+                    />
+
+                    <v-switch
+                      v-model="inlineOptions.readonly"
+                      color="primary"
+                      density="comfortable"
+                      hide-details
+                      label="Readonly"
+                    />
+                  </div>
+
+                  <div class="mt-4 text-caption text-medium-emphasis">
+                    `returnObject` and presets only affect range mode, matching
+                    the picker's current serialization and preset behavior.
+                  </div>
+                </v-card-text>
+              </v-card>
+
+              <v-card class="preview-card" variant="flat">
+                <v-card-title>Live Model Output</v-card-title>
+                <v-card-subtitle>
+                  Serialized values, inline config, and menu state for the
+                  current playground session.
+                </v-card-subtitle>
+                <v-card-text>
+                  <pre class="model-output text-body-2">{{
+                    JSON.stringify(output, null, 2)
+                  }}</pre>
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-col>
+        </v-row>
       </v-container>
     </v-main>
   </v-app>
 </template>
 
 <style scoped>
-
-
 .theme-toggle {
   display: flex;
   width: 100%;
