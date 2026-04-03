@@ -32,7 +32,11 @@ export default defineConfig({
       cssFileName: 'gigerit-vuetify-date-input-advanced',
     },
     rollupOptions: {
-      external: ['vue', 'vuetify'],
+      external: (id) =>
+        id === 'vue' ||
+        id.startsWith('vue/') ||
+        id === 'vuetify' ||
+        id.startsWith('vuetify/'),
       output: {
         globals: {
           vue: 'Vue',

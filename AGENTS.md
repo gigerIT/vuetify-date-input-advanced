@@ -201,6 +201,9 @@ npm run lint
 
 - Treat `src/` as the source of truth; regenerate `dist/` from source instead of
   patching built output.
+- In Vite library mode, externalize peer dependencies by subpath too (for
+  example `vuetify/components` and `vuetify/directives`), not just the bare
+  package IDs, or Rollup will inline them into `dist/`.
 - Never modify `node_modules/`.
 - Keep performance in mind when making changes, the component should be performant and efficient.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
