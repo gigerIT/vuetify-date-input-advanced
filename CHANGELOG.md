@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v1.0.0...v1.0.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* update Vite configuration to externalize peer dependencies by subpath ([7c90c12](https://github.com/gigerIT/vuetify-date-input-advanced/commit/7c90c121c5f9cb4c676ec85c8fb2b7bf172b9046))
+
 ## 1.0.0 (2026-04-03)
 
 
