@@ -4,6 +4,18 @@ import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 
 import { render } from '../render'
 
+const dialogStub = {
+  name: 'VDialog',
+  props: ['modelValue', 'fullscreen'],
+  template: '<div><slot /></div>',
+}
+
+const menuStub = {
+  name: 'VMenu',
+  props: ['modelValue', 'closeOnContentClick', 'offset', 'minWidth'],
+  template: '<div><slot name="activator" :props="{}" /><slot /></div>',
+}
+
 describe('VAdvancedDateInput', () => {
   it('uses a fullscreen dialog on mobile', () => {
     const originalWidth = window.innerWidth
@@ -29,6 +41,50 @@ describe('VAdvancedDateInput', () => {
 
       expect(dialog.exists()).toBe(true)
       expect(dialog.props('fullscreen')).toBe(true)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('emits update:menu when the mobile dialog closes itself', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      const dialog = wrapper.findComponent({ name: 'VDialog' })
+
+      dialog.vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
     } finally {
       wrapper?.unmount()
 
@@ -88,6 +144,50 @@ describe('VAdvancedDateInput', () => {
 
       expect(menu.exists()).toBe(true)
       expect(menu.props('minWidth')).toBe(0)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('emits update:menu when the desktop menu closes itself', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const menu = wrapper.findComponent({ name: 'VMenu' })
+
+      menu.vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
     } finally {
       wrapper?.unmount()
 

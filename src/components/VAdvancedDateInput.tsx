@@ -333,7 +333,11 @@ export const VAdvancedDateInput = defineComponent({
         return (
           <div class="v-advanced-date-input-shell">
             {renderField()}
-            <VDialog v-model={menu.value} fullscreen>
+            <VDialog
+              modelValue={menu.value}
+              onUpdate:modelValue={setMenu}
+              fullscreen
+            >
               {renderPicker()}
             </VDialog>
           </div>
@@ -342,7 +346,8 @@ export const VAdvancedDateInput = defineComponent({
 
       return (
         <VMenu
-          v-model={menu.value}
+          modelValue={menu.value}
+          onUpdate:modelValue={setMenu}
           closeOnContentClick={false}
           offset={8}
           minWidth={props.minWidth ?? 0}

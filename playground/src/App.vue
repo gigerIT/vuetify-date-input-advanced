@@ -21,7 +21,9 @@ const singleValue = ref<AdvancedDateModel<Date>>(today)
 const inlineValue = ref<AdvancedDateModel<Date>>([today, inSevenDays])
 const constrainedValue = ref<AdvancedDateModel<Date>>(null)
 const typedValue = ref<AdvancedDateModel<Date>>(null)
-const menu = ref(false)
+const rangeMenu = ref(false)
+const presetMenu = ref(false)
+const customPresetMenu = ref(false)
 
 const customPresets: PresetRange<Date>[] = [
   {
@@ -86,7 +88,11 @@ const output = computed(() => ({
   inline: serializeModel(inlineValue.value),
   constrained: serializeModel(constrainedValue.value),
   typed: serializeModel(typedValue.value),
-  menu: menu.value,
+  menus: {
+    range: rangeMenu.value,
+    presets: presetMenu.value,
+    customPresets: customPresetMenu.value,
+  },
 }))
 </script>
 
@@ -114,7 +120,7 @@ const output = computed(() => ({
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="rangeValue"
-                      v-model:menu="menu"
+                      v-model:menu="rangeMenu"
                       label="Travel dates"
                       :months="2"
                       :show-presets="false"
@@ -127,7 +133,7 @@ const output = computed(() => ({
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="rangeValue"
-                      v-model:menu="menu"
+                      v-model:menu="presetMenu"
                       label="Travel dates"
                       :months="2"
                       show-presets
@@ -140,7 +146,7 @@ const output = computed(() => ({
                   <v-card-text>
                     <v-advanced-date-input
                       v-model="rangeValue"
-                      v-model:menu="menu"
+                      v-model:menu="customPresetMenu"
                       label="Travel dates"
                       :months="2"
                       show-presets
