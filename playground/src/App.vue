@@ -24,10 +24,6 @@ const themeModeOptions = [
   { title: 'System', value: 'system' },
 ] satisfies { title: string; value: ThemeMode }[]
 
-const localeLabels = Object.fromEntries(
-  localeOptions.map(({ title, value }) => [value, title]),
-) as Record<PlaygroundLocale, string>
-
 const { current: currentLocale } = useLocale()
 const theme = useTheme()
 
@@ -54,13 +50,6 @@ const themeMode = computed<ThemeMode>({
     theme.global.name.value = value
   },
 })
-
-const resolvedThemeLabel = computed(() =>
-  theme.global.current.value.dark ? 'Dark' : 'Light',
-)
-
-
-
 
 const today = new Date()
 const inSevenDays = new Date(today)
