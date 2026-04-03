@@ -113,7 +113,42 @@ const output = computed(() => ({
           </div>
 
           <v-row>
-            <v-col cols="12" lg="8">
+            <v-col cols="12" >
+              <div class="d-flex flex-column ga-6">
+                <v-card variant="flat">
+                  <v-card-title>Inline Dashboard Mode</v-card-title>
+                  <v-card-text>
+                    <v-advanced-date-input
+                      v-model="inlineValue"
+                      inline
+                      :months="2"
+                      :auto-apply="false"
+                    >
+                      <template #preset-highlight="{ preset }">
+                        <div
+                          class="d-flex align-center justify-space-between w-100"
+                        >
+                          <span>{{ preset.label }}</span>
+                          <v-chip size="x-small" color="primary" variant="tonal"
+                            >Custom</v-chip
+                          >
+                        </div>
+                      </template>
+                    </v-advanced-date-input>
+                  </v-card-text>
+                </v-card>
+
+                <v-card variant="outlined">
+                  <v-card-title>Emitted Model</v-card-title>
+                  <v-card-text>
+                    <pre class="text-body-2">{{
+                      JSON.stringify(output, null, 2)
+                    }}</pre>
+                  </v-card-text>
+                </v-card>
+              </div>
+
+
               <div class="d-flex flex-column ga-6">
                 <v-card variant="outlined">
                   <v-card-title>Range Input</v-card-title>
@@ -197,42 +232,7 @@ const output = computed(() => ({
               </div>
             </v-col>
 
-            <v-col cols="12" lg="4">
-              <div class="d-flex flex-column ga-6">
-                <v-card variant="tonal">
-                  <v-card-title>Inline Dashboard Mode</v-card-title>
-                  <v-card-text>
-                    <v-advanced-date-input
-                      v-model="inlineValue"
-                      inline
-                      :months="2"
-                      :auto-apply="false"
-                      :presets="customPresets"
-                    >
-                      <template #preset-highlight="{ preset }">
-                        <div
-                          class="d-flex align-center justify-space-between w-100"
-                        >
-                          <span>{{ preset.label }}</span>
-                          <v-chip size="x-small" color="primary" variant="tonal"
-                            >Custom</v-chip
-                          >
-                        </div>
-                      </template>
-                    </v-advanced-date-input>
-                  </v-card-text>
-                </v-card>
-
-                <v-card variant="outlined">
-                  <v-card-title>Emitted Model</v-card-title>
-                  <v-card-text>
-                    <pre class="text-body-2">{{
-                      JSON.stringify(output, null, 2)
-                    }}</pre>
-                  </v-card-text>
-                </v-card>
-              </div>
-            </v-col>
+ 
           </v-row>
         </div>
       </v-container>
