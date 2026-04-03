@@ -8,6 +8,11 @@
 .v-advanced-date-picker--stacked
   display: block
 
+.v-advanced-date-picker--mobile-fullscreen
+  display: flex
+  flex-direction: column
+  block-size: 100%
+
 .v-advanced-date-picker__live
   position: absolute
   inline-size: 1px
@@ -23,6 +28,10 @@
 
 .v-advanced-date-picker--stacked .v-advanced-date-picker__body
   flex-direction: column
+
+.v-advanced-date-picker--mobile-fullscreen .v-advanced-date-picker__body
+  flex: 1 1 auto
+  min-block-size: 0
 
 .v-advanced-date-picker__presets
   inline-size: var(--v-advanced-date-preset-width)
@@ -40,6 +49,16 @@
   overflow: hidden
   padding: 18px 20px 20px
 
+.v-advanced-date-picker__months--mobile-scroll
+  overflow-x: hidden
+  overflow-y: auto
+  overscroll-behavior-y: contain
+  -webkit-overflow-scrolling: touch
+
+.v-advanced-date-picker--mobile-fullscreen .v-advanced-date-picker__months
+  flex: 1 1 auto
+  min-block-size: 0
+
 .v-advanced-date-picker__months-track
   display: flex
   gap: var(--v-advanced-date-gap)
@@ -48,6 +67,12 @@
 
 .v-advanced-date-picker--stacked .v-advanced-date-picker__months-track
   flex-direction: column
+
+.v-advanced-date-picker--mobile-scroll .v-advanced-date-picker__month
+  flex: none
+
+.v-advanced-date-picker--mobile-scroll .v-advanced-date-picker__month-label
+  padding-inline: 0
 
 .v-advanced-date-picker__nav
   position: absolute

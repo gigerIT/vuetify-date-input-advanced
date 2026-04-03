@@ -97,6 +97,117 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
+  it('renders a windowed month list without nav buttons in mobile fullscreen mode', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          months: 2,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.find('.v-advanced-date-picker')
+
+      expect(picker.classes()).toContain(
+        'v-advanced-date-picker--mobile-fullscreen',
+      )
+      expect(picker.classes()).toContain(
+        'v-advanced-date-picker--mobile-scroll',
+      )
+      expect(wrapper.find('button[aria-label="Previous month"]').exists()).toBe(
+        false,
+      )
+      expect(wrapper.find('button[aria-label="Next month"]').exists()).toBe(
+        false,
+      )
+      expect(
+        wrapper.findAll('.v-advanced-date-picker__month').length,
+      ).toBeGreaterThan(2)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('renders a windowed month list without nav buttons in mobile inline mode', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          inline: true,
+          months: 2,
+        },
+        attachTo: document.body,
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.find('.v-advanced-date-picker')
+
+      expect(picker.classes()).not.toContain(
+        'v-advanced-date-picker--mobile-fullscreen',
+      )
+      expect(picker.classes()).toContain(
+        'v-advanced-date-picker--mobile-scroll',
+      )
+      expect(wrapper.find('button[aria-label="Previous month"]').exists()).toBe(
+        false,
+      )
+      expect(wrapper.find('button[aria-label="Next month"]').exists()).toBe(
+        false,
+      )
+      expect(
+        wrapper.findAll('.v-advanced-date-picker__month').length,
+      ).toBeGreaterThan(2)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
   it('parses a typed range and emits the normalized tuple on enter', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {

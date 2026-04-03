@@ -32,6 +32,7 @@ export const VAdvancedDateMonth = defineComponent({
       <section
         class="v-advanced-date-picker__month"
         aria-labelledby={`month-${props.month.key}`}
+        data-month={props.month.key}
       >
         <div class="v-advanced-date-picker__month-label">
           <span

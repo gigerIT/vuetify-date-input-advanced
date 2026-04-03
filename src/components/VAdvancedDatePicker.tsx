@@ -3,7 +3,9 @@ import {
   Transition,
   computed,
   defineComponent,
+  inject,
   nextTick,
+  onBeforeUnmount,
   ref,
   toRef,
   watch,
@@ -17,7 +19,6 @@ import { useAdvancedDateModel } from '@/composables/useAdvancedDateModel'
 import { useAdvancedDateNavigation } from '@/composables/useAdvancedDateNavigation'
 import { usePresetRanges } from '@/composables/usePresetRanges'
 import { useRovingFocus } from '@/composables/useRovingFocus'
-import { useTouchSwipe } from '@/composables/useTouchSwipe'
 import type {
   AdvancedDateAdapter,
   AdvancedDateModel,
@@ -31,10 +32,16 @@ import '@/styles/VAdvancedDatePicker.sass'
 import { VAdvancedDateActions } from './VAdvancedDateActions'
 import { VAdvancedDateMonth } from './VAdvancedDateMonth'
 import { VAdvancedDatePresets } from './VAdvancedDatePresets'
+import { advancedDateMobilePresentationKey } from './mobilePresentation'
 
 function clampMonthCount(value: number): number {
   return Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
 }
+
+const MOBILE_INITIAL_PREVIOUS_MONTHS = 1
+const MOBILE_INITIAL_NEXT_MONTHS = 5
+const MOBILE_LOAD_MONTH_STEP = 3
+const MOBILE_MAX_RENDERED_MONTHS = 10
 
 export const VAdvancedDatePicker = defineComponent({
   name: 'VAdvancedDatePicker',
@@ -120,16 +127,41 @@ export const VAdvancedDatePicker = defineComponent({
   setup(props, { emit, expose, slots }) {
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
+    const mobilePresentation = inject(
+      advancedDateMobilePresentationKey,
+      computed(() => null),
+    )
     const containerRef = ref<HTMLElement | null>(null)
     const monthsTrackRef = ref<HTMLElement | null>(null)
     const dayButtons = ref<HTMLButtonElement[]>([])
     const dayButtonLookup = ref(new Map<string, HTMLButtonElement>())
+    const mobileWindowStart = ref<unknown | null>(null)
+    const mobileWindowCount = ref(0)
+    const mobileInlineHeight = ref<number | null>(null)
+    const mobileMutating = ref(false)
+    const pendingMobileScrollMonthKey = ref('')
     const now = adapter.startOfDay(adapter.date() as unknown)
+    let scrollFrame = 0
 
     const monthRef = computed(() => props.month ?? adapter.getMonth(now))
     const yearRef = computed(() => props.year ?? adapter.getYear(now))
     const monthsRef = computed(() => clampMonthCount(props.months))
     const disabledRef = computed(() => props.disabled || props.readonly)
+    const isMobileScroll = computed(
+      () => display.mobile.value && !!mobilePresentation.value,
+    )
+    const isMobileFullscreen = computed(
+      () => isMobileScroll.value && mobilePresentation.value === 'fullscreen',
+    )
+    const navigationMonthsRef = computed(() =>
+      isMobileScroll.value ? 1 : monthsRef.value,
+    )
+    const minMonth = computed(() =>
+      props.min ? adapter.startOfMonth(props.min) : null,
+    )
+    const maxMonth = computed(() =>
+      props.max ? adapter.startOfMonth(props.max) : null,
+    )
 
     const model = useAdvancedDateModel({
       adapter,
@@ -148,7 +180,7 @@ export const VAdvancedDatePicker = defineComponent({
       adapter,
       modelValue: toRef(props, 'modelValue'),
       range: toRef(props, 'range'),
-      months: monthsRef,
+      months: navigationMonthsRef,
       month: monthRef,
       year: yearRef,
       min: toRef(props, 'min'),
@@ -156,6 +188,56 @@ export const VAdvancedDatePicker = defineComponent({
       onMonthChange: (value) => emit('update:month', value),
       onYearChange: (value) => emit('update:year', value),
     })
+
+    const mobileWindowBaseCount = computed(() =>
+      Math.max(monthsRef.value + MOBILE_INITIAL_NEXT_MONTHS, 7),
+    )
+
+    function buildMobileMonthWindow(start: unknown, count: number): unknown[] {
+      const months: unknown[] = []
+
+      for (let index = 0; index < count; index += 1) {
+        const month = adapter.startOfMonth(adapter.addMonths(start, index))
+        if (maxMonth.value && adapter.isAfter(month, maxMonth.value)) break
+        months.push(month)
+      }
+
+      return months
+    }
+
+    function createMobileWindowStart(anchor: unknown) {
+      let start = adapter.startOfMonth(anchor)
+
+      for (let index = 0; index < MOBILE_INITIAL_PREVIOUS_MONTHS; index += 1) {
+        const previous = adapter.startOfMonth(adapter.addMonths(start, -1))
+        if (minMonth.value && adapter.isBefore(previous, minMonth.value)) break
+        start = previous
+      }
+
+      return start
+    }
+
+    function resetMobileWindow(anchor: unknown) {
+      const targetMonth = adapter.startOfMonth(anchor)
+
+      mobileWindowStart.value = createMobileWindowStart(targetMonth)
+      mobileWindowCount.value = mobileWindowBaseCount.value
+      pendingMobileScrollMonthKey.value = dateKey(adapter, targetMonth)
+    }
+
+    const mobileVisibleMonths = computed(() => {
+      if (!mobileWindowStart.value) return []
+      return buildMobileMonthWindow(
+        mobileWindowStart.value,
+        mobileWindowCount.value,
+      )
+    })
+
+    const visibleMonths = computed(() =>
+      isMobileScroll.value
+        ? mobileVisibleMonths.value
+        : navigation.visibleMonths.value,
+    )
 
     const isReverse = ref(false)
 
@@ -167,7 +249,7 @@ export const VAdvancedDatePicker = defineComponent({
 
     const grid = useAdvancedDateGrid({
       adapter,
-      visibleMonths: navigation.visibleMonths,
+      visibleMonths,
       selection: model.normalized,
       hoveredDate: model.hoveredDate,
       range: toRef(props, 'range'),
@@ -194,6 +276,13 @@ export const VAdvancedDatePicker = defineComponent({
       )
     })
 
+    const monthLookup = computed(
+      () =>
+        new Map(
+          grid.staticMonths.value.map((month) => [month.key, month.date]),
+        ),
+    )
+
     const monthsTrackKey = computed(() =>
       grid.staticMonths.value.map((month) => month.key).join(':'),
     )
@@ -202,8 +291,74 @@ export const VAdvancedDatePicker = defineComponent({
       isReverse.value ? 'picker-reverse-transition' : 'picker-transition',
     )
 
+    const monthsStyle = computed(() => {
+      const style: Record<string, string> = {
+        touchAction: 'pan-y',
+      }
+
+      if (
+        isMobileScroll.value &&
+        !isMobileFullscreen.value &&
+        mobileInlineHeight.value
+      ) {
+        style.blockSize = `${mobileInlineHeight.value}px`
+      }
+
+      return style
+    })
+
     function setMonthsTrackRef(element: unknown) {
       if (element instanceof HTMLElement) monthsTrackRef.value = element
+      else monthsTrackRef.value = null
+    }
+
+    function getMonthElements() {
+      return Array.from(
+        monthsTrackRef.value?.querySelectorAll<HTMLElement>(
+          '.v-advanced-date-picker__month',
+        ) ?? [],
+      )
+    }
+
+    function findMonthElement(key: string) {
+      return (
+        getMonthElements().find((element) => element.dataset.month === key) ??
+        null
+      )
+    }
+
+    function getLeadingVisibleMonthElement() {
+      const container = containerRef.value
+      if (!container) return null
+
+      return (
+        getMonthElements().find(
+          (element) =>
+            element.offsetTop + element.offsetHeight > container.scrollTop + 1,
+        ) ??
+        getMonthElements()[0] ??
+        null
+      )
+    }
+
+    function measureMobileInlineHeight() {
+      if (!isMobileScroll.value || isMobileFullscreen.value) {
+        mobileInlineHeight.value = null
+        return
+      }
+
+      const firstMonth = getMonthElements()[0]
+      if (!firstMonth) return
+
+      const trackStyles = monthsTrackRef.value
+        ? getComputedStyle(monthsTrackRef.value)
+        : null
+      const gap =
+        Number.parseFloat(trackStyles?.rowGap || trackStyles?.gap || '0') || 0
+
+      mobileInlineHeight.value =
+        firstMonth.offsetHeight * monthsRef.value +
+        gap * Math.max(monthsRef.value - 1, 0)
     }
 
     function refreshDayButtons() {
@@ -221,11 +376,193 @@ export const VAdvancedDatePicker = defineComponent({
       )
     }
 
+    // Preserve the leading visible month when the mobile window grows or trims.
+    function captureMonthScrollReference() {
+      const container = containerRef.value
+      const month = getLeadingVisibleMonthElement()
+      if (!container || !month?.dataset.month) return null
+
+      return {
+        key: month.dataset.month,
+        offset: month.offsetTop - container.scrollTop,
+      }
+    }
+
+    function restoreMonthScrollReference(
+      reference: { key: string; offset: number } | null,
+    ) {
+      const container = containerRef.value
+      if (!container || !reference) return
+
+      const month = findMonthElement(reference.key)
+      if (!month) return
+
+      container.scrollTop = Math.max(month.offsetTop - reference.offset, 0)
+    }
+
+    function scrollMonthIntoView(month: unknown) {
+      const container = containerRef.value
+      const element = findMonthElement(dateKey(adapter, month))
+      if (!container || !element) return
+
+      container.scrollTop = element.offsetTop
+    }
+
+    function syncDisplayedMonthFromScroll() {
+      if (!isMobileScroll.value) return
+
+      const key = getLeadingVisibleMonthElement()?.dataset.month
+      if (!key) return
+
+      const month = monthLookup.value.get(key)
+      if (month) navigation.setDisplayedMonth(month)
+    }
+
+    async function prependMobileMonths() {
+      if (
+        !isMobileScroll.value ||
+        mobileMutating.value ||
+        !mobileWindowStart.value
+      )
+        return
+
+      let added = 0
+
+      for (let index = 1; index <= MOBILE_LOAD_MONTH_STEP; index += 1) {
+        const month = adapter.startOfMonth(
+          adapter.addMonths(mobileWindowStart.value, -index),
+        )
+
+        if (minMonth.value && adapter.isBefore(month, minMonth.value)) break
+        added += 1
+      }
+
+      if (!added) return
+
+      const reference = captureMonthScrollReference()
+
+      mobileMutating.value = true
+      mobileWindowStart.value = adapter.startOfMonth(
+        adapter.addMonths(mobileWindowStart.value, -added),
+      )
+      mobileWindowCount.value = Math.min(
+        mobileWindowCount.value + added,
+        MOBILE_MAX_RENDERED_MONTHS,
+      )
+
+      await nextTick()
+      restoreMonthScrollReference(reference)
+      mobileMutating.value = false
+    }
+
+    async function appendMobileMonths() {
+      if (
+        !isMobileScroll.value ||
+        mobileMutating.value ||
+        !mobileWindowStart.value
+      )
+        return
+
+      const renderedMonths = mobileVisibleMonths.value
+      const lastMonth = renderedMonths.at(-1)
+      if (!lastMonth) return
+
+      let added = 0
+
+      for (let index = 1; index <= MOBILE_LOAD_MONTH_STEP; index += 1) {
+        const month = adapter.startOfMonth(adapter.addMonths(lastMonth, index))
+
+        if (maxMonth.value && adapter.isAfter(month, maxMonth.value)) break
+        added += 1
+      }
+
+      if (!added) return
+
+      const overflow = Math.max(
+        mobileWindowCount.value + added - MOBILE_MAX_RENDERED_MONTHS,
+        0,
+      )
+      const reference = captureMonthScrollReference()
+
+      mobileMutating.value = true
+
+      if (overflow) {
+        mobileWindowStart.value = adapter.startOfMonth(
+          adapter.addMonths(mobileWindowStart.value, overflow),
+        )
+      }
+
+      mobileWindowCount.value = Math.min(
+        mobileWindowCount.value + added,
+        MOBILE_MAX_RENDERED_MONTHS,
+      )
+
+      await nextTick()
+      restoreMonthScrollReference(reference)
+      mobileMutating.value = false
+    }
+
+    function onMonthsScroll() {
+      if (!isMobileScroll.value || scrollFrame) return
+
+      scrollFrame = requestAnimationFrame(() => {
+        scrollFrame = 0
+
+        const container = containerRef.value
+        if (!container) return
+
+        syncDisplayedMonthFromScroll()
+
+        const threshold = Math.max(container.clientHeight * 0.5, 120)
+        const distanceToBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight
+
+        if (container.scrollTop <= threshold) {
+          void prependMobileMonths()
+        }
+
+        if (distanceToBottom <= threshold) {
+          void appendMobileMonths()
+        }
+      })
+    }
+
+    onBeforeUnmount(() => {
+      if (!scrollFrame) return
+      cancelAnimationFrame(scrollFrame)
+    })
+
     watch(
-      monthsTrackKey,
+      [isMobileScroll, navigation.displayedMonth, minMonth, maxMonth],
+      ([mobile, displayedMonth]) => {
+        if (!mobile) {
+          mobileWindowStart.value = null
+          mobileWindowCount.value = 0
+          mobileInlineHeight.value = null
+          return
+        }
+
+        const visible = mobileVisibleMonths.value.some((month) =>
+          adapter.isSameMonth(month, displayedMonth),
+        )
+
+        if (!visible) resetMobileWindow(displayedMonth)
+      },
+      { immediate: true },
+    )
+
+    watch(
+      [monthsTrackKey, isMobileScroll, isMobileFullscreen, monthsRef],
       async () => {
         await nextTick()
         refreshDayButtons()
+        measureMobileInlineHeight()
+
+        if (!pendingMobileScrollMonthKey.value) return
+
+        const month = monthLookup.value.get(pendingMobileScrollMonthKey.value)
+        if (month) scrollMonthIntoView(month)
+        pendingMobileScrollMonthKey.value = ''
       },
       { immediate: true },
     )
@@ -254,14 +591,21 @@ export const VAdvancedDatePicker = defineComponent({
 
     async function focusDate(date: unknown) {
       const targetMonth = adapter.startOfMonth(date)
-      const visible = navigation.visibleMonths.value.some((month) =>
+      const visible = visibleMonths.value.some((month) =>
         adapter.isSameMonth(month, targetMonth),
       )
 
-      if (!visible) navigation.setDisplayedMonth(targetMonth)
+      if (isMobileScroll.value) {
+        if (!visible) resetMobileWindow(targetMonth)
+        navigation.setDisplayedMonth(targetMonth)
+      } else if (!visible) {
+        navigation.setDisplayedMonth(targetMonth)
+      }
 
       await nextTick()
       refreshDayButtons()
+
+      if (isMobileScroll.value) scrollMonthIntoView(targetMonth)
 
       const targetKey = dateKey(adapter, date)
       const referenceDate =
@@ -311,16 +655,10 @@ export const VAdvancedDatePicker = defineComponent({
       return firstDay?.key ?? ''
     })
 
-    const swipe = useTouchSwipe({
-      disabled: () => !props.swipeable || !display.mobile.value,
-      onPrevious: navigation.prevMonth,
-      onNext: navigation.nextMonth,
-    })
-
     const liveText = computed(() => {
-      const labels = grid.staticMonths.value
-        .map((month) => month.label)
-        .join(', ')
+      const labels = isMobileScroll.value
+        ? adapter.format(navigation.displayedMonth.value, 'monthAndYear')
+        : grid.staticMonths.value.map((month) => month.label).join(', ')
 
       if (
         props.range &&
@@ -353,11 +691,41 @@ export const VAdvancedDatePicker = defineComponent({
       emit('presetSelect', preset)
     }
 
+    async function scrollToAdjacentMonth(offset: -1 | 1) {
+      const canMove =
+        offset < 0 ? navigation.canPrev.value : navigation.canNext.value
+      if (!canMove) return
+
+      if (!isMobileScroll.value) {
+        if (offset < 0) navigation.prevMonth()
+        else navigation.nextMonth()
+        return
+      }
+
+      const targetMonth = adapter.startOfMonth(
+        adapter.addMonths(navigation.displayedMonth.value, offset),
+      )
+
+      resetMobileWindow(targetMonth)
+      navigation.setDisplayedMonth(targetMonth)
+
+      await nextTick()
+      scrollMonthIntoView(targetMonth)
+    }
+
+    function prevMonth() {
+      void scrollToAdjacentMonth(-1)
+    }
+
+    function nextMonth() {
+      void scrollToAdjacentMonth(1)
+    }
+
     expose({
       focusDate,
       focusActiveDate,
-      prevMonth: navigation.prevMonth,
-      nextMonth: navigation.nextMonth,
+      prevMonth,
+      nextMonth,
     })
 
     return () => (
@@ -367,6 +735,9 @@ export const VAdvancedDatePicker = defineComponent({
           `v-advanced-date-picker--density-${props.density}`,
           {
             'v-advanced-date-picker--stacked': display.mobile.value,
+            'v-advanced-date-picker--mobile-fullscreen':
+              isMobileFullscreen.value,
+            'v-advanced-date-picker--mobile-scroll': isMobileScroll.value,
           },
         ]}
         color="surface"
@@ -407,29 +778,58 @@ export const VAdvancedDatePicker = defineComponent({
 
           <div
             ref={containerRef}
-            class="v-advanced-date-picker__months"
-            style={{ touchAction: 'pan-y' }}
+            class={[
+              'v-advanced-date-picker__months',
+              {
+                'v-advanced-date-picker__months--mobile-scroll':
+                  isMobileScroll.value,
+              },
+            ]}
+            style={monthsStyle.value}
             onMouseleave={() => model.setHoverDate(null)}
-            {...swipe.touchHandlers}
+            onScroll={isMobileScroll.value ? onMonthsScroll : undefined}
           >
-            <VBtn
-              {...({
-                class: [
-                  'v-advanced-date-picker__nav',
-                  'v-advanced-date-picker__nav--prev',
-                ],
-                icon: 'mdi-chevron-left',
-                variant: 'text',
-                disabled: !navigation.canPrev.value || props.disabled,
-                'aria-label': 'Previous month',
-                onClick: navigation.prevMonth,
-              } as any)}
-            />
+            {!isMobileScroll.value ? (
+              <VBtn
+                {...({
+                  class: [
+                    'v-advanced-date-picker__nav',
+                    'v-advanced-date-picker__nav--prev',
+                  ],
+                  icon: 'mdi-chevron-left',
+                  variant: 'text',
+                  disabled: !navigation.canPrev.value || props.disabled,
+                  'aria-label': 'Previous month',
+                  onClick: prevMonth,
+                } as any)}
+              />
+            ) : null}
 
-            <Transition name={monthTransition.value}>
+            {!isMobileScroll.value ? (
+              <Transition name={monthTransition.value}>
+                <div
+                  ref={setMonthsTrackRef}
+                  key={monthsTrackKey.value}
+                  class="v-advanced-date-picker__months-track"
+                >
+                  {grid.months.value.map((month) => (
+                    <VAdvancedDateMonth
+                      key={month.key}
+                      month={month}
+                      activeDateKey={activeDateKey.value}
+                      showWeekNumbers={props.showWeekNumbers}
+                      onSelect={model.selectDate}
+                      onHover={model.setHoverDate}
+                      onFocusDate={focus.setActiveDate}
+                      onKeydown={focus.onKeydown}
+                      v-slots={slots}
+                    />
+                  ))}
+                </div>
+              </Transition>
+            ) : (
               <div
                 ref={setMonthsTrackRef}
-                key={monthsTrackKey.value}
                 class="v-advanced-date-picker__months-track"
               >
                 {grid.months.value.map((month) => (
@@ -446,21 +846,23 @@ export const VAdvancedDatePicker = defineComponent({
                   />
                 ))}
               </div>
-            </Transition>
+            )}
 
-            <VBtn
-              {...({
-                class: [
-                  'v-advanced-date-picker__nav',
-                  'v-advanced-date-picker__nav--next',
-                ],
-                icon: 'mdi-chevron-right',
-                variant: 'text',
-                disabled: !navigation.canNext.value || props.disabled,
-                'aria-label': 'Next month',
-                onClick: navigation.nextMonth,
-              } as any)}
-            />
+            {!isMobileScroll.value ? (
+              <VBtn
+                {...({
+                  class: [
+                    'v-advanced-date-picker__nav',
+                    'v-advanced-date-picker__nav--next',
+                  ],
+                  icon: 'mdi-chevron-right',
+                  variant: 'text',
+                  disabled: !navigation.canNext.value || props.disabled,
+                  'aria-label': 'Next month',
+                  onClick: nextMonth,
+                } as any)}
+              />
+            ) : null}
           </div>
         </div>
 

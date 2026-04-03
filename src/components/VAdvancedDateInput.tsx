@@ -1,5 +1,13 @@
 import type { PropType } from 'vue'
-import { computed, defineComponent, nextTick, ref, toRef, watch } from 'vue'
+import {
+  computed,
+  defineComponent,
+  nextTick,
+  provide,
+  ref,
+  toRef,
+  watch,
+} from 'vue'
 
 import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
@@ -15,6 +23,7 @@ import { normalizeModel } from '@/util/model'
 import '@/styles/VAdvancedDateInput.sass'
 
 import { VAdvancedDatePicker } from './VAdvancedDatePicker'
+import { advancedDateMobilePresentationKey } from './mobilePresentation'
 
 function shouldCloseOnSelection<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
@@ -154,6 +163,11 @@ export const VAdvancedDateInput = defineComponent({
     const display = useDisplay()
     const menu = ref(props.menu)
     const pickerRef = ref<{ focusActiveDate?: () => void } | null>(null)
+    const mobilePresentation = computed(() =>
+      display.mobile.value && !props.inline ? 'fullscreen' : 'inline',
+    )
+
+    provide(advancedDateMobilePresentationKey, mobilePresentation)
 
     watch(
       () => props.menu,
