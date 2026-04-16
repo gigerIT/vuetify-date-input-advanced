@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v1.0.1...v2.0.0) (2026-04-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **picker:** remove the unused swipeable prop and swipe composable from the public component API.
+
+### Code Refactoring
+
+* **picker:** split picker composition and remove swipeable prop ([5e620a2](https://github.com/gigerIT/vuetify-date-input-advanced/commit/5e620a22bf0ff1a930182ba25c18c8d6be3df805))
+
 ## [1.0.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v1.0.0...v1.0.1) (2026-04-03)
 
 
