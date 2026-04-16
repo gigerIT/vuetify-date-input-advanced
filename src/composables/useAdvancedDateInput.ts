@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, readonly, ref, watch, type Ref } from 'vue'
 
 import type { AdvancedDateAdapter, AdvancedDateModel } from '@/types'
 import {
@@ -167,8 +167,8 @@ export function useAdvancedDateInput<TDate>(options: {
   }
 
   return {
-    text,
-    inputError,
+    text: readonly(text),
+    inputError: readonly(inputError),
     errorMessages: computed(() => (inputError.value ? [inputError.value] : [])),
     onFocus,
     onBlur,

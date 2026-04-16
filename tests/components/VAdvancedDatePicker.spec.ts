@@ -23,6 +23,112 @@ function allowOnly(...allowedDates: string[]) {
 }
 
 describe('VAdvancedDatePicker', () => {
+  it('renders a windowed month list in standalone mobile inline mode', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          months: 2,
+          mobilePresentation: 'inline',
+        },
+        attachTo: document.body,
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.find('.v-advanced-date-picker')
+
+      expect(picker.classes()).not.toContain(
+        'v-advanced-date-picker--mobile-fullscreen',
+      )
+      expect(picker.classes()).toContain(
+        'v-advanced-date-picker--mobile-scroll',
+      )
+      expect(wrapper.find('button[aria-label="Previous month"]').exists()).toBe(
+        false,
+      )
+      expect(wrapper.find('button[aria-label="Next month"]').exists()).toBe(
+        false,
+      )
+      expect(
+        wrapper.findAll('.v-advanced-date-picker__month').length,
+      ).toBeGreaterThan(2)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('renders a windowed month list in standalone mobile fullscreen mode', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          months: 2,
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.find('.v-advanced-date-picker')
+
+      expect(picker.classes()).toContain(
+        'v-advanced-date-picker--mobile-fullscreen',
+      )
+      expect(picker.classes()).toContain(
+        'v-advanced-date-picker--mobile-scroll',
+      )
+      expect(wrapper.find('button[aria-label="Previous month"]').exists()).toBe(
+        false,
+      )
+      expect(wrapper.find('button[aria-label="Next month"]').exists()).toBe(
+        false,
+      )
+      expect(
+        wrapper.findAll('.v-advanced-date-picker__month').length,
+      ).toBeGreaterThan(2)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
   it('emits a completed range after two valid clicks', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {

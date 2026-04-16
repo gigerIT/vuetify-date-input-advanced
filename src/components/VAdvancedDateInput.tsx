@@ -1,151 +1,33 @@
-import type { PropType } from 'vue'
-import {
-  computed,
-  defineComponent,
-  nextTick,
-  provide,
-  ref,
-  toRef,
-  watch,
-} from 'vue'
+import { computed, defineComponent, ref, toRef } from 'vue'
 
 import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateInput } from '@/composables/useAdvancedDateInput'
+import { useAdvancedDateOverlay } from '@/composables/useAdvancedDateOverlay'
 import type {
   AdvancedDateAdapter,
   AdvancedDateModel,
   PresetRange,
 } from '@/types'
-import { normalizeModel } from '@/util/model'
 
 import '@/styles/VAdvancedDateInput.sass'
 
+import {
+  advancedDateInputProps,
+  buildAdvancedDatePickerBindings,
+  type AdvancedDateMobilePresentation,
+} from './advancedDateProps'
 import { VAdvancedDatePicker } from './VAdvancedDatePicker'
-import { advancedDateMobilePresentationKey } from './mobilePresentation'
 
-function shouldCloseOnSelection<TDate>(
-  adapter: AdvancedDateAdapter<TDate>,
-  modelValue: AdvancedDateModel<TDate>,
-  range: boolean,
-): boolean {
-  const selection = normalizeModel(adapter, modelValue, range)
-  if (!range) return !!selection.start
-  return !!selection.start && !!selection.end
+interface OverlayActivatorProps {
+  [key: string]: unknown
 }
 
 export const VAdvancedDateInput = defineComponent({
   name: 'VAdvancedDateInput',
 
-  props: {
-    modelValue: {
-      type: [Object, Array, Date, String, Number] as PropType<
-        AdvancedDateModel<unknown>
-      >,
-      default: null,
-    },
-    menu: Boolean,
-    inline: Boolean,
-    label: String,
-    placeholder: String,
-    variant: {
-      type: String,
-      default: 'outlined',
-    },
-    hideDetails: {
-      type: [Boolean, String] as PropType<boolean | 'auto'>,
-      default: 'auto',
-    },
-    messages: {
-      type: [String, Array] as PropType<string | string[]>,
-      default: undefined,
-    },
-    error: Boolean,
-    errorMessages: {
-      type: [String, Array] as PropType<string | string[]>,
-      default: undefined,
-    },
-    rules: {
-      type: Array as PropType<readonly unknown[]>,
-      default: () => [],
-    },
-    clearable: Boolean,
-    focused: Boolean,
-    prependInnerIcon: String,
-    appendInnerIcon: {
-      type: String,
-      default: 'mdi-calendar',
-    },
-    range: {
-      type: Boolean,
-      default: true,
-    },
-    returnObject: Boolean,
-    months: {
-      type: Number,
-      default: 2,
-    },
-    month: Number,
-    year: Number,
-    presets: Array as PropType<PresetRange<unknown>[]>,
-    showPresets: {
-      type: Boolean,
-      default: true,
-    },
-    swipeable: {
-      type: Boolean,
-      default: true,
-    },
-    autoApply: {
-      type: Boolean,
-      default: true,
-    },
-    min: {
-      type: [Object, Date, String, Number] as PropType<unknown>,
-      default: null,
-    },
-    max: {
-      type: [Object, Date, String, Number] as PropType<unknown>,
-      default: null,
-    },
-    allowedDates: Function as PropType<(date: unknown) => boolean>,
-    allowedStartDates: Function as PropType<(date: unknown) => boolean>,
-    allowedEndDates: Function as PropType<(date: unknown) => boolean>,
-    showWeekNumbers: Boolean,
-    firstDayOfWeek: [String, Number] as PropType<string | number>,
-    displayFormat: {
-      type: String,
-      default: 'fullDate',
-    },
-    rangeSeparator: {
-      type: String,
-      default: ' – ',
-    },
-    parseInput: Function as PropType<(value: string) => unknown | null>,
-    disabled: Boolean,
-    readonly: Boolean,
-    theme: String,
-    rounded: {
-      type: [String, Number, Boolean],
-      default: undefined,
-    },
-    border: {
-      type: [String, Number, Boolean],
-      default: true,
-    },
-    elevation: {
-      type: [String, Number],
-      default: 2,
-    },
-    width: [String, Number],
-    minWidth: [String, Number],
-    maxWidth: [String, Number],
-    density: {
-      type: String as PropType<'default' | 'comfortable' | 'compact'>,
-      default: 'default',
-    },
-  },
+  props: advancedDateInputProps,
 
   emits: {
     'update:modelValue': (_value: AdvancedDateModel<unknown>) => true,
@@ -160,19 +42,10 @@ export const VAdvancedDateInput = defineComponent({
   setup(props, { emit, slots }) {
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
-    const menu = ref(props.menu)
     const pickerRef = ref<{ focusActiveDate?: () => void } | null>(null)
-    const mobilePresentation = computed(() =>
-      display.mobile.value && !props.inline ? 'fullscreen' : 'inline',
-    )
-
-    provide(advancedDateMobilePresentationKey, mobilePresentation)
-
-    watch(
-      () => props.menu,
-      (value) => {
-        menu.value = value
-      },
+    const mobilePresentation = computed<AdvancedDateMobilePresentation | null>(
+      () =>
+        display.mobile.value && !props.inline ? 'fullscreen' : 'inline',
     )
 
     const input = useAdvancedDateInput({
@@ -190,11 +63,17 @@ export const VAdvancedDateInput = defineComponent({
       allowedEndDates: toRef(props, 'allowedEndDates'),
       onUpdate: (value) => emit('update:modelValue', value),
     })
-
-    watch(menu, async (value) => {
-      if (!value) return
-      await nextTick()
-      pickerRef.value?.focusActiveDate?.()
+    const overlay = useAdvancedDateOverlay({
+      adapter,
+      menu: toRef(props, 'menu'),
+      inline: toRef(props, 'inline'),
+      autoApply: toRef(props, 'autoApply'),
+      range: toRef(props, 'range'),
+      pickerRef,
+      onMenuUpdate: (value) => emit('update:menu', value),
+      onModelUpdate: (value) => emit('update:modelValue', value),
+      onApply: (value) => emit('apply', value),
+      onCancel: () => emit('cancel'),
     })
 
     const mergedErrorMessages = computed(() => {
@@ -206,98 +85,45 @@ export const VAdvancedDateInput = defineComponent({
 
       return [...base, ...input.errorMessages.value]
     })
-
-    function setMenu(value: boolean) {
-      menu.value = value
-      emit('update:menu', value)
-    }
-
-    function handlePickerUpdate(value: AdvancedDateModel<unknown>) {
-      emit('update:modelValue', value)
-      if (
-        !props.inline &&
-        props.autoApply &&
-        shouldCloseOnSelection(adapter, value, props.range)
-      ) {
-        setMenu(false)
-      }
-    }
-
-    function handleApply(value: AdvancedDateModel<unknown>) {
-      emit('apply', value)
-      setMenu(false)
-    }
-
-    function handleCancel() {
-      emit('cancel')
-      setMenu(false)
-    }
+    const pickerBindings = computed(() =>
+      buildAdvancedDatePickerBindings(props, mobilePresentation.value),
+    )
 
     function handleKeydown(event: KeyboardEvent) {
       if (event.key === 'Enter') {
         if (!input.commitInput()) return
-        setMenu(true)
+        overlay.setMenu(true)
       }
 
-      if (event.key === 'Escape') setMenu(false)
+      if (event.key === 'Escape') overlay.setMenu(false)
     }
-
-    const pickerProps = computed(() => ({
-      modelValue: props.modelValue,
-      range: props.range,
-      returnObject: props.returnObject,
-      months: props.months,
-      month: props.month,
-      year: props.year,
-      presets: props.presets,
-      showPresets: props.showPresets,
-      swipeable: props.swipeable,
-      autoApply: props.autoApply,
-      min: props.min,
-      max: props.max,
-      allowedDates: props.allowedDates,
-      allowedStartDates: props.allowedStartDates,
-      allowedEndDates: props.allowedEndDates,
-      showWeekNumbers: props.showWeekNumbers,
-      firstDayOfWeek: props.firstDayOfWeek,
-      disabled: props.disabled,
-      readonly: props.readonly,
-      theme: props.theme,
-      rounded: props.rounded,
-      border: props.border,
-      elevation: props.elevation,
-      width: props.width,
-      minWidth: props.minWidth,
-      maxWidth: props.maxWidth,
-      density: props.density,
-    }))
 
     function renderPicker() {
       return (
         <VAdvancedDatePicker
           ref={pickerRef}
-          {...pickerProps.value}
-          onUpdate:modelValue={handlePickerUpdate}
+          {...pickerBindings.value}
+          onUpdate:modelValue={overlay.handlePickerUpdate}
           onUpdate:month={(value) => emit('update:month', value)}
           onUpdate:year={(value) => emit('update:year', value)}
-          onApply={handleApply}
-          onCancel={handleCancel}
+          onApply={overlay.handleApply}
+          onCancel={overlay.handleCancel}
           onPresetSelect={(preset) => emit('presetSelect', preset)}
           v-slots={slots}
         />
       )
     }
 
-    function renderField(activatorProps: Record<string, unknown> = {}) {
+    function renderField(activatorProps: OverlayActivatorProps = {}) {
       const hasActivatorProps = Object.keys(activatorProps).length > 0
 
       if (slots.activator) {
         return slots.activator({
           props: {
             ...activatorProps,
-            onClick: () => setMenu(true),
+            onClick: () => overlay.setMenu(true),
           },
-          isOpen: menu.value,
+          isOpen: overlay.menu.value,
         })
       }
 
@@ -317,7 +143,7 @@ export const VAdvancedDateInput = defineComponent({
             rules: props.rules,
             clearable: props.clearable,
             focused: props.focused,
-            'aria-expanded': menu.value,
+            'aria-expanded': overlay.menu.value,
             disabled: props.disabled,
             readonly: props.readonly,
             prependInnerIcon: props.prependInnerIcon,
@@ -328,15 +154,15 @@ export const VAdvancedDateInput = defineComponent({
             onBlur: input.onBlur,
             onKeydown: handleKeydown,
             'onClick:control': () => {
-              if (!hasActivatorProps) setMenu(true)
+              if (!hasActivatorProps) overlay.setMenu(true)
             },
             'onClick:appendInner': () => {
-              if (!hasActivatorProps) setMenu(true)
+              if (!hasActivatorProps) overlay.setMenu(true)
             },
             'onClick:clear': () => {
               input.setText('')
               input.commitInput()
-              setMenu(false)
+              overlay.setMenu(false)
             },
           } as any)}
         />
@@ -351,8 +177,8 @@ export const VAdvancedDateInput = defineComponent({
           <div class="v-advanced-date-input-shell">
             {renderField()}
             <VDialog
-              modelValue={menu.value}
-              onUpdate:modelValue={setMenu}
+              modelValue={overlay.menu.value}
+              onUpdate:modelValue={overlay.setMenu}
               fullscreen
             >
               {renderPicker()}
@@ -363,8 +189,8 @@ export const VAdvancedDateInput = defineComponent({
 
       return (
         <VMenu
-          modelValue={menu.value}
-          onUpdate:modelValue={setMenu}
+          modelValue={overlay.menu.value}
+          onUpdate:modelValue={overlay.setMenu}
           closeOnContentClick={false}
           offset={8}
           minWidth={props.minWidth ?? 0}
@@ -373,7 +199,7 @@ export const VAdvancedDateInput = defineComponent({
             activator: ({
               props: activatorProps,
             }: {
-              props: Record<string, unknown>
+              props: OverlayActivatorProps
             }) => renderField(activatorProps),
             default: () => renderPicker(),
           }}

@@ -11,7 +11,9 @@ committed `dist/` build output.
 - `.git/` Git metadata for the repository.
 - `dist/` Generated library bundles, CSS, and declaration files from Vite.
 - `node_modules/` Installed dependencies; do not edit manually.
-- `playground/` Local Vite app used for manual QA of the components.
+- `playground/` Local Vite app used for manual QA of the components, with
+  demo state in `playground/src/composables/` and UI sections in
+  `playground/src/components/`.
 - `src/` Library source code, including components, composables, utilities,
   plugin entry points, and styles.
 - `tests/` Vitest suites plus the shared Vuetify test mount helper.
@@ -111,6 +113,8 @@ npm run test:watch
 ```mermaid
 flowchart LR
   Playground[playground/src/App.vue]
+  PlaygroundState[playground/src/composables/usePlaygroundState.ts]
+  PlaygroundUI[playground/src/components/*]
   Plugin[src/plugin.ts]
   Index[src/index.ts]
   Input[VAdvancedDateInput]
@@ -121,6 +125,9 @@ flowchart LR
   Tests[Vitest + Vue Test Utils]
 
   Playground --> Plugin
+  Playground --> PlaygroundState
+  Playground --> PlaygroundUI
+  PlaygroundState --> PlaygroundUI
   Plugin --> Input
   Plugin --> Picker
   Index --> Input
@@ -139,10 +146,12 @@ The public API is exported from `src/index.ts` and registered globally through
 `src/plugin.ts`. `VAdvancedDateInput` wraps `VTextField` plus `VMenu` or
 `VDialog` behavior and delegates calendar rendering to `VAdvancedDatePicker`.
 The picker coordinates the real state through composables for model
-normalization, navigation, date-grid generation, presets, roving focus, swipe,
-and typed-input parsing. Pure helpers in `src/util/` keep date math,
-serialization, parsing, week numbers, and preset creation separate from the
-render layer.
+normalization, navigation, date-grid generation, presets, roving focus,
+mobile month windowing, and typed-input parsing. The input passes an internal
+`mobilePresentation` prop to the picker to choose mobile inline versus
+fullscreen rendering without relying on provide/inject. Pure helpers in
+`src/util/` keep date math, serialization, parsing, week numbers, and preset
+creation separate from the render layer.
 
 ## Testing Strategy
 
@@ -151,8 +160,8 @@ render layer.
 - Vue component testing: `@vue/test-utils`.
 - Vuetify test bootstrapping lives in `tests/render.ts`.
 - Current coverage is unit and component focused.
-- Existing suites cover model utilities, swipe composables, and picker/input
-  interactions.
+- Existing suites cover model utilities and picker/input interactions,
+  including mobile presentation modes.
 - A GitHub Actions release workflow runs the same validation steps before npm publication.
 - Local workflow:
 
@@ -225,8 +234,8 @@ npm run lint
 - `src/plugin.ts` exposes `AdvancedDatePlugin` for global registration.
 - `src/index.ts` supports named imports for direct component use.
 - `VAdvancedDatePicker` is the core surface for selection logic and accepts
-  props for range mode, months, presets, min/max, allowed dates, swipe,
-  week numbers, and styling.
+  props for range mode, months, presets, min/max, allowed dates, week numbers,
+  and styling.
 - `VAdvancedDateInput` wraps the picker and adds typed input, popup state, and
   activator behavior.
 - Slots exist for custom day rendering, preset rendering, headers, actions, and
@@ -246,6 +255,8 @@ npm run lint
 - `src/components/VAdvancedDateInput.tsx`
 - `src/composables/useAdvancedDateModel.ts`
 - `playground/src/App.vue`
+- `playground/src/composables/usePlaygroundState.ts`
+- `playground/src/components/PlaygroundShowcase.vue`
 - `tests/components/VAdvancedDatePicker.spec.ts`
 - `tests/components/VAdvancedDateInput.spec.ts`
 
