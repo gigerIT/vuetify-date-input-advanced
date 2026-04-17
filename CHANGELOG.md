@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.0.0...v2.1.0) (2026-04-17)
+
+
+### Features
+
+* **date-picker:** add customizable titles ([0ef5119](https://github.com/gigerIT/vuetify-date-input-advanced/commit/0ef511913a9c2312e51261ec0726f24dad92158e))
+
 ## [2.0.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v1.0.1...v2.0.0) (2026-04-16)
 
 
