@@ -35,6 +35,88 @@ function allowOnly(...allowedDates: string[]) {
 }
 
 describe('VAdvancedDateInput', () => {
+  it('forwards the optional title to the desktop picker', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          title: 'Departure Date',
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+        'Departure Date',
+      )
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('forwards range-specific titles to the desktop picker', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          title: 'Travel dates',
+          titleStartDate: 'Departure Date',
+          titleEndDate: 'Return Date',
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+        'Departure Date',
+      )
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
   it('uses a fullscreen dialog on mobile', () => {
     const originalWidth = window.innerWidth
 
@@ -59,6 +141,88 @@ describe('VAdvancedDateInput', () => {
 
       expect(dialog.exists()).toBe(true)
       expect(dialog.props('fullscreen')).toBe(true)
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('forwards the optional title to the mobile fullscreen picker', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          title: 'Departure Date',
+        },
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+        'Departure Date',
+      )
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('forwards range-specific titles to the mobile fullscreen picker', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          title: 'Travel dates',
+          titleStartDate: 'Departure Date',
+          titleEndDate: 'Return Date',
+        },
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+        'Departure Date',
+      )
     } finally {
       wrapper?.unmount()
 
@@ -246,6 +410,18 @@ describe('VAdvancedDateInput', () => {
 
     expect(finalValue[0]).toBeInstanceOf(Date)
     expect(finalValue[1]).toBeInstanceOf(Date)
+
+    wrapper.unmount()
+  })
+
+  it('disables browser autocomplete on the text input', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+      },
+    })
+
+    expect(wrapper.find('input').attributes('autocomplete')).toBe('off')
 
     wrapper.unmount()
   })

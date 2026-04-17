@@ -163,6 +163,24 @@ export const VAdvancedDatePicker = defineComponent({
     const monthTransition = computed(() =>
       isReverse.value ? 'picker-reverse-transition' : 'picker-transition',
     )
+    const baseTitle = computed(() => props.title?.trim() ?? '')
+    const startDateTitle = computed(() => props.titleStartDate?.trim() ?? '')
+    const endDateTitle = computed(() => props.titleEndDate?.trim() ?? '')
+    const pickerTitle = computed(() => {
+      if (!props.range) return baseTitle.value
+
+      const selection = model.normalized.value
+
+      if (!selection.start && !selection.end) {
+        return startDateTitle.value || baseTitle.value
+      }
+
+      if (selection.start && !selection.end) {
+        return endDateTitle.value || baseTitle.value
+      }
+
+      return baseTitle.value
+    })
 
     function handleSelectDate(date: unknown) {
       if (disabledRef.value) return
@@ -316,6 +334,10 @@ export const VAdvancedDatePicker = defineComponent({
         >
           {liveText.value}
         </div>
+
+        {pickerTitle.value ? (
+          <div class="v-advanced-date-picker__title">{pickerTitle.value}</div>
+        ) : null}
 
         <div class="v-advanced-date-picker__body">
           {props.showPresets &&

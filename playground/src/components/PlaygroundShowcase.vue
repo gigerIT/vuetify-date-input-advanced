@@ -123,6 +123,41 @@ const customPresetMenu = defineModel<boolean>('customPresetMenu', {
   </v-card>
 
   <v-card variant="flat">
+    <v-card-title>Custom Picker Title</v-card-title>
+    <v-card-subtitle>
+      Shows an optional picker heading that stays visible in desktop and mobile overlays.
+    </v-card-subtitle>
+    <v-card-text>
+      <v-advanced-date-input
+        v-model="singleValue"
+        label="Departure date"
+        title="Departure Date"
+        :range="false"
+        :months="2"
+        :show-presets="false"
+      />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
+    <v-card-title>Range Picker Titles</v-card-title>
+    <v-card-subtitle>
+      Switches between start and end titles while the user completes a range.
+    </v-card-subtitle>
+    <v-card-text>
+      <v-advanced-date-input
+        v-model="rangeValue"
+        label="Travel dates"
+        title="Travel dates"
+        title-start-date="Departure date"
+        title-end-date="Return date"
+        :months="2"
+        :show-presets="false"
+      />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
     <v-card-title>Typed Input + Validation</v-card-title>
     <v-card-subtitle>
       Test paste and keyboard entry before applying the value.

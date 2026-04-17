@@ -13,6 +13,9 @@
   flex-direction: column
   block-size: 100%
 
+.v-advanced-date-picker--mobile-fullscreen .v-advanced-date-picker__title
+  text-align: center
+
 .v-advanced-date-picker__live
   position: absolute
   inline-size: 1px
@@ -25,6 +28,21 @@
 .v-advanced-date-picker__body
   display: flex
   min-inline-size: 0
+
+.v-advanced-date-picker__title
+  padding: 16px 20px 0
+  font-size: 1rem
+  font-weight: 600
+  line-height: 1.5
+
+.v-advanced-date-picker__title + .v-advanced-date-picker__body .v-advanced-date-picker__months
+  padding-top: 12px
+
+.v-advanced-date-picker__title + .v-advanced-date-picker__body .v-advanced-date-picker__nav
+  inset-block-start: 30px
+
+.v-advanced-date-picker__title + .v-advanced-date-picker__body .v-advanced-date-picker__presets
+  padding-top: 8px
 
 .v-advanced-date-picker--stacked .v-advanced-date-picker__body
   flex-direction: column

@@ -135,6 +135,7 @@ export const VAdvancedDateInput = defineComponent({
             'onUpdate:modelValue': input.setText,
             label: props.label,
             placeholder: props.placeholder,
+            autocomplete: 'off',
             variant: props.variant,
             hideDetails: props.hideDetails,
             messages: props.messages,

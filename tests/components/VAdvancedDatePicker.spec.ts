@@ -23,6 +23,92 @@ function allowOnly(...allowedDates: string[]) {
 }
 
 describe('VAdvancedDatePicker', () => {
+  it('hides the optional picker title by default', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+      },
+    })
+
+    expect(wrapper.find('.v-advanced-date-picker__title').exists()).toBe(false)
+  })
+
+  it('hides the optional picker title when blank after trimming', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        title: '   ',
+      },
+    })
+
+    expect(wrapper.find('.v-advanced-date-picker__title').exists()).toBe(false)
+  })
+
+  it('renders the optional picker title when provided', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        range: false,
+        title: 'Departure Date',
+      },
+    })
+
+    expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+      'Departure Date',
+    )
+  })
+
+  it('switches between start, end, and base titles while selecting a range', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        title: 'Travel dates',
+        titleStartDate: 'Departure Date',
+        titleEndDate: 'Return Date',
+      },
+    })
+
+    expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+      'Departure Date',
+    )
+
+    await wrapper.find('[data-date="2026-01-02"]').trigger('click')
+
+    expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+      'Return Date',
+    )
+
+    await wrapper.find('[data-date="2026-01-07"]').trigger('click')
+
+    expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+      'Travel dates',
+    )
+  })
+
+  it('falls back to the base title when a range phase title is missing', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        title: 'Travel dates',
+        titleStartDate: 'Departure Date',
+      },
+    })
+
+    expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+      'Departure Date',
+    )
+
+    await wrapper.find('[data-date="2026-01-02"]').trigger('click')
+
+    expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
+      'Travel dates',
+    )
+  })
+
   it('renders a windowed month list in standalone mobile inline mode', async () => {
     const originalWidth = window.innerWidth
 
