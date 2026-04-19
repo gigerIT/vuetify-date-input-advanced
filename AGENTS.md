@@ -228,6 +228,9 @@ npm run build
   package IDs, or Rollup will inline them into `dist/`.
 - Never modify `node_modules/`.
 - Keep performance in mind when making changes, the component should be performant and efficient.
+- Plan and implement changes the way Vuetify would build its own components;
+  prefer established Vuetify patterns for API shape, naming, slots, defaults,
+  and UX before introducing repo-specific conventions.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and
