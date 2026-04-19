@@ -573,6 +573,217 @@ describe('VAdvancedDateInput', () => {
     wrapper.unmount()
   })
 
+  it('opens the overlay from Enter without parsing when inputReadonly is enabled', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          inputReadonly: true,
+          range: false,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      expect(input.attributes('readonly')).toBeDefined()
+
+      await input.setValue('not a date')
+      await input.trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(wrapper.text()).not.toContain('Enter a valid date')
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('still opens the overlay from the field and append icon when inputReadonly is enabled', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          inputReadonly: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const field = wrapper.findComponent({ name: 'VTextField' })
+
+      field.vm.$emit('click:control', new MouseEvent('click'))
+      await wrapper.vm.$nextTick()
+
+      field.vm.$emit('click:appendInner', new MouseEvent('click'))
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:menu')).toEqual([[true], [true]])
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('keeps picker selection interactive when inputReadonly is enabled', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          inputReadonly: true,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+
+      const emissions = wrapper.emitted('update:modelValue') ?? []
+      const finalValue = emissions.at(-1)?.[0] as Date | null
+
+      expect(finalValue).toBeInstanceOf(Date)
+
+      await wrapper.setProps({ modelValue: finalValue })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('keeps apply actions available when inputReadonly is enabled', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          inputReadonly: true,
+          autoApply: false,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(wrapper.text()).toContain('Apply')
+      expect(wrapper.text()).toContain('Cancel')
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      const applyButton = wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Apply')
+
+      expect(applyButton).toBeDefined()
+
+      await applyButton!.trigger('click')
+
+      const emissions = wrapper.emitted('update:modelValue') ?? []
+      const finalValue = emissions.at(-1)?.[0] as Date | null
+
+      expect(finalValue).toBeInstanceOf(Date)
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
   it('forwards clear hooks without breaking the internal clear flow', async () => {
     const onClickClear = vi.fn()
     const wrapper = render(VAdvancedDateInput, {
@@ -605,6 +816,56 @@ describe('VAdvancedDateInput', () => {
     expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
 
     wrapper.unmount()
+  })
+
+  it('keeps clearable support when inputReadonly is enabled', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          menu: true,
+          inputReadonly: true,
+          range: false,
+          clearable: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
+        'click:clear',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('')
+      expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
   })
 
   it('keeps attrs on the picker root in inline mode', () => {
@@ -937,6 +1198,34 @@ describe('VAdvancedDateInput', () => {
 
     expect(toLocalYmd(finalValue[0])).toBe('2026-01-12')
     expect(toLocalYmd(finalValue[1])).toBe('2026-01-19')
+
+    wrapper.unmount()
+  })
+
+  it('clears typed errors and restores the formatted value when inputReadonly is enabled later', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: new Date('2026-01-12T00:00:00.000Z'),
+        inputReadonly: false,
+        range: false,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('not a date')
+    await input.trigger('blur')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Enter a valid date')
+
+    await wrapper.setProps({ inputReadonly: true })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).not.toContain('Enter a valid date')
+    expect(wrapper.find('input').attributes('readonly')).toBeDefined()
+    expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
 
     wrapper.unmount()
   })

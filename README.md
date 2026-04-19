@@ -13,6 +13,7 @@
 - Inline picker or input-triggered overlay
 - Desktop menu and mobile fullscreen dialog behavior in `VAdvancedDateInput`
 - Typed input parsing and validation
+- Optional picker-only input mode with `inputReadonly`
 - Built-in range presets plus custom preset slots
 - `min`, `max`, `allowedDates`, `allowedStartDates`, and `allowedEndDates` constraints
 - Configurable week start via `firstDayOfWeek`
@@ -219,7 +220,8 @@ const presets: PresetRange<Date>[] = [
 
 ### Typed Input
 
-`VAdvancedDateInput` parses text on blur and on `Enter`.
+`VAdvancedDateInput` parses text on blur and on `Enter` unless `inputReadonly`
+is enabled, in which case the field becomes a picker opener only.
 
 Parsing order:
 
@@ -249,6 +251,8 @@ When `VAdvancedDateInput` renders its default text field, non-prop attrs and lis
 ```
 
 If you provide the `activator` slot, the slot content owns its own attrs and listeners.
+`inputReadonly` only affects the built-in text field, so it has no effect when
+`inline` is enabled or when you provide a custom `activator` slot.
 
 ### Overlay and Mobile Behavior
 
@@ -293,7 +297,7 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 | `showWeekNumbers`   | `boolean`                                  | `false`                   | Displays week numbers; uses adapter week calculations when available and otherwise falls back to ISO week numbers |
 | `firstDayOfWeek`    | `string \| number \| undefined`            | adapter or locale default | Mirrors Vuetify `VDatePicker`; `0` starts weeks on Sunday, `1` on Monday, and so on                               |
 | `disabled`          | `boolean`                                  | `false`                   | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints          |
-| `readonly`          | `boolean`                                  | `false`                   | Marks the input readonly; the manual action footer is hidden                                                      |
+| `readonly`          | `boolean`                                  | `false`                   | Full picker read-only mode: blocks calendar and preset interaction, and hides the manual action footer           |
 | `color`             | `string`                                   | `primary`                 | Accent color for selected days and range previews                                                                 |
 | `theme`             | `string \| undefined`                      | inherited                 | Passed to the picker `VSheet`                                                                                     |
 | `rounded`           | `string \| number \| boolean \| undefined` | `undefined`               | Passed to the picker `VSheet`                                                                                     |
@@ -322,6 +326,7 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 | `focused`          | `boolean`                          | `false`        | Forwarded to `VTextField`                               |
 | `prependInnerIcon` | `string \| undefined`              | `undefined`    | Forwarded to `VTextField`                               |
 | `appendInnerIcon`  | `string`                           | `mdi-calendar` | Forwarded to `VTextField`                               |
+| `inputReadonly`    | `boolean`                          | `false`        | Makes the default text field readonly while keeping the picker, icon, and footer actions interactive |
 | `displayFormat`    | `string`                           | `fullDate`     | Passed to `adapter.format(...)` for text display        |
 | `rangeSeparator`   | `string`                           | `–`            | Separator used for formatted range text                 |
 | `parseInput`       | `(value: string) => TDate \| null` | `undefined`    | Custom parser used before adapter and native parsing    |

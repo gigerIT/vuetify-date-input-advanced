@@ -35,6 +35,7 @@ function splitRangeInput(
 export function useAdvancedDateInput<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   modelValue: Ref<AdvancedDateModel<TDate>>
+  editable: Ref<boolean>
   range: Ref<boolean>
   returnObject: Ref<boolean>
   displayFormat: Ref<string>
@@ -75,6 +76,18 @@ export function useAdvancedDateInput<TDate>(options: {
     { immediate: true },
   )
 
+  watch(
+    () => options.editable.value,
+    (value) => {
+      if (value) return
+
+      isEditing.value = false
+      inputError.value = null
+      text.value = displayText.value
+    },
+    { immediate: true },
+  )
+
   function constraints() {
     return {
       min: options.min.value,
@@ -90,6 +103,12 @@ export function useAdvancedDateInput<TDate>(options: {
   }
 
   function commitInput(): boolean {
+    if (!options.editable.value) {
+      inputError.value = null
+      text.value = displayText.value
+      return true
+    }
+
     inputError.value = null
 
     const trimmed = text.value.trim()
@@ -165,14 +184,30 @@ export function useAdvancedDateInput<TDate>(options: {
   }
 
   function onFocus() {
+    if (!options.editable.value) return
+
     isEditing.value = true
   }
 
   function onBlur(): boolean {
+    if (!options.editable.value) {
+      isEditing.value = false
+      inputError.value = null
+      text.value = displayText.value
+      return true
+    }
+
     isEditing.value = false
     const valid = commitInput()
     if (valid) text.value = displayText.value
     return valid
+  }
+
+  function clear() {
+    inputError.value = null
+    isEditing.value = false
+    text.value = ''
+    options.onUpdate(null)
   }
 
   return {
@@ -186,7 +221,14 @@ export function useAdvancedDateInput<TDate>(options: {
     onFocus,
     onBlur,
     commitInput,
+    clear,
     setText: (value: string) => {
+      if (!options.editable.value) {
+        inputError.value = null
+        text.value = displayText.value
+        return
+      }
+
       inputError.value = null
       text.value = value
     },

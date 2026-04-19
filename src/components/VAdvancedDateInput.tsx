@@ -72,10 +72,15 @@ export const VAdvancedDateInput = defineComponent({
       () =>
         display.mobile.value && !props.inline ? 'fullscreen' : 'inline',
     )
+    const fieldReadonly = computed(() => props.readonly || props.inputReadonly)
+    const textEditable = computed(
+      () => !props.disabled && !props.readonly && !props.inputReadonly,
+    )
 
     const input = useAdvancedDateInput({
       adapter,
       modelValue: toRef(props, 'modelValue'),
+      editable: textEditable,
       range: toRef(props, 'range'),
       returnObject: toRef(props, 'returnObject'),
       displayFormat: toRef(props, 'displayFormat'),
@@ -179,7 +184,7 @@ export const VAdvancedDateInput = defineComponent({
         focused: props.focused,
         'aria-expanded': overlay.menu.value,
         disabled: props.disabled,
-        readonly: props.readonly,
+        readonly: fieldReadonly.value,
         prependInnerIcon: props.prependInnerIcon,
         appendInnerIcon: props.appendInnerIcon,
         density: props.density,
@@ -219,8 +224,7 @@ export const VAdvancedDateInput = defineComponent({
           )
         },
         'onClick:clear': (event: MouseEvent) => {
-          input.setText('')
-          input.commitInput()
+          input.clear()
           overlay.setMenu(false)
           callForwardedHandler(
             userOnClickClear as ForwardedEventHandler | undefined,

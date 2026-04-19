@@ -32,6 +32,9 @@ const constrainedValue = defineModel<AdvancedDateModel<Date>>(
 const typedValue = defineModel<AdvancedDateModel<Date>>('typedValue', {
   required: true,
 })
+const pickerOnlyValue = defineModel<AdvancedDateModel<Date>>('pickerOnlyValue', {
+  required: true,
+})
 const rangeMenu = defineModel<boolean>('rangeMenu', { required: true })
 const presetMenu = defineModel<boolean>('presetMenu', { required: true })
 const customPresetMenu = defineModel<boolean>('customPresetMenu', {
@@ -191,6 +194,25 @@ const customPresetMenu = defineModel<boolean>('customPresetMenu', {
         placeholder="Jan 12, 2026 – Jan 19, 2026"
         :months="2"
         :auto-apply="false"
+      />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
+    <v-card-title>Picker-only Input</v-card-title>
+    <v-card-subtitle>
+      Disables manual typing while keeping the field, icon, and picker actions interactive.
+    </v-card-subtitle>
+    <v-card-text>
+      <v-advanced-date-input
+        v-model="pickerOnlyValue"
+        label="Choose with picker only"
+        input-readonly
+        clearable
+        :range="false"
+        :months="2"
+        :auto-apply="false"
+        :show-presets="false"
       />
     </v-card-text>
   </v-card>

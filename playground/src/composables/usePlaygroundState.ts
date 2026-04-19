@@ -171,6 +171,7 @@ export function usePlaygroundState() {
   const inlineValue = ref<AdvancedDateModel<Date>>([today, inSevenDays])
   const constrainedValue = ref<AdvancedDateModel<Date>>(null)
   const typedValue = ref<AdvancedDateModel<Date>>(null)
+  const pickerOnlyValue = ref<AdvancedDateModel<Date>>(today)
   const rangeMenu = ref(false)
   const presetMenu = ref(false)
   const customPresetMenu = ref(false)
@@ -300,6 +301,7 @@ export function usePlaygroundState() {
     inline: serializePreviewModel(inlineValue.value),
     constrained: serializePreviewModel(constrainedValue.value),
     typed: serializePreviewModel(typedValue.value),
+    pickerOnly: serializePreviewModel(pickerOnlyValue.value),
     menus: {
       range: rangeMenu.value,
       presets: presetMenu.value,
@@ -323,6 +325,7 @@ export function usePlaygroundState() {
     inlineValue,
     constrainedValue,
     typedValue,
+    pickerOnlyValue,
     rangeMenu,
     presetMenu,
     customPresetMenu,

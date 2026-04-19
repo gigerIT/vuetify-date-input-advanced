@@ -20,6 +20,7 @@ const {
   inlineValue,
   constrainedValue,
   typedValue,
+  pickerOnlyValue,
   rangeMenu,
   presetMenu,
   customPresetMenu,
@@ -64,6 +65,7 @@ const {
               v-model:single-value="singleValue"
               v-model:constrained-value="constrainedValue"
               v-model:typed-value="typedValue"
+              v-model:picker-only-value="pickerOnlyValue"
               v-model:range-menu="rangeMenu"
               v-model:preset-menu="presetMenu"
               v-model:custom-preset-menu="customPresetMenu"

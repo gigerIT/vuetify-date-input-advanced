@@ -84,6 +84,7 @@ export const advancedDatePickerInternalProps = {
 export const advancedDateInputProps = {
   menu: Boolean,
   inline: Boolean,
+  inputReadonly: Boolean,
   label: String,
   placeholder: String,
   variant: {
