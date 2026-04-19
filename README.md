@@ -234,6 +234,22 @@ Input formatting uses `displayFormat`, which is passed directly to `adapter.form
 
 Range text uses `rangeSeparator`, which defaults to `–`. The current implementation also accepts common spaced dash separators such as `-` and `—`.
 
+### Input Attr Forwarding
+
+When `VAdvancedDateInput` renders its default text field, non-prop attrs and listeners fall through to the internal `VTextField`. Use this for form-oriented attrs such as `id`, `name`, `aria-*`, `data-*`, and hooks such as `@blur` or `@keydown`.
+
+```vue
+<v-advanced-date-input
+  v-model="value"
+  id="booking-start-date"
+  name="bookingStartDate"
+  data-testid="booking-start-date"
+  @blur="validateField"
+/>
+```
+
+If you provide the `activator` slot, the slot content owns its own attrs and listeners.
+
 ### Overlay and Mobile Behavior
 
 `VAdvancedDateInput` changes presentation by context:

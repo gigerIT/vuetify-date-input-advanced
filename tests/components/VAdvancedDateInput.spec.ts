@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { h } from 'vue'
+import { describe, expect, it, vi } from 'vitest'
 
 import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 
@@ -424,6 +425,266 @@ describe('VAdvancedDateInput', () => {
     expect(wrapper.find('input').attributes('autocomplete')).toBe('off')
 
     wrapper.unmount()
+  })
+
+  it('forwards attrs to the desktop input field', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+        },
+        attrs: {
+          id: 'travel-dates',
+          name: 'travelDates',
+          'aria-label': 'Travel dates input',
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      expect(input.attributes('id')).toBe('travel-dates')
+      expect(input.attributes('name')).toBe('travelDates')
+      expect(input.attributes('aria-label')).toBe('Travel dates input')
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('forwards attrs to the mobile input field', () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 375,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+        },
+        attrs: {
+          id: 'travel-dates-mobile',
+          name: 'travelDatesMobile',
+          'aria-label': 'Travel dates mobile input',
+        },
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      expect(input.attributes('id')).toBe('travel-dates-mobile')
+      expect(input.attributes('name')).toBe('travelDatesMobile')
+      expect(input.attributes('aria-label')).toBe('Travel dates mobile input')
+      expect(
+        wrapper.find('.v-advanced-date-input-shell').attributes('id'),
+      ).toBeUndefined()
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
+  })
+
+  it('forwards blur hooks without breaking typed input parsing', async () => {
+    const onBlur = vi.fn()
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        month: 0,
+        year: 2026,
+      },
+      attrs: {
+        onBlur,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 12, 2026')
+    await input.trigger('blur')
+
+    const emissions = wrapper.emitted('update:modelValue') ?? []
+    const finalValue = emissions.at(-1)?.[0] as Date | null
+
+    expect(onBlur).toHaveBeenCalledTimes(1)
+    expect(finalValue).toBeInstanceOf(Date)
+
+    wrapper.unmount()
+  })
+
+  it('forwards keydown hooks without breaking enter handling', async () => {
+    const onKeydown = vi.fn()
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+      },
+      attrs: {
+        onKeydown,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.trigger('keydown', { key: 'Enter' })
+
+    expect(onKeydown).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+
+    wrapper.unmount()
+  })
+
+  it('forwards clear hooks without breaking the internal clear flow', async () => {
+    const onClickClear = vi.fn()
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: new Date('2026-01-12T00:00:00.000Z'),
+        menu: true,
+        range: false,
+        clearable: true,
+      },
+      attrs: {
+        'onClick:clear': onClickClear,
+      },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          VDialog: dialogStub,
+        },
+      },
+    })
+
+    wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
+      'click:clear',
+      new MouseEvent('click'),
+    )
+    await wrapper.vm.$nextTick()
+
+    expect(onClickClear).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('input').element.value).toBe('')
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
+    expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+
+    wrapper.unmount()
+  })
+
+  it('keeps attrs on the picker root in inline mode', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        inline: true,
+      },
+      attrs: {
+        id: 'inline-picker',
+        'data-testid': 'inline-picker',
+      },
+    })
+
+    const picker = wrapper.find('.v-advanced-date-picker')
+
+    expect(wrapper.find('input').exists()).toBe(false)
+    expect(picker.attributes('id')).toBe('inline-picker')
+    expect(picker.attributes('data-testid')).toBe('inline-picker')
+
+    wrapper.unmount()
+  })
+
+  it('leaves custom activator slots responsible for their own attrs', async () => {
+    const originalWidth = window.innerWidth
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 1440,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    let wrapper: ReturnType<typeof render> | null = null
+
+    try {
+      wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+        },
+        attrs: {
+          id: 'slot-owned-id',
+          name: 'slotOwnedName',
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+        slots: {
+          activator: ({ props, isOpen }: any) =>
+            h(
+              'button',
+              {
+                ...props,
+                type: 'button',
+                'data-open': String(isOpen),
+              },
+              'Open picker',
+            ),
+        },
+      })
+
+      const button = wrapper.find('button')
+
+      expect(button.attributes('id')).toBeUndefined()
+
+      await button.trigger('click')
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+    } finally {
+      wrapper?.unmount()
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        writable: true,
+        value: originalWidth,
+      })
+      window.dispatchEvent(new Event('resize'))
+    }
   })
 
   it('forwards firstDayOfWeek to the inline picker', () => {

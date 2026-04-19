@@ -123,6 +123,28 @@ const customPresetMenu = defineModel<boolean>('customPresetMenu', {
   </v-card>
 
   <v-card variant="flat">
+    <v-card-title>Forwarded Input Attrs</v-card-title>
+    <v-card-subtitle>
+      Shows form attrs reaching the default text input when no custom activator is used.
+    </v-card-subtitle>
+    <v-card-text>
+      <v-advanced-date-input
+        id="playground-check-in-date"
+        v-model="singleValue"
+        name="checkInDate"
+        label="Check-in date"
+        data-testid="playground-check-in-date"
+        :range="false"
+        :show-presets="false"
+      />
+      <div class="text-caption text-medium-emphasis mt-2">
+        Inspect the rendered input to verify the forwarded <code>id</code>,
+        <code>name</code>, and <code>data-testid</code> attrs.
+      </div>
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
     <v-card-title>Custom Picker Title</v-card-title>
     <v-card-subtitle>
       Shows an optional picker heading that stays visible in desktop and mobile overlays.

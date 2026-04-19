@@ -1,4 +1,11 @@
-import { computed, defineComponent, ref, toRef } from 'vue'
+import {
+  computed,
+  defineComponent,
+  mergeProps,
+  ref,
+  toRef,
+  useAttrs,
+} from 'vue'
 
 import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
@@ -24,8 +31,25 @@ interface OverlayActivatorProps {
   [key: string]: unknown
 }
 
+type ForwardedEventHandler =
+  | ((...args: unknown[]) => void)
+  | Array<(...args: unknown[]) => void>
+
+function callForwardedHandler(
+  handler: ForwardedEventHandler | undefined,
+  ...args: unknown[]
+) {
+  if (Array.isArray(handler)) {
+    handler.forEach((entry) => entry(...args))
+    return
+  }
+
+  handler?.(...args)
+}
+
 export const VAdvancedDateInput = defineComponent({
   name: 'VAdvancedDateInput',
+  inheritAttrs: false,
 
   props: advancedDateInputProps,
 
@@ -40,6 +64,7 @@ export const VAdvancedDateInput = defineComponent({
   },
 
   setup(props, { emit, slots }) {
+    const attrs = useAttrs()
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
     const pickerRef = ref<{ focusActiveDate?: () => void } | null>(null)
@@ -98,10 +123,11 @@ export const VAdvancedDateInput = defineComponent({
       if (event.key === 'Escape') overlay.setMenu(false)
     }
 
-    function renderPicker() {
+    function renderPicker(extraProps: Record<string, unknown> = {}) {
       return (
         <VAdvancedDatePicker
           ref={pickerRef}
+          {...(extraProps as any)}
           {...pickerBindings.value}
           onUpdate:modelValue={overlay.handlePickerUpdate}
           onUpdate:month={(value) => emit('update:month', value)}
@@ -116,6 +142,15 @@ export const VAdvancedDateInput = defineComponent({
 
     function renderField(activatorProps: OverlayActivatorProps = {}) {
       const hasActivatorProps = Object.keys(activatorProps).length > 0
+      const {
+        onFocus: userOnFocus,
+        onBlur: userOnBlur,
+        onKeydown: userOnKeydown,
+        ['onClick:control']: userOnClickControl,
+        ['onClick:appendInner']: userOnClickAppendInner,
+        ['onClick:clear']: userOnClickClear,
+        ...fieldAttrs
+      } = attrs as Record<string, unknown>
 
       if (slots.activator) {
         return slots.activator({
@@ -127,51 +162,80 @@ export const VAdvancedDateInput = defineComponent({
         })
       }
 
+      const fieldProps = mergeProps(activatorProps, fieldAttrs, {
+        class: 'v-advanced-date-input',
+        modelValue: input.text.value,
+        'onUpdate:modelValue': input.setText,
+        label: props.label,
+        placeholder: props.placeholder,
+        autocomplete: 'off',
+        variant: props.variant,
+        hideDetails: props.hideDetails,
+        messages: props.messages,
+        error: props.error || !!input.inputError.value,
+        errorMessages: mergedErrorMessages.value,
+        rules: props.rules,
+        clearable: props.clearable,
+        focused: props.focused,
+        'aria-expanded': overlay.menu.value,
+        disabled: props.disabled,
+        readonly: props.readonly,
+        prependInnerIcon: props.prependInnerIcon,
+        appendInnerIcon: props.appendInnerIcon,
+        density: props.density,
+        onFocus: (event: FocusEvent) => {
+          input.onFocus()
+          callForwardedHandler(
+            userOnFocus as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
+        onBlur: (event: FocusEvent) => {
+          input.onBlur()
+          callForwardedHandler(
+            userOnBlur as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
+        onKeydown: (event: KeyboardEvent) => {
+          handleKeydown(event)
+          callForwardedHandler(
+            userOnKeydown as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
+        'onClick:control': (event: MouseEvent) => {
+          if (!hasActivatorProps) overlay.setMenu(true)
+          callForwardedHandler(
+            userOnClickControl as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
+        'onClick:appendInner': (event: MouseEvent) => {
+          if (!hasActivatorProps) overlay.setMenu(true)
+          callForwardedHandler(
+            userOnClickAppendInner as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
+        'onClick:clear': (event: MouseEvent) => {
+          input.setText('')
+          input.commitInput()
+          overlay.setMenu(false)
+          callForwardedHandler(
+            userOnClickClear as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
+      })
+
       return (
-        <VTextField
-          {...({
-            class: 'v-advanced-date-input',
-            modelValue: input.text.value,
-            'onUpdate:modelValue': input.setText,
-            label: props.label,
-            placeholder: props.placeholder,
-            autocomplete: 'off',
-            variant: props.variant,
-            hideDetails: props.hideDetails,
-            messages: props.messages,
-            error: props.error || !!input.inputError.value,
-            errorMessages: mergedErrorMessages.value,
-            rules: props.rules,
-            clearable: props.clearable,
-            focused: props.focused,
-            'aria-expanded': overlay.menu.value,
-            disabled: props.disabled,
-            readonly: props.readonly,
-            prependInnerIcon: props.prependInnerIcon,
-            appendInnerIcon: props.appendInnerIcon,
-            density: props.density,
-            ...activatorProps,
-            onFocus: input.onFocus,
-            onBlur: input.onBlur,
-            onKeydown: handleKeydown,
-            'onClick:control': () => {
-              if (!hasActivatorProps) overlay.setMenu(true)
-            },
-            'onClick:appendInner': () => {
-              if (!hasActivatorProps) overlay.setMenu(true)
-            },
-            'onClick:clear': () => {
-              input.setText('')
-              input.commitInput()
-              overlay.setMenu(false)
-            },
-          } as any)}
-        />
+        <VTextField {...(fieldProps as any)} />
       )
     }
 
     return () => {
-      if (props.inline) return renderPicker()
+      if (props.inline) return renderPicker(attrs as Record<string, unknown>)
 
       if (display.mobile.value) {
         return (
