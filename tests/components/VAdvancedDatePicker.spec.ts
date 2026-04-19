@@ -518,7 +518,7 @@ describe('VAdvancedDatePicker', () => {
 
   it('renders built-in picker strings from the active locale', () => {
     const wrapper = render(VAdvancedDatePicker, {
-      locale: 'de',
+      locale: 'lt',
       props: {
         modelValue: null,
         month: 0,
@@ -528,15 +528,15 @@ describe('VAdvancedDatePicker', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('Übernehmen')
-    expect(wrapper.text()).toContain('Abbrechen')
-    expect(wrapper.text()).toContain('Heute')
-    expect(wrapper.text()).toContain('KW')
+    expect(wrapper.text()).toContain('Taikyti')
+    expect(wrapper.text()).toContain('Atšaukti')
+    expect(wrapper.text()).toContain('Šiandien')
+    expect(wrapper.text()).toContain('Sav.')
     expect(
-      wrapper.find('button[aria-label="Vorheriger Monat"]').exists(),
+      wrapper.find('button[aria-label="Ankstesnis mėnuo"]').exists(),
     ).toBe(true)
     expect(
-      wrapper.find('button[aria-label="Nächster Monat"]').exists(),
+      wrapper.find('button[aria-label="Kitas mėnuo"]').exists(),
     ).toBe(true)
   })
 

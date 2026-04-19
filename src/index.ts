@@ -1,10 +1,12 @@
 export { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 export { VAdvancedDatePicker } from '@/components/VAdvancedDatePicker'
 export {
+  dateInputAdvancedCs,
   dateInputAdvancedDe,
   dateInputAdvancedEn,
   dateInputAdvancedFr,
   dateInputAdvancedIt,
+  dateInputAdvancedLt,
 } from '@/locale'
 export { AdvancedDatePlugin } from '@/plugin'
 export type {

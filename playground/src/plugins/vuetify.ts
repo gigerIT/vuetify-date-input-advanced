@@ -2,20 +2,22 @@ import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 
 import { createVuetify } from 'vuetify'
-import { de, en, fr, it } from 'vuetify/locale'
+import { cs, de, en, fr, it, lt } from 'vuetify/locale'
 
 export const vuetify = createVuetify({
   locale: {
     locale: 'en',
     fallback: 'en',
-    messages: { de, en, fr, it },
+    messages: { cs, de, en, fr, it, lt },
   },
   date: {
     locale: {
+      cs: 'cs-CZ',
       de: 'de-DE',
       en: 'en-US',
       fr: 'fr-FR',
       it: 'it-IT',
+      lt: 'lt-LT',
     },
   },
   theme: {

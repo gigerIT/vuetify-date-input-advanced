@@ -820,10 +820,10 @@ describe('VAdvancedDateInput', () => {
 
     expect(wrapper.text()).toContain('Enter a valid date range')
 
-    ;(vuetify as any).locale.current.value = 'fr'
+    ;(vuetify as any).locale.current.value = 'cs'
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('Saisissez une plage de dates valide')
+    expect(wrapper.text()).toContain('Zadejte platný rozsah dat')
 
     wrapper.unmount()
   })

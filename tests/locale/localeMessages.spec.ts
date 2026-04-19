@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  dateInputAdvancedCs,
   dateInputAdvancedDe,
   dateInputAdvancedEn,
   dateInputAdvancedFr,
   dateInputAdvancedIt,
+  dateInputAdvancedLt,
 } from '@/locale'
 
 function collectPaths(
@@ -28,8 +30,10 @@ describe('dateInputAdvanced locale messages', () => {
   it('keeps the same key shape across all shipped locales', () => {
     const englishPaths = collectPaths(dateInputAdvancedEn)
 
+    expect(collectPaths(dateInputAdvancedCs)).toEqual(englishPaths)
     expect(collectPaths(dateInputAdvancedDe)).toEqual(englishPaths)
     expect(collectPaths(dateInputAdvancedFr)).toEqual(englishPaths)
     expect(collectPaths(dateInputAdvancedIt)).toEqual(englishPaths)
+    expect(collectPaths(dateInputAdvancedLt)).toEqual(englishPaths)
   })
 })

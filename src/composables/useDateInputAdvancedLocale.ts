@@ -2,10 +2,12 @@ import { watch } from 'vue'
 
 import { useLocale } from 'vuetify'
 
+import { dateInputAdvancedCs } from '@/locale/cs'
 import { dateInputAdvancedDe } from '@/locale/de'
 import { dateInputAdvancedEn } from '@/locale/en'
 import { dateInputAdvancedFr } from '@/locale/fr'
 import { dateInputAdvancedIt } from '@/locale/it'
+import { dateInputAdvancedLt } from '@/locale/lt'
 
 const DATE_INPUT_ADVANCED_LOCALE_PREFIX = '$vuetify.dateInputAdvanced'
 
@@ -16,10 +18,12 @@ interface LocaleMessageMap {
 }
 
 const DATE_INPUT_ADVANCED_MESSAGES = {
+  cs: dateInputAdvancedCs,
   de: dateInputAdvancedDe,
   en: dateInputAdvancedEn,
   fr: dateInputAdvancedFr,
   it: dateInputAdvancedIt,
+  lt: dateInputAdvancedLt,
 } as const
 
 function isLocaleMessageMap(value: unknown): value is LocaleMessageMap {

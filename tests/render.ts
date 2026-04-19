@@ -3,9 +3,9 @@ import { mount, type MountingOptions } from '@vue/test-utils'
 import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
-import { de, en, fr, it } from 'vuetify/locale'
+import { cs, de, en, fr, it, lt } from 'vuetify/locale'
 
-type TestLocale = 'de' | 'en' | 'fr' | 'it'
+type TestLocale = 'cs' | 'de' | 'en' | 'fr' | 'it' | 'lt'
 
 interface RenderOptions extends MountingOptions<any> {
   locale?: TestLocale
@@ -18,14 +18,16 @@ function createTestVuetify(locale: TestLocale = 'en') {
     locale: {
       locale,
       fallback: 'en',
-      messages: { de, en, fr, it },
+      messages: { cs, de, en, fr, it, lt },
     },
     date: {
       locale: {
+        cs: 'cs-CZ',
         de: 'de-DE',
         en: 'en-US',
         fr: 'fr-FR',
         it: 'it-IT',
+        lt: 'lt-LT',
       },
     },
   })
