@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.3.0...v2.4.0) (2026-04-19)
+
+
+### Features
+
+* **input:** add inputReadonly picker-only mode ([e6c8157](https://github.com/gigerIT/vuetify-date-input-advanced/commit/e6c8157017cdecb78db379af6ec4baa514fa8ec2))
+
 ## [2.3.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.2.0...v2.3.0) (2026-04-19)
 
 
