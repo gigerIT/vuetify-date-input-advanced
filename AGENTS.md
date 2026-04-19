@@ -14,6 +14,7 @@ committed `dist/` build output.
 - `playground/` Local Vite app used for manual QA of the components, with
   demo state in `playground/src/composables/` and UI sections in
   `playground/src/components/`.
+- `.github/workflows/` GitHub Actions workflows for CI validation and releases.
 - `src/` Library source code, including components, composables, utilities,
   plugin entry points, and styles.
 - `tests/` Vitest suites plus the shared Vuetify test mount helper.
@@ -84,6 +85,7 @@ npm run test:watch
 ```
 
 - GitHub release automation lives in `.github/workflows/release.yml`; `release-please` manages release PRs and npm publication uses GitHub OIDC trusted publishing instead of an `NPM_TOKEN`.
+- Pull request and push validation lives in `.github/workflows/ci.yml` and runs `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build` on Node 22.
 - npm trusted publishers only work after the package already exists on npm, so the first release still needs a manual publish by an authenticated maintainer before the OIDC workflow can take over.
 
 > TODO: No dedicated debug script or preview script is defined.
@@ -169,6 +171,8 @@ placeholders, titles, and custom preset labels remain consumer-managed.
 - Current coverage is unit and component focused.
 - Existing suites cover model utilities and picker/input interactions,
   including mobile presentation modes.
+- A dedicated GitHub Actions CI workflow now runs on pull requests to `main`,
+  pushes to `main`, and manual dispatches.
 - A GitHub Actions release workflow runs the same validation steps before npm publication.
 - Local workflow:
 
@@ -186,8 +190,9 @@ npm run test:watch
 
 ```sh
 npm run typecheck
-npm run test
 npm run lint
+npm run test
+npm run build
 ```
 
 > TODO: No end-to-end test harness is present.

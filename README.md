@@ -436,10 +436,29 @@ npm run build
 npm run format
 ```
 
+## CI
+
+GitHub Actions now validates the repo automatically with `.github/workflows/ci.yml`.
+
+- pull requests to `main`, pushes to `main`, and manual `workflow_dispatch` runs execute the same core checks used locally
+- the workflow installs dependencies with `npm ci` and runs `npm run typecheck`, `npm run lint`, `npm run test`, and `npm run build`
+- the job uses Node `22.x`, matching the current release pipeline runtime
+- in-progress runs for the same ref are canceled when a newer commit is pushed
+
+Before opening a PR, the matching local safety check is:
+
+```sh
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
 ## Releases
 
 Releases are automated from `.github/workflows/release.yml`.
 
+- `.github/workflows/ci.yml` handles routine validation for pushes and pull requests
 - `googleapis/release-please-action` opens and maintains the release PR from conventional commits on `main`
 - when that release PR is merged, GitHub Actions builds, validates, and publishes the package to npm with provenance
 - npm publishing is configured for trusted publishing via GitHub OIDC, so no long-lived `NPM_TOKEN` is required in the workflow
