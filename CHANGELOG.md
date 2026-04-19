@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.1.0...v2.2.0) (2026-04-19)
+
+
+### Features
+
+* input attribute forwarding ([592af2a](https://github.com/gigerIT/vuetify-date-input-advanced/commit/592af2a0030e5cbeea9f8bf1850ebc054f542ea2))
+
+
+### Bug Fixes
+
+* auto-register package locale defaults ([05ccc35](https://github.com/gigerIT/vuetify-date-input-advanced/commit/05ccc35aaf9e680269eefa768d26c709e5111afd))
+
 ## [2.1.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.0.0...v2.1.0) (2026-04-17)
 
 
