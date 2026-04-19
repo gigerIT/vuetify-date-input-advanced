@@ -13,6 +13,7 @@ import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateGrid } from '@/composables/useAdvancedDateGrid'
 import { useAdvancedDateModel } from '@/composables/useAdvancedDateModel'
+import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
 import { useAdvancedDateNavigation } from '@/composables/useAdvancedDateNavigation'
 import { useAdvancedDatePickerFocus } from '@/composables/useAdvancedDatePickerFocus'
 import { useAdvancedDatePickerLiveText } from '@/composables/useAdvancedDatePickerLiveText'
@@ -61,6 +62,7 @@ export const VAdvancedDatePicker = defineComponent({
   setup(props, { emit, expose, slots }) {
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
+    const { tDateInputAdvanced } = useDateInputAdvancedLocale()
     const now = adapter.startOfDay(adapter.date() as unknown)
 
     const monthRef = computed(() => props.month ?? adapter.getMonth(now))
@@ -379,7 +381,7 @@ export const VAdvancedDatePicker = defineComponent({
                   icon: 'mdi-chevron-left',
                   variant: 'text',
                   disabled: !navigation.canPrev.value || props.disabled,
-                  'aria-label': 'Previous month',
+                  'aria-label': tDateInputAdvanced('ariaLabel.previousMonth'),
                   onClick: prevMonth,
                 } as any)}
               />
@@ -440,7 +442,7 @@ export const VAdvancedDatePicker = defineComponent({
                   icon: 'mdi-chevron-right',
                   variant: 'text',
                   disabled: !navigation.canNext.value || props.disabled,
-                  'aria-label': 'Next month',
+                  'aria-label': tDateInputAdvanced('ariaLabel.nextMonth'),
                   onClick: nextMonth,
                 } as any)}
               />

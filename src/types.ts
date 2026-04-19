@@ -65,6 +65,44 @@ export interface PresetRange<TDate = Date> {
   slot?: string
 }
 
+export interface DateInputAdvancedLocaleMessages {
+  dateInputAdvanced: {
+    actions: {
+      apply: string
+      cancel: string
+    }
+    ariaLabel: {
+      previousMonth: string
+      nextMonth: string
+    }
+    errors: {
+      invalidDate: string
+      unavailableDate: string
+      invalidRange: string
+      unavailableRange: string
+    }
+    live: {
+      selectedDate: string
+      selectedRange: string
+    }
+    presets: {
+      today: string
+      yesterday: string
+      last7Days: string
+      last30Days: string
+      thisMonth: string
+      lastMonth: string
+      thisQuarter: string
+      lastQuarter: string
+      yearToDate: string
+      lastYear: string
+    }
+    week: {
+      short: string
+    }
+  }
+}
+
 export interface AdvancedDateDay<TDate = Date> {
   date: TDate
   key: string

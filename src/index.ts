@@ -1,5 +1,11 @@
 export { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 export { VAdvancedDatePicker } from '@/components/VAdvancedDatePicker'
+export {
+  dateInputAdvancedDe,
+  dateInputAdvancedEn,
+  dateInputAdvancedFr,
+  dateInputAdvancedIt,
+} from '@/locale'
 export { AdvancedDatePlugin } from '@/plugin'
 export type {
   AdvancedDateAdapter,
@@ -10,6 +16,7 @@ export type {
   AdvancedDateRangeTuple,
   AdvancedDateWeek,
   DateBounds,
+  DateInputAdvancedLocaleMessages,
   NormalizedRange,
   PresetRange,
 } from '@/types'

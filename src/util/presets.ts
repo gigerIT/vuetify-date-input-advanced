@@ -1,5 +1,18 @@
 import type { AdvancedDateAdapter, PresetRange } from '@/types'
 
+export interface DefaultPresetLabels {
+  today: string
+  yesterday: string
+  last7Days: string
+  last30Days: string
+  thisMonth: string
+  lastMonth: string
+  thisQuarter: string
+  lastQuarter: string
+  yearToDate: string
+  lastYear: string
+}
+
 function startOfQuarter<TDate>(adapter: AdvancedDateAdapter<TDate>, date: TDate): TDate {
   const yearStart = adapter.startOfYear(date)
   const month = adapter.getMonth(date)
@@ -17,17 +30,20 @@ function lastQuarterStart<TDate>(adapter: AdvancedDateAdapter<TDate>, date: TDat
   return adapter.addMonths(startOfQuarter(adapter, date), -3)
 }
 
-export function createDefaultPresets<TDate>(adapter: AdvancedDateAdapter<TDate>): PresetRange<TDate>[] {
+export function createDefaultPresets<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  labels: DefaultPresetLabels,
+): PresetRange<TDate>[] {
   return [
     {
-      label: 'Today',
+      label: labels.today,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         return [today, today]
       },
     },
     {
-      label: 'Yesterday',
+      label: labels.yesterday,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         const yesterday = adapter.addDays(today, -1)
@@ -35,28 +51,28 @@ export function createDefaultPresets<TDate>(adapter: AdvancedDateAdapter<TDate>)
       },
     },
     {
-      label: 'Last 7 Days',
+      label: labels.last7Days,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         return [adapter.addDays(today, -6), today]
       },
     },
     {
-      label: 'Last 30 Days',
+      label: labels.last30Days,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         return [adapter.addDays(today, -29), today]
       },
     },
     {
-      label: 'This Month',
+      label: labels.thisMonth,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         return [adapter.startOfMonth(today), adapter.endOfMonth(today)]
       },
     },
     {
-      label: 'Last Month',
+      label: labels.lastMonth,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         const lastMonth = adapter.addMonths(today, -1)
@@ -64,14 +80,14 @@ export function createDefaultPresets<TDate>(adapter: AdvancedDateAdapter<TDate>)
       },
     },
     {
-      label: 'This Quarter',
+      label: labels.thisQuarter,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         return [startOfQuarter(adapter, today), endOfQuarter(adapter, today)]
       },
     },
     {
-      label: 'Last Quarter',
+      label: labels.lastQuarter,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         const start = lastQuarterStart(adapter, today)
@@ -79,14 +95,14 @@ export function createDefaultPresets<TDate>(adapter: AdvancedDateAdapter<TDate>)
       },
     },
     {
-      label: 'Year to Date',
+      label: labels.yearToDate,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         return [adapter.startOfYear(today), today]
       },
     },
     {
-      label: 'Last Year',
+      label: labels.lastYear,
       value: () => {
         const today = adapter.startOfDay(adapter.date() as TDate)
         const lastYear = adapter.setYear(today, adapter.getYear(today) - 1)

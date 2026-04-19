@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 
-import { render } from '../render'
+import { render, renderWithVuetify } from '../render'
 
 const dialogStub = {
   name: 'VDialog',
@@ -799,6 +799,31 @@ describe('VAdvancedDateInput', () => {
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(wrapper.text()).toContain('Enter a valid date range')
+
+    wrapper.unmount()
+  })
+
+  it('updates typed input errors when the locale changes at runtime', async () => {
+    const { wrapper, vuetify } = renderWithVuetify(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('not a range')
+    await input.trigger('blur')
+
+    expect(wrapper.text()).toContain('Enter a valid date range')
+
+    ;(vuetify as any).locale.current.value = 'fr'
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Saisissez une plage de dates valide')
 
     wrapper.unmount()
   })

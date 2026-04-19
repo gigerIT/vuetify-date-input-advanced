@@ -1,5 +1,6 @@
 import { computed, type Ref } from 'vue'
 
+import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
 import type { AdvancedDateAdapter, NormalizedRange, PresetRange } from '@/types'
 import { isSameDay } from '@/util/dates'
 import { orderRange } from '@/util/model'
@@ -12,9 +13,25 @@ export function usePresetRanges<TDate>(options: {
   selection: Ref<NormalizedRange<TDate>>
   isDisabled?: (range: NormalizedRange<TDate>) => boolean
 }) {
+  const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+
   const presets = computed(() => {
     if (!options.range.value) return []
-    return options.presets.value ?? createDefaultPresets(options.adapter)
+    return (
+      options.presets.value ??
+      createDefaultPresets(options.adapter, {
+        today: tDateInputAdvanced('presets.today'),
+        yesterday: tDateInputAdvanced('presets.yesterday'),
+        last7Days: tDateInputAdvanced('presets.last7Days'),
+        last30Days: tDateInputAdvanced('presets.last30Days'),
+        thisMonth: tDateInputAdvanced('presets.thisMonth'),
+        lastMonth: tDateInputAdvanced('presets.lastMonth'),
+        thisQuarter: tDateInputAdvanced('presets.thisQuarter'),
+        lastQuarter: tDateInputAdvanced('presets.lastQuarter'),
+        yearToDate: tDateInputAdvanced('presets.yearToDate'),
+        lastYear: tDateInputAdvanced('presets.lastYear'),
+      })
+    )
   })
 
   function resolvePreset(preset: PresetRange<TDate>): [TDate, TDate] {

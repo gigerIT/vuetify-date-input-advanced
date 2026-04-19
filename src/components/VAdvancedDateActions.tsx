@@ -2,6 +2,8 @@ import { defineComponent } from 'vue'
 
 import { VBtn } from 'vuetify/components'
 
+import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
+
 export const VAdvancedDateActions = defineComponent({
   name: 'VAdvancedDateActions',
 
@@ -15,6 +17,8 @@ export const VAdvancedDateActions = defineComponent({
   },
 
   setup(props, { emit, slots }) {
+    const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+
     return () => {
       if (slots.actions) {
         return (
@@ -31,12 +35,12 @@ export const VAdvancedDateActions = defineComponent({
       return (
         <div class="v-advanced-date-picker__actions">
           <VBtn {...({ variant: 'text', onClick: () => emit('cancel') } as any)}>
-            Cancel
+            {tDateInputAdvanced('actions.cancel')}
           </VBtn>
           <VBtn
             {...({ color: 'primary', variant: 'flat', disabled: props.disabled, onClick: () => emit('apply') } as any)}
           >
-            Apply
+            {tDateInputAdvanced('actions.apply')}
           </VBtn>
         </div>
       )

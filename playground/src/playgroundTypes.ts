@@ -1,6 +1,6 @@
 export type InlinePresetMode = 'hidden' | 'default' | 'custom'
 export type InlineDensity = 'default' | 'comfortable' | 'compact'
-export type PlaygroundLocale = 'de' | 'en' | 'fr'
+export type PlaygroundLocale = 'de' | 'en' | 'fr' | 'it'
 export type ThemeMode = 'dark' | 'light' | 'system'
 
 export interface InlineOptions {

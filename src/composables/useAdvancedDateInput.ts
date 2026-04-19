@@ -1,6 +1,11 @@
 import { computed, readonly, ref, watch, type Ref } from 'vue'
 
-import type { AdvancedDateAdapter, AdvancedDateModel } from '@/types'
+import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
+import type {
+  AdvancedDateAdapter,
+  AdvancedDateModel,
+  DateInputAdvancedLocaleMessages,
+} from '@/types'
 import {
   formatInputValue,
   isRangeDisabled,
@@ -8,6 +13,9 @@ import {
   parseInputDate,
 } from '@/util/dates'
 import { normalizeModel, orderRange, serializeModel } from '@/util/model'
+
+type InputErrorKey =
+  keyof DateInputAdvancedLocaleMessages['dateInputAdvanced']['errors']
 
 function splitRangeInput(
   input: string,
@@ -39,9 +47,10 @@ export function useAdvancedDateInput<TDate>(options: {
   allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
   onUpdate: (value: AdvancedDateModel<TDate>) => void
 }) {
+  const { tDateInputAdvanced } = useDateInputAdvancedLocale()
   const text = ref('')
   const isEditing = ref(false)
-  const inputError = ref<string | null>(null)
+  const inputError = ref<InputErrorKey | null>(null)
 
   const normalized = computed(() =>
     normalizeModel(
@@ -97,12 +106,12 @@ export function useAdvancedDateInput<TDate>(options: {
         options.parseInput.value,
       )
       if (!parsed) {
-        inputError.value = 'Enter a valid date'
+        inputError.value = 'invalidDate'
         return false
       }
 
       if (isUnavailable(parsed)) {
-        inputError.value = 'Date is unavailable'
+        inputError.value = 'unavailableDate'
         return false
       }
 
@@ -113,7 +122,7 @@ export function useAdvancedDateInput<TDate>(options: {
 
     const parts = splitRangeInput(trimmed, options.rangeSeparator.value)
     if (!parts) {
-      inputError.value = 'Enter a valid date range'
+      inputError.value = 'invalidRange'
       return false
     }
 
@@ -129,14 +138,14 @@ export function useAdvancedDateInput<TDate>(options: {
     )
 
     if (!start || !end) {
-      inputError.value = 'Enter a valid date range'
+      inputError.value = 'invalidRange'
       return false
     }
 
     const ordered = orderRange(options.adapter, { start, end })
 
     if (isRangeDisabled(options.adapter, ordered, constraints())) {
-      inputError.value = 'One or more dates are unavailable'
+      inputError.value = 'unavailableRange'
       return false
     }
 
@@ -169,7 +178,11 @@ export function useAdvancedDateInput<TDate>(options: {
   return {
     text: readonly(text),
     inputError: readonly(inputError),
-    errorMessages: computed(() => (inputError.value ? [inputError.value] : [])),
+    errorMessages: computed(() =>
+      inputError.value
+        ? [tDateInputAdvanced(`errors.${inputError.value}`)]
+        : [],
+    ),
     onFocus,
     onBlur,
     commitInput,

@@ -152,6 +152,13 @@ mobile month windowing, and typed-input parsing. The input passes an internal
 fullscreen rendering without relying on provide/inject. Pure helpers in
 `src/util/` keep date math, serialization, parsing, week numbers, and preset
 creation separate from the render layer.
+Package-owned Vuetify locale messages live under `src/locale/` and use the
+`dateInputAdvanced` namespace. Components should translate via
+`$vuetify.dateInputAdvanced.*`, and the package auto-registers its built-in
+English/German/French/Italian defaults into Vuetify locale messages at runtime
+for the active and fallback locales. Consumer-provided `dateInputAdvanced`
+messages should override those defaults, while consumer-provided labels,
+placeholders, titles, and custom preset labels remain consumer-managed.
 
 ## Testing Strategy
 

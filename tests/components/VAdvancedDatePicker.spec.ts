@@ -516,6 +516,30 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.emitted('update:year')).toBeUndefined()
   })
 
+  it('renders built-in picker strings from the active locale', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      locale: 'de',
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        autoApply: false,
+        showWeekNumbers: true,
+      },
+    })
+
+    expect(wrapper.text()).toContain('Übernehmen')
+    expect(wrapper.text()).toContain('Abbrechen')
+    expect(wrapper.text()).toContain('Heute')
+    expect(wrapper.text()).toContain('KW')
+    expect(
+      wrapper.find('button[aria-label="Vorheriger Monat"]').exists(),
+    ).toBe(true)
+    expect(
+      wrapper.find('button[aria-label="Nächster Monat"]').exists(),
+    ).toBe(true)
+  })
+
   it('does not echo synced month props back to the parent', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {

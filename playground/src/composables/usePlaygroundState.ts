@@ -19,6 +19,7 @@ const localeOptions = [
   { title: 'English', value: 'en' },
   { title: 'Français', value: 'fr' },
   { title: 'Deutsch', value: 'de' },
+  { title: 'Italiano', value: 'it' },
 ] satisfies SelectOption<PlaygroundLocale>[]
 
 const themeModeOptions = [
@@ -55,7 +56,9 @@ const densityOptions = [
 ] satisfies SelectOption<InlineDensity>[]
 
 function normalizePlaygroundLocale(value: string): PlaygroundLocale {
-  return value === 'de' || value === 'en' || value === 'fr' ? value : 'en'
+  return value === 'de' || value === 'en' || value === 'fr' || value === 'it'
+    ? value
+    : 'en'
 }
 
 function normalizeThemeMode(value: string): ThemeMode {

@@ -3,6 +3,7 @@ import { defineComponent, withDirectives } from 'vue'
 
 import { Ripple } from 'vuetify/directives'
 
+import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
 import type { AdvancedDateMonthData } from '@/types'
 
 export const VAdvancedDateMonth = defineComponent({
@@ -29,6 +30,8 @@ export const VAdvancedDateMonth = defineComponent({
   },
 
   setup(props, { emit, slots }) {
+    const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+
     return () => (
       <section
         class="v-advanced-date-picker__month"
@@ -46,7 +49,9 @@ export const VAdvancedDateMonth = defineComponent({
 
         <div class="v-advanced-date-picker__weekday-row" aria-hidden="true">
           {props.showWeekNumbers ? (
-            <div class="v-advanced-date-picker__week-label">Wk</div>
+            <div class="v-advanced-date-picker__week-label">
+              {tDateInputAdvanced('week.short')}
+            </div>
           ) : null}
           {props.month.weekdays.map((weekday, index) => (
             <div
