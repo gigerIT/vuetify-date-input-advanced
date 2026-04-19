@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.2.0...v2.3.0) (2026-04-19)
+
+
+### Features
+
+* add Czech and Lithuanian translations ([3e8f487](https://github.com/gigerIT/vuetify-date-input-advanced/commit/3e8f487033fcfe004dacecce6693913da595de68))
+
 ## [2.2.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.1.0...v2.2.0) (2026-04-19)
 
 

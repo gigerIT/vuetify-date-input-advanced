@@ -1,6 +1,6 @@
 {
   "name": "@gigerit/vuetify-date-input-advanced",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Advanced Vuetify 4 date picker and input components with multi-month range selection.",
   "type": "module",
   "repository": {
