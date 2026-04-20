@@ -233,6 +233,9 @@ npm run build
   and UX before introducing repo-specific conventions.
 - Package-owned icons must use Vuetify aliases or forwarded icon props; never
   hardcode icon-set-specific names such as `mdi-*` in component defaults.
+- Picker visual tokens in `src/styles/variables.sass` are public Sass API via
+  the package `./styles` exports; keep changes synchronized with README,
+  `package.json`, and Sass variable tests.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and

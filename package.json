@@ -23,10 +23,22 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./style.css": "./dist/gigerit-vuetify-date-input-advanced.css"
+    "./style.css": "./dist/gigerit-vuetify-date-input-advanced.css",
+    "./styles": {
+      "sass": "./styles.sass",
+      "style": "./dist/gigerit-vuetify-date-input-advanced.css",
+      "default": "./dist/gigerit-vuetify-date-input-advanced.css"
+    },
+    "./styles/variables": {
+      "sass": "./styles/_variables.sass",
+      "default": "./styles/_variables.sass"
+    }
   },
   "files": [
-    "dist"
+    "dist",
+    "src/styles",
+    "styles",
+    "styles.sass"
   ],
   "sideEffects": [
     "**/*.sass",

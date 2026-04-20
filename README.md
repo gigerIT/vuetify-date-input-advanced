@@ -22,7 +22,7 @@
 - Configurable week start via `firstDayOfWeek`
 - Optional week numbers
 - Keyboard navigation and live announcements
-- Theme-aware styling with CSS custom properties
+- Theme-aware styling with CSS custom properties and optional Sass variables
 
 Advanced date selection components for Vuetify 4.
 
@@ -79,6 +79,42 @@ createApp(App).use(vuetify).use(AdvancedDatePlugin).mount('#app')
 ```
 
 If you prefer local registration, import `VAdvancedDateInput` and `VAdvancedDatePicker` directly instead of using `AdvancedDatePlugin`.
+
+## Styling
+
+For the default styling path, import the prebuilt stylesheet once:
+
+```ts
+import '@gigerit/vuetify-date-input-advanced/style.css'
+```
+
+If you need compile-time customization, compile the package Sass entry instead
+of importing `style.css`:
+
+```scss
+@use '@gigerit/vuetify-date-input-advanced/styles' with (
+  $advanced-date-picker-cell-size: 44px,
+  $advanced-date-picker-preset-width: 260px,
+  $advanced-date-picker-day-font-weight: 600,
+);
+```
+
+Package Sass variables default to Vuetify's native date-picker and button
+variables where equivalent values exist. To let customized Vuetify Sass
+settings flow into these defaults, configure `vuetify/settings` before loading
+the package styles in the same Sass graph:
+
+```scss
+@use 'vuetify/settings' with (
+  $date-picker-month-day-size: 44px,
+  $button-font-weight: 600,
+);
+
+@use '@gigerit/vuetify-date-input-advanced/styles';
+```
+
+Use either the prebuilt CSS import or the Sass entry. Importing both will load
+the component styles twice.
 
 ## Quick Start
 

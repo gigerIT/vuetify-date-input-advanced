@@ -1,0 +1,61 @@
+import { compileString } from 'sass'
+import { describe, expect, it } from 'vitest'
+
+const loadPaths = [process.cwd(), 'node_modules']
+
+function compileStyles(source: string) {
+  return compileString(source, { loadPaths }).css
+}
+
+function extractRule(css: string, selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = new RegExp(`${escapedSelector}\\s*\\{[^}]+\\}`).exec(css)
+
+  if (!match) {
+    throw new Error(`Could not find CSS rule for ${selector}`)
+  }
+
+  return match[0]
+}
+
+describe('Sass variables', () => {
+  it('emits default picker variables from the styles entry', () => {
+    const css = compileStyles("@use 'styles';")
+    const dayRule = extractRule(css, '.v-advanced-date-picker__day')
+
+    expect(css).toContain('--v-advanced-date-cell-size: 40px;')
+    expect(css).toContain('--v-advanced-date-preset-width: 220px;')
+    expect(dayRule).toContain('font-size: 0.875rem;')
+    expect(dayRule).toContain('font-weight: 500;')
+  })
+
+  it('allows package variable overrides through the styles entry', () => {
+    const css = compileStyles(`
+      @use 'styles' with (
+        $advanced-date-picker-cell-size: 44px,
+        $advanced-date-picker-preset-width: 260px,
+        $advanced-date-picker-day-font-weight: 600
+      );
+    `)
+    const dayRule = extractRule(css, '.v-advanced-date-picker__day')
+
+    expect(css).toContain('--v-advanced-date-cell-size: 44px;')
+    expect(css).toContain('--v-advanced-date-preset-width: 260px;')
+    expect(dayRule).toContain('font-weight: 600;')
+  })
+
+  it('inherits defaults from configured Vuetify Sass variables', () => {
+    const css = compileStyles(`
+      @use 'vuetify/settings' with (
+        $date-picker-month-day-size: 48px,
+        $button-font-weight: 700
+      );
+
+      @use 'styles';
+    `)
+    const dayRule = extractRule(css, '.v-advanced-date-picker__day')
+
+    expect(css).toContain('--v-advanced-date-cell-size: 48px;')
+    expect(dayRule).toContain('font-weight: 700;')
+  })
+})

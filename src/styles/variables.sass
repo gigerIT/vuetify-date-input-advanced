@@ -1,11 +1,58 @@
+@use 'vuetify/settings' as vuetify
+
+$advanced-date-picker-color: rgb(var(--v-theme-primary)) !default
+$advanced-date-picker-range-bg: color-mix(in srgb, var(--v-advanced-date-picker-color) 16%, transparent) !default
+$advanced-date-picker-range-preview-bg: color-mix(in srgb, var(--v-advanced-date-picker-color) 10%, transparent) !default
+$advanced-date-picker-selected-bg: var(--v-advanced-date-picker-color) !default
+$advanced-date-picker-selected-color: rgb(var(--v-theme-on-primary)) !default
+$advanced-date-picker-preset-width: 220px !default
+$advanced-date-picker-cell-size: vuetify.$date-picker-month-day-size !default
+$advanced-date-picker-day-diff: 4px !default
+$advanced-date-picker-day-size: calc(#{$advanced-date-picker-cell-size} - #{$advanced-date-picker-day-diff}) !default
+$advanced-date-picker-day-inset: calc((#{$advanced-date-picker-cell-size} - #{$advanced-date-picker-day-size}) / 2) !default
+$advanced-date-picker-gap: 24px !default
+$advanced-date-picker-title-padding: 16px 20px 0 !default
+$advanced-date-picker-title-font-size: 1rem !default
+$advanced-date-picker-title-font-weight: 600 !default
+$advanced-date-picker-title-line-height: 1.5 !default
+$advanced-date-picker-title-months-padding-top: 12px !default
+$advanced-date-picker-title-nav-offset: 30px !default
+$advanced-date-picker-title-presets-padding-top: 8px !default
+$advanced-date-picker-presets-padding: 12px !default
+$advanced-date-picker-months-padding: 18px 20px 20px !default
+$advanced-date-picker-nav-offset: 36px !default
+$advanced-date-picker-nav-inline-offset: 20px !default
+$advanced-date-picker-month-label-min-height: 36px !default
+$advanced-date-picker-month-label-padding-inline: 40px !default
+$advanced-date-picker-month-label-margin-bottom: 14px !default
+$advanced-date-picker-month-label-font-weight: 600 !default
+$advanced-date-picker-weekday-gap: 2px !default
+$advanced-date-picker-weekday-margin-bottom: 8px !default
+$advanced-date-picker-weekday-font-size: vuetify.$date-picker-month-font-size !default
+$advanced-date-picker-week-label-color: rgb(var(--v-theme-on-surface-variant)) !default
+$advanced-date-picker-week-number-column-width: 32px !default
+$advanced-date-picker-day-border-radius: 999px !default
+$advanced-date-picker-day-font-size: vuetify.$date-picker-month-btn-size !default
+$advanced-date-picker-day-font-weight: vuetify.$button-font-weight !default
+$advanced-date-picker-day-letter-spacing: vuetify.$button-text-letter-spacing !default
+$advanced-date-picker-day-line-height: vuetify.$button-line-height !default
+$advanced-date-picker-day-text-indent: $advanced-date-picker-day-letter-spacing !default
+$advanced-date-picker-day-transition: background-color 0.16s ease, color 0.16s ease, opacity 0.16s ease !default
+$advanced-date-picker-day-hover-bg: color-mix(in srgb, var(--v-advanced-date-picker-color) 10%, transparent) !default
+$advanced-date-picker-day-outside-color: rgb(var(--v-theme-on-surface-variant)) !default
+$advanced-date-picker-day-disabled-opacity: 0.32 !default
+$advanced-date-picker-actions-gap: 8px !default
+$advanced-date-picker-actions-padding: 12px 16px !default
+$advanced-date-picker-preset-active-bg: color-mix(in srgb, var(--v-advanced-date-picker-color) 10%, transparent) !default
+
 :root
-  --v-advanced-date-picker-color: rgb(var(--v-theme-primary))
-  --v-advanced-date-range-bg: color-mix(in srgb, var(--v-advanced-date-picker-color) 16%, transparent)
-  --v-advanced-date-range-preview-bg: color-mix(in srgb, var(--v-advanced-date-picker-color) 10%, transparent)
-  --v-advanced-date-selected-bg: var(--v-advanced-date-picker-color)
-  --v-advanced-date-selected-color: rgb(var(--v-theme-on-primary))
-  --v-advanced-date-preset-width: 220px
-  --v-advanced-date-cell-size: 40px
-  --v-advanced-date-day-size: calc(var(--v-advanced-date-cell-size) - 4px)
-  --v-advanced-date-day-inset: calc((var(--v-advanced-date-cell-size) - var(--v-advanced-date-day-size)) / 2)
-  --v-advanced-date-gap: 24px
+  --v-advanced-date-picker-color: #{$advanced-date-picker-color}
+  --v-advanced-date-range-bg: #{$advanced-date-picker-range-bg}
+  --v-advanced-date-range-preview-bg: #{$advanced-date-picker-range-preview-bg}
+  --v-advanced-date-selected-bg: #{$advanced-date-picker-selected-bg}
+  --v-advanced-date-selected-color: #{$advanced-date-picker-selected-color}
+  --v-advanced-date-preset-width: #{$advanced-date-picker-preset-width}
+  --v-advanced-date-cell-size: #{$advanced-date-picker-cell-size}
+  --v-advanced-date-day-size: #{$advanced-date-picker-day-size}
+  --v-advanced-date-day-inset: #{$advanced-date-picker-day-inset}
+  --v-advanced-date-gap: #{$advanced-date-picker-gap}
