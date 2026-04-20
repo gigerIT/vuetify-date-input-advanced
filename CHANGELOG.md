@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.6.0...v2.7.0) (2026-04-20)
+
+
+### Features
+
+* **date-picker:** add mobile fullscreen constrained scrolling limit ([f8ef1b1](https://github.com/gigerIT/vuetify-date-input-advanced/commit/f8ef1b13d8d8bb14d8cab7e05f2900e0ae9a2078))
+* enhance month navigation and animations ([f347c14](https://github.com/gigerIT/vuetify-date-input-advanced/commit/f347c146a540f0d79ac58d579927291d867e4bc2))
+
 ## [2.6.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.5.0...v2.6.0) (2026-04-20)
 
 
