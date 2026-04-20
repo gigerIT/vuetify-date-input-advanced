@@ -6,6 +6,10 @@ export const dateInputAdvancedEn: DateInputAdvancedLocaleMessages = {
       apply: 'Apply',
       cancel: 'Cancel',
     },
+    fields: {
+      startDate: 'Start date',
+      endDate: 'End date',
+    },
     ariaLabel: {
       previousMonth: 'Previous month',
       nextMonth: 'Next month',

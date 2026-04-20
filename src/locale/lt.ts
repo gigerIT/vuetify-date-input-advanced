@@ -6,6 +6,10 @@ export const dateInputAdvancedLt: DateInputAdvancedLocaleMessages = {
       apply: 'Taikyti',
       cancel: 'Atšaukti',
     },
+    fields: {
+      startDate: 'Pradžios data',
+      endDate: 'Pabaigos data',
+    },
     ariaLabel: {
       previousMonth: 'Ankstesnis mėnuo',
       nextMonth: 'Kitas mėnuo',

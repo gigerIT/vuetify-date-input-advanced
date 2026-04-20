@@ -12,6 +12,8 @@ export { AdvancedDatePlugin } from '@/plugin'
 export type {
   AdvancedDateAdapter,
   AdvancedDateDay,
+  AdvancedDateInputField,
+  AdvancedDateInputFieldProps,
   AdvancedDateIconSvgPath,
   AdvancedDateIconValue,
   AdvancedDateInputAvailabilityStatus,

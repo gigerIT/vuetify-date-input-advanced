@@ -42,10 +42,12 @@ const inputIconCases = [
       },
     },
     assertIcon: (wrapper: ReturnType<typeof render>) => {
-      const appendInner = wrapper.find('.v-field__append-inner')
+      const startIcon = wrapper.get(
+        '[data-range-field="start"] .v-field__prepend-inner',
+      )
 
-      expect(appendInner.html()).toContain('material-icons')
-      expect(appendInner.text()).toContain('event')
+      expect(startIcon.html()).toContain('material-icons')
+      expect(startIcon.text()).toContain('event')
     },
   },
   {
@@ -58,9 +60,11 @@ const inputIconCases = [
       },
     },
     assertIcon: (wrapper: ReturnType<typeof render>) => {
-      expect(wrapper.find('.v-field__append-inner').html()).toContain(
-        'mdi-calendar',
-      )
+      expect(
+        wrapper
+          .get('[data-range-field="start"] .v-field__prepend-inner')
+          .html(),
+      ).toContain('mdi-calendar')
     },
   },
   {
@@ -74,7 +78,11 @@ const inputIconCases = [
     },
     assertIcon: (wrapper: ReturnType<typeof render>) => {
       expect(
-        wrapper.find('.v-field__append-inner svg.v-icon__svg').exists(),
+        wrapper
+          .find(
+            '[data-range-field="start"] .v-field__prepend-inner svg.v-icon__svg',
+          )
+          .exists(),
       ).toBe(true)
     },
   },
@@ -115,6 +123,44 @@ function lastEmitted<T>(
 
 function publicHandle(wrapper: ReturnType<typeof render>) {
   return wrapper.vm as unknown as AdvancedDateInputPublicInstance<Date>
+}
+
+function rangeInput(
+  wrapper: ReturnType<typeof render>,
+  field: 'start' | 'end',
+) {
+  return wrapper.get<HTMLInputElement>(`[data-range-field="${field}"] input`)
+}
+
+function rangeFieldComponent(
+  wrapper: ReturnType<typeof render>,
+  field: 'start' | 'end',
+) {
+  return wrapper.findAllComponents({ name: 'VTextField' })[
+    field === 'start' ? 0 : 1
+  ]!
+}
+
+function rangeInputValues(wrapper: ReturnType<typeof render>) {
+  return {
+    start: rangeInput(wrapper, 'start').element.value,
+    end: rangeInput(wrapper, 'end').element.value,
+  }
+}
+
+function rangeShell(wrapper: ReturnType<typeof render>) {
+  return wrapper.get('.v-advanced-date-input--range')
+}
+
+async function waitForInputSelection() {
+  if (typeof requestAnimationFrame === 'function') {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
+    return
+  }
+
+  await Promise.resolve()
 }
 
 function deferredValue<T>() {
@@ -239,14 +285,14 @@ describe('VAdvancedDateInput', () => {
 
       try {
         expect(
-          wrapper.find('button[aria-label="Previous month"]').attributes(
-            'disabled',
-          ),
+          wrapper
+            .find('button[aria-label="Previous month"]')
+            .attributes('disabled'),
         ).toBeUndefined()
         expect(
-          wrapper.find('button[aria-label="Next month"]').attributes(
-            'disabled',
-          ),
+          wrapper
+            .find('button[aria-label="Next month"]')
+            .attributes('disabled'),
         ).toBeDefined()
       } finally {
         wrapper.unmount()
@@ -259,8 +305,12 @@ describe('VAdvancedDateInput', () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
           modelValue: null,
-          prependInnerIcon: testFieldIcon,
-          appendInnerIcon: testFieldIcon,
+          startFieldProps: {
+            prependInnerIcon: testFieldIcon,
+          },
+          endFieldProps: {
+            appendInnerIcon: testFieldIcon,
+          },
         },
         global: {
           stubs: {
@@ -697,7 +747,7 @@ describe('VAdvancedDateInput', () => {
     wrapper.unmount()
   })
 
-  it('forwards attrs to the desktop input field', () => {
+  it('forwards attrs to the desktop range field shell', () => {
     const originalWidth = window.innerWidth
 
     Object.defineProperty(window, 'innerWidth', {
@@ -726,11 +776,11 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      const input = wrapper.find('input')
+      const shell = rangeShell(wrapper)
 
-      expect(input.attributes('id')).toBe('travel-dates')
-      expect(input.attributes('name')).toBe('travelDates')
-      expect(input.attributes('aria-label')).toBe('Travel dates input')
+      expect(shell.attributes('id')).toBe('travel-dates')
+      expect(shell.attributes('name')).toBe('travelDates')
+      expect(shell.attributes('aria-label')).toBe('Travel dates input')
     } finally {
       wrapper?.unmount()
 
@@ -743,7 +793,7 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
-  it('forwards attrs to the mobile input field', () => {
+  it('forwards attrs to the mobile range field shell', () => {
     const originalWidth = window.innerWidth
 
     Object.defineProperty(window, 'innerWidth', {
@@ -772,11 +822,11 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      const input = wrapper.find('input')
+      const shell = rangeShell(wrapper)
 
-      expect(input.attributes('id')).toBe('travel-dates-mobile')
-      expect(input.attributes('name')).toBe('travelDatesMobile')
-      expect(input.attributes('aria-label')).toBe('Travel dates mobile input')
+      expect(shell.attributes('id')).toBe('travel-dates-mobile')
+      expect(shell.attributes('name')).toBe('travelDatesMobile')
+      expect(shell.attributes('aria-label')).toBe('Travel dates mobile input')
       expect(
         wrapper.find('.v-advanced-date-input-shell').attributes('id'),
       ).toBeUndefined()
@@ -790,6 +840,655 @@ describe('VAdvancedDateInput', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('forwards side-specific field props to the split range inputs', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        startFieldProps: {
+          id: 'travel-start',
+          name: 'travelStart',
+          ariaLabel: 'Travel start date',
+          placeholder: 'Departure',
+        },
+        endFieldProps: {
+          id: 'travel-end',
+          name: 'travelEnd',
+          ariaLabel: 'Travel end date',
+          placeholder: 'Return',
+        },
+      },
+    })
+
+    expect(rangeInput(wrapper, 'start').attributes('id')).toBe('travel-start')
+    expect(rangeInput(wrapper, 'start').attributes('name')).toBe('travelStart')
+    expect(rangeInput(wrapper, 'start').attributes('aria-label')).toBe(
+      'Travel start date',
+    )
+    expect(rangeInput(wrapper, 'start').attributes('placeholder')).toBe(
+      'Departure',
+    )
+    expect(rangeInput(wrapper, 'end').attributes('id')).toBe('travel-end')
+    expect(rangeInput(wrapper, 'end').attributes('name')).toBe('travelEnd')
+    expect(rangeInput(wrapper, 'end').attributes('aria-label')).toBe(
+      'Travel end date',
+    )
+    expect(rangeInput(wrapper, 'end').attributes('placeholder')).toBe('Return')
+
+    wrapper.unmount()
+  })
+
+  it('renders a shared divider between split range inputs', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+      },
+    })
+
+    expect(
+      wrapper.findAll('.v-advanced-date-input__range-divider'),
+    ).toHaveLength(1)
+    expect(
+      wrapper
+        .get('[data-range-field="start"]')
+        .classes('v-advanced-date-input__range-field--start'),
+    ).toBe(true)
+    expect(
+      wrapper
+        .get('[data-range-field="end"]')
+        .classes('v-advanced-date-input__range-field--end'),
+    ).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('accepts a full range pasted into either split range input', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await rangeInput(wrapper, 'end').setValue('Jan 12, 2026 - Jan 19, 2026')
+    await wrapper.vm.$nextTick()
+
+    const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+      wrapper,
+      'update:draft',
+    )
+
+    expect(lastEmitted<string>(wrapper, 'update:text')).toBe(
+      'Jan 12, 2026 - Jan 19, 2026',
+    )
+    expect(draft?.parseStatus).toBe('complete')
+    expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-12')
+    expect(toLocalYmd(draft?.selection.end)).toBe('2026-01-19')
+
+    wrapper.unmount()
+  })
+
+  it('preserves the end split value when editing the start input', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        rangeSeparator: ' - ',
+      },
+      attachTo: document.body,
+    })
+
+    await rangeInput(wrapper, 'start').setValue('Jan 15, 2026')
+    await wrapper.vm.$nextTick()
+
+    const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+      wrapper,
+      'update:draft',
+    )
+
+    expect(lastEmitted<string>(wrapper, 'update:text')).toBe(
+      'Jan 15, 2026 - Jan 19, 2026',
+    )
+    expect(rangeInputValues(wrapper)).toEqual({
+      start: 'Jan 15, 2026',
+      end: 'Jan 19, 2026',
+    })
+    expect(draft?.parseStatus).toBe('complete')
+    expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-15')
+    expect(toLocalYmd(draft?.selection.end)).toBe('2026-01-19')
+
+    wrapper.unmount()
+  })
+
+  it('commits a start split edit without clearing the current end date', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        rangeSeparator: ' - ',
+      },
+      attachTo: document.body,
+    })
+
+    await rangeInput(wrapper, 'start').setValue('Jan 15, 2026')
+    await flushPromises()
+
+    const success = await publicHandle(wrapper).commitInput()
+    const value = lastEmitted<readonly [Date | null, Date | null]>(
+      wrapper,
+      'update:modelValue',
+    )
+
+    expect(success).toBe(true)
+    expect(toLocalYmd(value?.[0])).toBe('2026-01-15')
+    expect(toLocalYmd(value?.[1])).toBe('2026-01-19')
+
+    wrapper.unmount()
+  })
+
+  it('preserves the start split value when editing the end input', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        rangeSeparator: ' - ',
+      },
+      attachTo: document.body,
+    })
+
+    await rangeInput(wrapper, 'end').setValue('Jan 25, 2026')
+    await wrapper.vm.$nextTick()
+
+    const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+      wrapper,
+      'update:draft',
+    )
+
+    expect(lastEmitted<string>(wrapper, 'update:text')).toBe(
+      'Jan 12, 2026 - Jan 25, 2026',
+    )
+    expect(rangeInputValues(wrapper)).toEqual({
+      start: 'Jan 12, 2026',
+      end: 'Jan 25, 2026',
+    })
+    expect(draft?.parseStatus).toBe('complete')
+    expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-12')
+    expect(toLocalYmd(draft?.selection.end)).toBe('2026-01-25')
+
+    wrapper.unmount()
+  })
+
+  it('selects all text when focusing a populated split range input', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+      },
+      attachTo: document.body,
+    })
+
+    const endInput = rangeInput(wrapper, 'end')
+
+    await endInput.trigger('focus')
+    await waitForInputSelection()
+
+    expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+    expect(endInput.element.selectionStart).toBe(0)
+    expect(endInput.element.selectionEnd).toBe(endInput.element.value.length)
+
+    wrapper.unmount()
+  })
+
+  it('selects all text when the controlled active field changes', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'start',
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.setProps({ activeField: 'end' })
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      const endInput = rangeInput(wrapper, 'end')
+
+      expect(document.activeElement).toBe(endInput.element)
+      expect(endInput.element.selectionStart).toBe(0)
+      expect(endInput.element.selectionEnd).toBe(endInput.element.value.length)
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps a controlled active field during external model sync', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'end',
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      await wrapper.setProps({
+        modelValue: [
+          new Date('2026-01-13T00:00:00.000Z'),
+          new Date('2026-01-20T00:00:00.000Z'),
+        ],
+      })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:activeField')).toBeUndefined()
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 13, 2026',
+        end: 'Jan 20, 2026',
+      })
+      expect(document.activeElement).toBe(rangeInput(wrapper, 'end').element)
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps a controlled active field during controlled text mirror sync', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 12, 2026 - Jan 19, 2026',
+          activeField: 'end',
+          rangeSeparator: ' - ',
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      await wrapper.setProps({
+        modelValue: [
+          new Date('2026-01-13T00:00:00.000Z'),
+          new Date('2026-01-20T00:00:00.000Z'),
+        ],
+        text: 'Jan 13, 2026 - Jan 20, 2026',
+      })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:activeField')).toBeUndefined()
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 13, 2026',
+        end: 'Jan 20, 2026',
+      })
+      expect(document.activeElement).toBe(rangeInput(wrapper, 'end').element)
+
+      wrapper.unmount()
+    })
+  })
+
+  it('moves focus to the end input after a range start is chosen', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      expect(document.activeElement).toBe(rangeInput(wrapper, 'end').element)
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+
+      wrapper.unmount()
+    })
+  })
+
+  it('uses the controlled end active field when the picker opens without a field click', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'end',
+          menu: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.setProps({ menu: true })
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-25"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-12')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-25')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('uses the controlled start active field when the picker opens without a field click', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'start',
+          menu: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.setProps({ menu: true })
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 19, 2026',
+      })
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('complete')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-15',
+      )
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
+        '2026-01-19',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it('updates the end date when the picker is opened from the end input', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'end').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-25"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-12')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-25')
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 12, 2026',
+        end: 'Jan 25, 2026',
+      })
+
+      wrapper.unmount()
+    })
+  })
+
+  it('prefers an explicit split-field click over a different activeField fallback', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'end',
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 19, 2026',
+      })
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-15',
+      )
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
+        '2026-01-19',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it('updates the start date when the picker is opened from the start input', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 19, 2026',
+      })
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('complete')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-15',
+      )
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
+        '2026-01-19',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps the range complete when the start picker selects after the current end', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-25"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 19, 2026',
+        end: 'Jan 25, 2026',
+      })
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('complete')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-19',
+      )
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
+        '2026-01-25',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it('ignores end-field picker dates that are disallowed only for range ends', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          allowedEndDates: allowOnly('2026-01-19'),
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'end').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-18"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 12, 2026',
+        end: 'Jan 19, 2026',
+      })
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-12',
+      )
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
+        '2026-01-19',
+      )
+      expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+
+      wrapper.unmount()
+    })
   })
 
   it('forwards blur hooks while keeping typed drafts pending', async () => {
@@ -932,7 +1631,7 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
-  it('still opens the overlay from the field and append icon when inputReadonly is enabled', async () => {
+  it('still opens the overlay from the single-date field and append icon when inputReadonly is enabled', async () => {
     const originalWidth = window.innerWidth
 
     Object.defineProperty(window, 'innerWidth', {
@@ -949,6 +1648,7 @@ describe('VAdvancedDateInput', () => {
         props: {
           modelValue: null,
           inputReadonly: true,
+          range: false,
         },
         attachTo: document.body,
         global: {
@@ -977,6 +1677,189 @@ describe('VAdvancedDateInput', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('opens the overlay from readonly split range inputs', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          startFieldProps: {
+            readonly: true,
+          },
+          endFieldProps: {
+            readonly: true,
+          },
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await rangeInput(wrapper, 'end').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:menu')).toEqual([[true], [true]])
+
+      wrapper.unmount()
+    })
+  })
+
+  it('opens the overlay from Enter on a readonly split field without validating the draft', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 20, 2026',
+          startFieldProps: {
+            readonly: true,
+          },
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:menu')).toEqual([[true]])
+      expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('uses the active end field when opening from Enter on an editable split input', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'end',
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      await rangeInput(wrapper, 'end').trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+
+      await wrapper.find('[data-date="2026-01-25"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')).toEqual([[true], [false]])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-12')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-25')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps Enter validation on the editable split field when the opposite side is readonly', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 20, 2026',
+          startFieldProps: {
+            readonly: true,
+          },
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'end').trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+
+      const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(payload?.reason).toBe('incomplete')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('opens the overlay from Enter on a readonly end split field without changing start-side Enter behavior', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 20, 2026',
+          endFieldProps: {
+            readonly: true,
+          },
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'end').trigger('keydown', { key: 'Enter' })
+      await wrapper.vm.$nextTick()
+
+      await rangeInput(wrapper, 'start').trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+
+      const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+
+      expect(wrapper.emitted('update:menu')).toEqual([[true]])
+      expect(payload?.reason).toBe('incomplete')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      wrapper.unmount()
+    })
   })
 
   it('keeps picker selection interactive when inputReadonly is enabled', async () => {
@@ -1227,6 +2110,113 @@ describe('VAdvancedDateInput', () => {
     expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
 
     wrapper.unmount()
+  })
+
+  it('moves the range clear affordance to the start field for start-only values', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [new Date('2026-01-12T00:00:00.000Z'), null],
+          menu: true,
+          clearable: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(rangeFieldComponent(wrapper, 'start').props('clearable')).toBe(
+        true,
+      )
+      expect(rangeFieldComponent(wrapper, 'end').props('clearable')).toBe(false)
+
+      rangeFieldComponent(wrapper, 'start').vm.$emit(
+        'click:clear',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: '',
+        end: '',
+      })
+      expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps a single range clear affordance on the end field for complete ranges', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        clearable: true,
+      },
+      attachTo: document.body,
+    })
+
+    expect(rangeFieldComponent(wrapper, 'start').props('clearable')).toBe(false)
+    expect(rangeFieldComponent(wrapper, 'end').props('clearable')).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('forwards split append-inner clicks and keeps the end field active for picker selection', async () => {
+    const onClickAppendInner = vi.fn()
+
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+          endFieldProps: {
+            appendInnerIcon: testFieldIcon,
+          },
+        },
+        attrs: {
+          'onClick:appendInner': onClickAppendInner,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      rangeFieldComponent(wrapper, 'end').vm.$emit(
+        'click:appendInner',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-25"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(onClickAppendInner).toHaveBeenCalledTimes(1)
+      expect(wrapper.emitted('update:activeField')).toContainEqual(['end'])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-12')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-25')
+
+      wrapper.unmount()
+    })
   })
 
   it('keeps clearable support when inputReadonly is enabled', async () => {
@@ -1564,9 +2554,10 @@ describe('VAdvancedDateInput', () => {
         'draftClose',
       )
 
-      expect(wrapper.find('input').element.value).toBe(
-        'Jan 12, 2026 – Jan 19, 2026',
-      )
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 12, 2026',
+        end: 'Jan 19, 2026',
+      })
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
       expect(wrapper.emitted('update:menu')).toBeUndefined()
       expect(payload?.reason).toBe('dismiss')
@@ -1712,6 +2703,7 @@ describe('VAdvancedDateInput', () => {
 
     const input = wrapper.find('input')
 
+    await input.trigger('focus')
     await input.setValue('not a range')
     await input.trigger('blur')
     await flushPromises()
@@ -1929,17 +2921,14 @@ describe('VAdvancedDateInput', () => {
   it('emits typed partial ranges through text and draft state without committing the model', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {
-        modelValue: [
-          new Date('2026-01-12T00:00:00.000Z'),
-          new Date('2026-01-19T00:00:00.000Z'),
-        ],
+        modelValue: null,
         month: 0,
         year: 2026,
       },
       attachTo: document.body,
     })
 
-    const input = wrapper.find('input')
+    const input = rangeInput(wrapper, 'start')
 
     await input.setValue('Jan 20, 2026')
     await wrapper.vm.$nextTick()
@@ -2109,9 +3098,10 @@ describe('VAdvancedDateInput', () => {
       const text = lastEmitted<string>(wrapper, 'update:text')
 
       expect(text).toBe('Jan 25, 2026 – Jan 29, 2026')
-      expect(wrapper.find('input').element.value).toBe(
-        'Jan 25, 2026 – Jan 29, 2026',
-      )
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 25, 2026',
+        end: 'Jan 29, 2026',
+      })
       expect(publicHandle(wrapper).draft.source).toBe('picker')
       expect(publicHandle(wrapper).isDirty).toBe(false)
       expect(wrapper.find('[data-date="2026-01-25"]').classes()).toContain(
@@ -2343,10 +3333,7 @@ describe('VAdvancedDateInput', () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
-          modelValue: [
-            new Date('2026-01-12T00:00:00.000Z'),
-            new Date('2026-01-19T00:00:00.000Z'),
-          ],
+          modelValue: null,
           menu: true,
           month: 0,
           year: 2026,
@@ -2359,12 +3346,12 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      const input = wrapper.find('input')
+      const input = rangeInput(wrapper, 'start')
 
       await input.setValue('Jan 20, 2026')
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(rangeInput(wrapper, 'start').element.value).toBe('Jan 20, 2026')
       expect(publicHandle(wrapper).draft.source).toBe('text')
       expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
 
@@ -2378,7 +3365,7 @@ describe('VAdvancedDateInput', () => {
       })
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(rangeInput(wrapper, 'start').element.value).toBe('Jan 20, 2026')
       expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount)
       expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
         'v-advanced-date-picker__day--selected',
@@ -2398,17 +3385,14 @@ describe('VAdvancedDateInput', () => {
   it('emits invalid typed text through text and draft state without committing the model', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {
-        modelValue: [
-          new Date('2026-01-12T00:00:00.000Z'),
-          new Date('2026-01-19T00:00:00.000Z'),
-        ],
+        modelValue: null,
         month: 0,
         year: 2026,
       },
       attachTo: document.body,
     })
 
-    const input = wrapper.find('input')
+    const input = rangeInput(wrapper, 'start')
 
     await input.setValue('not a range')
     await wrapper.vm.$nextTick()
@@ -2577,9 +3561,10 @@ describe('VAdvancedDateInput', () => {
     expect(success).toBe(true)
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(wrapper.emitted('inputCommit')).toBeUndefined()
-    expect(wrapper.find('input').element.value).toBe(
-      'Jan 20, 2026 – Jan 23, 2026',
-    )
+    expect(rangeInputValues(wrapper)).toEqual({
+      start: 'Jan 20, 2026',
+      end: 'Jan 23, 2026',
+    })
     expect(publicHandle(wrapper).isDirty).toBe(false)
 
     wrapper.unmount()
@@ -2588,17 +3573,14 @@ describe('VAdvancedDateInput', () => {
   it('blocks commitInput for incomplete drafts instead of reusing the committed model', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {
-        modelValue: [
-          new Date('2026-01-12T00:00:00.000Z'),
-          new Date('2026-01-19T00:00:00.000Z'),
-        ],
+        modelValue: null,
         month: 0,
         year: 2026,
       },
       attachTo: document.body,
     })
 
-    await wrapper.find('input').setValue('Jan 20, 2026')
+    await rangeInput(wrapper, 'start').setValue('Jan 20, 2026')
     await wrapper.vm.$nextTick()
 
     const success = await publicHandle(wrapper).commitInput()
@@ -2612,7 +3594,10 @@ describe('VAdvancedDateInput', () => {
     expect(payload?.reason).toBe('incomplete')
     expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-20')
     expect(payload?.draft.selection.end).toBeNull()
-    expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+    expect(rangeInputValues(wrapper)).toEqual({
+      start: 'Jan 20, 2026',
+      end: '',
+    })
 
     wrapper.unmount()
   })
@@ -2960,9 +3945,10 @@ describe('VAdvancedDateInput', () => {
         'draftClose',
       )
 
-      expect(wrapper.find('input').element.value).toBe(
-        'Jan 12, 2026 – Jan 19, 2026',
-      )
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 12, 2026',
+        end: 'Jan 19, 2026',
+      })
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
       expect(payload?.reason).toBe('dismiss')
       expect(payload?.strategy).toBe('revert')
@@ -3059,9 +4045,7 @@ describe('VAdvancedDateInput', () => {
       await wrapper.vm.$nextTick()
       await flushPromises()
 
-      wrapper
-        .findComponent({ name: 'VTextField' })
-        .vm.$emit('click:control', new MouseEvent('click'))
+      await rangeInput(wrapper, 'start').trigger('click')
       await wrapper.vm.$nextTick()
 
       const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
@@ -3070,7 +4054,10 @@ describe('VAdvancedDateInput', () => {
       )
 
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
-      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 20, 2026',
+        end: '',
+      })
       expect(payload?.strategy).toBe('preserve')
       expect(payload?.outcome).toBe('closed')
       expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
@@ -3288,9 +4275,10 @@ describe('VAdvancedDateInput', () => {
         'draftClose',
       )
 
-      expect(wrapper.find('input').element.value).toBe(
-        'Jan 12, 2026 – Jan 19, 2026',
-      )
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 12, 2026',
+        end: 'Jan 19, 2026',
+      })
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
       expect(wrapper.emitted('inputCommit')).toBeUndefined()
       expect(wrapper.emitted('inputInvalid')).toBeUndefined()
@@ -3349,9 +4337,10 @@ describe('VAdvancedDateInput', () => {
       expect(closePayload?.reason).toBe('escape')
       expect(closePayload?.strategy).toBe('revert')
       expect(closePayload?.outcome).toBe('closed')
-      expect(wrapper.find('input').element.value).toBe(
-        'Jan 12, 2026 – Jan 19, 2026',
-      )
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 12, 2026',
+        end: 'Jan 19, 2026',
+      })
 
       wrapper.unmount()
     })

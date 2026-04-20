@@ -12,11 +12,12 @@
 - Single-date mode with `:range="false"`
 - Inline picker or input-triggered overlay
 - Desktop menu and mobile fullscreen dialog behavior in `VAdvancedDateInput`
+- Vuetify-styled split start/end inputs in range mode
 - Typed input parsing and validation
 - Controlled `v-model:text` support with draft-state events
 - Configurable overlay draft close strategies: revert, preserve, or commit
 - Exposed input instance API for parent-driven validate / commit / revert flows
-- Optional picker-only input mode with `inputReadonly`
+- Optional picker-only single-date mode with `inputReadonly`
 - Built-in range presets plus custom preset slots
 - `min`, `max`, `allowedDates`, `allowedStartDates`, and `allowedEndDates` constraints
 - Configurable week start via `firstDayOfWeek`
@@ -29,7 +30,7 @@ Advanced date selection components for Vuetify 4.
 `@gigerit/vuetify-date-input-advanced` provides two components:
 
 - `VAdvancedDatePicker`: a standalone multi-month calendar panel
-- `VAdvancedDateInput`: a `VTextField` wrapper that adds typed input, overlay behavior, and the same picker surface
+- `VAdvancedDateInput`: a typed input wrapper that adds overlay behavior and the same picker surface
 
 The components use Vuetify's active date adapter through `useDate()`, so locale, formatting, and runtime value types follow your app's Vuetify date configuration.
 
@@ -41,7 +42,7 @@ The components use Vuetify's active date adapter through `useDate()`, so locale,
 | `VAdvancedDateInput`                                                                                                                                                                                                                                                                                                                       | Text field wrapper + picker                  |
 | `VAdvancedDatePicker`                                                                                                                                                                                                                                                                                                                      | Standalone picker panel                      |
 | `dateInputAdvancedEn`, `dateInputAdvancedCs`, `dateInputAdvancedDe`, `dateInputAdvancedFr`, `dateInputAdvancedIt`, `dateInputAdvancedLt`                                                                                                                                                                                                   | Built-in locale message bundles              |
-| `AdvancedDateModel`, `PresetRange`, `AdvancedDateAdapter`, `AdvancedDateDay`, `AdvancedDateMonthData`, `AdvancedDateWeek`, `DateBounds`, `NormalizedRange`, `DateInputAdvancedLocaleMessages`, `AdvancedDateIconValue`, `AdvancedDateIconSvgPath`                                                                                          | Core public TypeScript types                 |
+| `AdvancedDateModel`, `PresetRange`, `AdvancedDateAdapter`, `AdvancedDateDay`, `AdvancedDateMonthData`, `AdvancedDateWeek`, `DateBounds`, `NormalizedRange`, `DateInputAdvancedLocaleMessages`, `AdvancedDateIconValue`, `AdvancedDateIconSvgPath`, `AdvancedDateInputField`, `AdvancedDateInputFieldProps`                                 | Core public TypeScript types                 |
 | `AdvancedDateInputDraft`, `AdvancedDateInputPublicInstance`, `AdvancedDateInputCommitPayload`, `AdvancedDateInputInvalidPayload`, `AdvancedDateInputClosePayload`, `AdvancedDateInputSource`, `AdvancedDateInputParseStatus`, `AdvancedDateInputAvailabilityStatus`, `AdvancedDateInputValidationStatus`, `AdvancedDateInputCloseStrategy` | Text-input draft and public-handle contracts |
 
 ## Requirements
@@ -97,7 +98,7 @@ of importing `style.css`:
   $advanced-date-picker-month-slide-duration: 0.36s,
   $advanced-date-picker-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1),
   $advanced-date-picker-preset-width: 260px,
-  $advanced-date-picker-day-font-weight: 600,
+  $advanced-date-picker-day-font-weight: 600
 );
 ```
 
@@ -113,7 +114,7 @@ the package styles in the same Sass graph:
 ```scss
 @use 'vuetify/settings' with (
   $date-picker-month-day-size: 44px,
-  $button-font-weight: 600,
+  $button-font-weight: 600
 );
 
 @use '@gigerit/vuetify-date-input-advanced/styles';
@@ -268,8 +269,8 @@ const presets: PresetRange<Date>[] = [
 
 ### Typed Input
 
-`VAdvancedDateInput` parses text on blur and on `Enter` unless `inputReadonly`
-is enabled, in which case the field becomes a picker opener only.
+`VAdvancedDateInput` parses text on blur and on `Enter`. In single-date mode,
+`inputReadonly` makes the text field a picker opener only.
 
 Parsing order:
 
@@ -283,6 +284,52 @@ Validation uses the same `min`, `max`, `allowedDates`, `allowedStartDates`, and 
 Input formatting uses `displayFormat`, which is passed directly to `adapter.format(...)`. The default is `fullDate`.
 
 Range text uses `rangeSeparator`, which defaults to `–`. The current implementation also accepts common spaced dash separators such as `-` and `—`.
+
+### Range Input Fields
+
+In range mode, the default activator renders two Vuetify text fields: one for
+the start date and one for the end date. Shared Vuetify field props such as
+`label`, `variant`, `hideDetails`, `messages`, `rules`, `clearable`, and
+validation state apply to the grouped control. Side-specific input details use
+`startFieldProps` and `endFieldProps`.
+
+`text`, `update:text`, and `draft.text` remain a single combined string using
+`rangeSeparator`. Users can still paste a complete range into either side. When
+a side becomes active, its full native input text is selected so typing replaces
+the current value immediately.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import type {
+  AdvancedDateInputFieldProps,
+  AdvancedDateModel,
+} from '@gigerit/vuetify-date-input-advanced'
+
+const value = ref<AdvancedDateModel<Date>>(null)
+
+const startFieldProps = {
+  placeholder: 'Start date',
+  name: 'bookingStartDate',
+  ariaLabel: 'Booking start date',
+} satisfies AdvancedDateInputFieldProps
+
+const endFieldProps = {
+  placeholder: 'End date',
+  name: 'bookingEndDate',
+  ariaLabel: 'Booking end date',
+} satisfies AdvancedDateInputFieldProps
+</script>
+
+<template>
+  <v-advanced-date-input
+    v-model="value"
+    label="Booking dates"
+    :start-field-props="startFieldProps"
+    :end-field-props="endFieldProps"
+  />
+</template>
+```
 
 ### Controlled Text and Draft Lifecycle
 
@@ -343,11 +390,15 @@ async function submitFromParent() {
 
 ### Input Attr Forwarding
 
-When `VAdvancedDateInput` renders its default text field, non-prop attrs and listeners fall through to the internal `VTextField`. Use this for form-oriented attrs such as `id`, `name`, `aria-*`, `data-*`, and hooks such as `@blur` or `@keydown`.
+When `VAdvancedDateInput` renders a single-date field, non-prop attrs and
+listeners fall through to the internal `VTextField`. Use this for form-oriented
+attrs such as `id`, `name`, `aria-*`, `data-*`, and hooks such as `@blur` or
+`@keydown`.
 
 ```vue
 <v-advanced-date-input
   v-model="value"
+  :range="false"
   id="booking-start-date"
   name="bookingStartDate"
   data-testid="booking-start-date"
@@ -355,9 +406,25 @@ When `VAdvancedDateInput` renders its default text field, non-prop attrs and lis
 />
 ```
 
+In range mode, non-prop attrs and listeners are applied to the connected range
+field shell. Put native start/end input attrs in `startFieldProps` and
+`endFieldProps`.
+
+```vue
+<v-advanced-date-input
+  v-model="value"
+  id="booking-dates"
+  data-testid="booking-dates"
+  :start-field-props="{ id: 'booking-start-date', name: 'bookingStartDate' }"
+  :end-field-props="{ id: 'booking-end-date', name: 'bookingEndDate' }"
+/>
+```
+
 If you provide the `activator` slot, the slot content owns its own attrs and listeners.
-`inputReadonly` only affects the built-in text field, so it has no effect when
-`inline` is enabled or when you provide a custom `activator` slot.
+`inputReadonly` only affects the built-in single-date text field, so it has no
+effect in range mode, when `inline` is enabled, or when you provide a custom
+`activator` slot. Use `readonly`, `startFieldProps.readonly`, or
+`endFieldProps.readonly` for range-mode readonly fields.
 
 ### Overlay and Mobile Behavior
 
@@ -417,45 +484,69 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 
 ### `VAdvancedDateInput`-Only Props
 
-| Prop                 | Type                                 | Default     | Notes                                                                                                    |
-| -------------------- | ------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------- |
-| `menu`               | `boolean`                            | `false`     | Controlled open state for the menu or dialog                                                             |
-| `inline`             | `boolean`                            | `false`     | Renders the picker directly instead of using an overlay                                                  |
-| `label`              | `string \| undefined`                | `undefined` | Forwarded to `VTextField`                                                                                |
-| `placeholder`        | `string \| undefined`                | `undefined` | Forwarded to `VTextField`                                                                                |
-| `variant`            | `string`                             | `outlined`  | Forwarded to `VTextField`                                                                                |
-| `hideDetails`        | `boolean \| 'auto'`                  | `auto`      | Forwarded to `VTextField`                                                                                |
-| `messages`           | `string \| string[] \| undefined`    | `undefined` | Forwarded to `VTextField`                                                                                |
-| `error`              | `boolean`                            | `false`     | Combines with internal parse and validation errors                                                       |
-| `errorMessages`      | `string \| string[] \| undefined`    | `undefined` | Merged with internal parse and validation errors                                                         |
-| `rules`              | `readonly unknown[]`                 | `[]`        | Forwarded to `VTextField`                                                                                |
-| `clearable`          | `boolean`                            | `false`     | Clears both text and model                                                                               |
-| `focused`            | `boolean`                            | `false`     | Forwarded to `VTextField`                                                                                |
-| `prependInnerIcon`   | `AdvancedDateIconValue \| undefined` | `undefined` | Forwarded to `VTextField`; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components |
-| `appendInnerIcon`    | `AdvancedDateIconValue`              | `$calendar` | Forwarded to `VTextField`; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components |
-| `inputReadonly`      | `boolean`                            | `false`     | Makes the default text field readonly while keeping the picker, icon, and footer actions interactive     |
-| `text`               | `string \| undefined`                | `undefined` | Controlled text value for parent-owned draft flows                                                       |
-| `closeDraftStrategy` | `'revert' \| 'preserve' \| 'commit'` | `revert`    | Controls how pending drafts behave when the overlay closes                                               |
-| `displayFormat`      | `string`                             | `fullDate`  | Passed to `adapter.format(...)` for text display                                                         |
-| `rangeSeparator`     | `string`                             | `–`         | Separator used for formatted range text                                                                  |
-| `parseInput`         | `(value: string) => TDate \| null`   | `undefined` | Custom parser used before adapter and native parsing                                                     |
+| Prop                 | Type                                       | Default     | Notes                                                                                                           |
+| -------------------- | ------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------- |
+| `menu`               | `boolean`                                  | `false`     | Controlled open state for the menu or dialog                                                                    |
+| `inline`             | `boolean`                                  | `false`     | Renders the picker directly instead of using an overlay                                                         |
+| `label`              | `string \| undefined`                      | `undefined` | Shared field label for either the single-date field or range field group                                        |
+| `placeholder`        | `string \| undefined`                      | `undefined` | Single-date input placeholder. In range mode, use `startFieldProps.placeholder` and `endFieldProps.placeholder` |
+| `variant`            | `string`                                   | `outlined`  | Shared field variant                                                                                            |
+| `hideDetails`        | `boolean \| 'auto'`                        | `auto`      | Shared field details behavior                                                                                   |
+| `messages`           | `string \| string[] \| undefined`          | `undefined` | Shared field messages                                                                                           |
+| `error`              | `boolean`                                  | `false`     | Combines with internal parse and validation errors                                                              |
+| `errorMessages`      | `string \| string[] \| undefined`          | `undefined` | Merged with internal parse and validation errors                                                                |
+| `rules`              | `readonly unknown[]`                       | `[]`        | Validates the single-date field or combined range text                                                          |
+| `clearable`          | `boolean`                                  | `false`     | Clears both text and model                                                                                      |
+| `focused`            | `boolean`                                  | `false`     | Single-date `VTextField` focus state. In range mode, use `activeField`                                          |
+| `activeField`        | `'start' \| 'end' \| undefined`            | `undefined` | Range-mode active side. When set on desktop, the side input is focused and its text selected, and programmatic picker opens use it as the default boundary |
+| `prependInnerIcon`   | `AdvancedDateIconValue \| undefined`       | `undefined` | Single-date `VTextField` prepend icon. In range mode, use side-specific field props                             |
+| `appendInnerIcon`    | `AdvancedDateIconValue`                    | `$calendar` | Single-date `VTextField` append icon. In range mode, use side-specific field props                              |
+| `startFieldProps`    | `AdvancedDateInputFieldProps \| undefined` | `undefined` | Range-mode start input props                                                                                    |
+| `endFieldProps`      | `AdvancedDateInputFieldProps \| undefined` | `undefined` | Range-mode end input props                                                                                      |
+| `inputReadonly`      | `boolean`                                  | `false`     | Makes the single-date field readonly while keeping the picker, icon, and footer actions interactive             |
+| `text`               | `string \| undefined`                      | `undefined` | Controlled combined text value for parent-owned draft flows                                                     |
+| `closeDraftStrategy` | `'revert' \| 'preserve' \| 'commit'`       | `revert`    | Controls how pending drafts behave when the overlay closes                                                      |
+| `displayFormat`      | `string`                                   | `fullDate`  | Passed to `adapter.format(...)` for text display                                                                |
+| `rangeSeparator`     | `string`                                   | `–`         | Separator used for formatted range text                                                                         |
+| `parseInput`         | `(value: string) => TDate \| null`         | `undefined` | Custom parser used before adapter and native parsing                                                            |
+
+`AdvancedDateInputFieldProps` supports the side-specific range input details
+that should not apply to the whole grouped field:
+
+```ts
+type AdvancedDateInputField = 'start' | 'end'
+
+interface AdvancedDateInputFieldProps {
+  placeholder?: string
+  prependInnerIcon?: AdvancedDateIconValue
+  appendInnerIcon?: AdvancedDateIconValue
+  readonly?: boolean
+  id?: string
+  name?: string
+  ariaLabel?: string
+  class?: unknown
+  style?: StyleValue
+  attrs?: Record<string, string | number | boolean | null | undefined>
+}
+```
 
 ### Events
 
-| Event               | Component | Payload                                  | Notes                                                                  |
-| ------------------- | --------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| `update:modelValue` | both      | `AdvancedDateModel<TDate>`               | Main value update                                                      |
-| `update:menu`       | input     | `boolean`                                | Overlay open state                                                     |
-| `update:text`       | input     | `string`                                 | Requested text change for controlled text mode                         |
-| `update:draft`      | input     | `AdvancedDateInputDraft<TDate>`          | Current parsed draft snapshot                                          |
-| `update:month`      | both      | `number`                                 | Leading visible month after user navigation                            |
-| `update:year`       | both      | `number`                                 | Leading visible year after user navigation                             |
-| `apply`             | both      | `AdvancedDateModel<TDate>`               | Fired when Apply is used with `autoApply=false`                        |
-| `cancel`            | both      | none                                     | Fired from picker cancel flows, including `Escape` inside the calendar |
-| `inputCommit`       | input     | `AdvancedDateInputCommitPayload<TDate>`  | Fired when a text or picker draft commits                              |
-| `inputInvalid`      | input     | `AdvancedDateInputInvalidPayload<TDate>` | Fired when commit validation fails                                     |
-| `draftClose`        | input     | `AdvancedDateInputClosePayload<TDate>`   | Fired after an overlay close attempt resolves or is blocked            |
-| `presetSelect`      | both      | `PresetRange<TDate>`                     | Fired when a preset is chosen                                          |
+| Event                | Component | Payload                                  | Notes                                                                  |
+| -------------------- | --------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| `update:modelValue`  | both      | `AdvancedDateModel<TDate>`               | Main value update                                                      |
+| `update:menu`        | input     | `boolean`                                | Overlay open state                                                     |
+| `update:text`        | input     | `string`                                 | Requested text change for controlled text mode                         |
+| `update:activeField` | input     | `'start' \| 'end'`                       | Active range input side                                                |
+| `update:draft`       | input     | `AdvancedDateInputDraft<TDate>`          | Current parsed draft snapshot                                          |
+| `update:month`       | both      | `number`                                 | Leading visible month after user navigation                            |
+| `update:year`        | both      | `number`                                 | Leading visible year after user navigation                             |
+| `apply`              | both      | `AdvancedDateModel<TDate>`               | Fired when Apply is used with `autoApply=false`                        |
+| `cancel`             | both      | none                                     | Fired from picker cancel flows, including `Escape` inside the calendar |
+| `inputCommit`        | input     | `AdvancedDateInputCommitPayload<TDate>`  | Fired when a text or picker draft commits                              |
+| `inputInvalid`       | input     | `AdvancedDateInputInvalidPayload<TDate>` | Fired when commit validation fails                                     |
+| `draftClose`         | input     | `AdvancedDateInputClosePayload<TDate>`   | Fired after an overlay close attempt resolves or is blocked            |
+| `presetSelect`       | both      | `PresetRange<TDate>`                     | Fired when a preset is chosen                                          |
 
 ### Slots
 

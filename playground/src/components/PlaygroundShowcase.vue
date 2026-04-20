@@ -6,6 +6,7 @@ import type {
   AdvancedDateInputCloseStrategy,
   AdvancedDateInputCommitPayload,
   AdvancedDateInputDraft,
+  AdvancedDateInputFieldProps,
   AdvancedDateInputInvalidPayload,
   AdvancedDateInputPublicInstance,
   AdvancedDateModel,
@@ -57,6 +58,26 @@ const closeStrategyOptions = [
   { title: 'Preserve', value: 'preserve' },
   { title: 'Commit', value: 'commit' },
 ] satisfies { title: string; value: AdvancedDateInputCloseStrategy }[]
+
+const flightStartFieldProps = {
+  placeholder: 'Start date',
+  name: 'flightStartDate',
+  ariaLabel: 'Flight start date',
+} satisfies AdvancedDateInputFieldProps
+
+const flightEndFieldProps = {
+  placeholder: 'End date',
+  name: 'flightEndDate',
+  ariaLabel: 'Flight end date',
+} satisfies AdvancedDateInputFieldProps
+
+const pasteStartFieldProps = {
+  placeholder: 'Paste or type start',
+} satisfies AdvancedDateInputFieldProps
+
+const pasteEndFieldProps = {
+  placeholder: 'Paste or type end',
+} satisfies AdvancedDateInputFieldProps
 
 function cloneDate(date: Date) {
   return new Date(date)
@@ -380,6 +401,27 @@ const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
   </v-card>
 
   <v-card variant="flat">
+    <v-card-title>Split Range Inputs</v-card-title>
+    <v-card-subtitle>
+      Uses separate start/end field props for range-mode placeholders and form
+      attrs.
+    </v-card-subtitle>
+    <v-card-text>
+      <v-advanced-date-input
+        v-model="rangeValue"
+        label="Flight dates"
+        title="Flight dates"
+        title-start-date="Depart"
+        title-end-date="Return"
+        :months="2"
+        :start-field-props="flightStartFieldProps"
+        :end-field-props="flightEndFieldProps"
+        :show-presets="false"
+      />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
     <v-card-title>Typed Input + Validation</v-card-title>
     <v-card-subtitle>
       Test paste and keyboard entry before applying the value.
@@ -388,9 +430,10 @@ const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
       <v-advanced-date-input
         v-model="typedValue"
         label="Paste a range"
-        placeholder="Jan 12, 2026 – Jan 19, 2026"
         :months="2"
         :auto-apply="false"
+        :start-field-props="pasteStartFieldProps"
+        :end-field-props="pasteEndFieldProps"
       />
     </v-card-text>
   </v-card>
@@ -498,7 +541,9 @@ const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
         class="pa-4"
         data-testid="playground-edge-hard-bounds"
       >
-        <div class="text-subtitle-2 font-weight-medium">Hard min/max bounds</div>
+        <div class="text-subtitle-2 font-weight-medium">
+          Hard min/max bounds
+        </div>
         <div class="text-caption text-medium-emphasis mb-4">
           A two-month viewport locked to January and February 2026. Both arrows
           disable because moving would only reveal months outside the allowed

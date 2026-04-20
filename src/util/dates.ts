@@ -1,6 +1,12 @@
 import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
 import { orderRange } from '@/util/model'
 
+export interface RangeInputTextParts {
+  start: string
+  end: string
+  hasSeparator: boolean
+}
+
 export function dateKey<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
   date: TDate | null | undefined,
@@ -159,6 +165,47 @@ export function formatInputValue<TDate>(
   const end = range.end ? adapter.format(range.end, options.displayFormat) : ''
 
   return [start, end].filter(Boolean).join(options.separator)
+}
+
+export function splitRangeInputValue(
+  input: string,
+  separator: string,
+): RangeInputTextParts {
+  if (input.includes(separator)) {
+    const index = input.indexOf(separator)
+
+    return {
+      start: input.slice(0, index),
+      end: input.slice(index + separator.length),
+      hasSeparator: true,
+    }
+  }
+
+  const match = input.match(/^(.*?)(?:\s+[-–—]\s+)(.*)$/)
+  if (match) {
+    return {
+      start: match[1],
+      end: match[2],
+      hasSeparator: true,
+    }
+  }
+
+  return {
+    start: input,
+    end: '',
+    hasSeparator: false,
+  }
+}
+
+export function joinRangeInputValue(
+  parts: Pick<RangeInputTextParts, 'start' | 'end'>,
+  separator: string,
+): string {
+  if (!parts.start && !parts.end) return ''
+  if (!parts.end) return parts.start
+  if (!parts.start) return `${separator}${parts.end}`
+
+  return `${parts.start}${separator}${parts.end}`
 }
 
 export function parseInputDate<TDate>(

@@ -1,6 +1,8 @@
 import type { ExtractPropTypes, PropType } from 'vue'
 
 import type {
+  AdvancedDateInputField,
+  AdvancedDateInputFieldProps,
   AdvancedDateInputCloseStrategy,
   AdvancedDateIconValue,
   AdvancedDateModel,
@@ -142,11 +144,19 @@ export const advancedDateInputProps = {
   },
   clearable: Boolean,
   focused: Boolean,
+  activeField: {
+    type: String as PropType<AdvancedDateInputField | undefined>,
+    default: undefined,
+    validator: (value: string | undefined) =>
+      value === undefined || value === 'start' || value === 'end',
+  },
   prependInnerIcon: advancedDateIconPropType,
   appendInnerIcon: {
     type: advancedDateIconPropType,
     default: '$calendar',
   },
+  startFieldProps: Object as PropType<AdvancedDateInputFieldProps>,
+  endFieldProps: Object as PropType<AdvancedDateInputFieldProps>,
   ...advancedDatePickerProps,
   displayFormat: {
     type: String,

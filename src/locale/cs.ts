@@ -6,6 +6,10 @@ export const dateInputAdvancedCs: DateInputAdvancedLocaleMessages = {
       apply: 'Použít',
       cancel: 'Zrušit',
     },
+    fields: {
+      startDate: 'Datum od',
+      endDate: 'Datum do',
+    },
     ariaLabel: {
       previousMonth: 'Předchozí měsíc',
       nextMonth: 'Následující měsíc',

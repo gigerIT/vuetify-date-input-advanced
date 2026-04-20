@@ -1,4 +1,4 @@
-import type { Component } from 'vue'
+import type { Component, StyleValue } from 'vue'
 
 export interface AdvancedDateAdapter<TDate = Date> {
   date: (value?: any) => TDate | null
@@ -50,6 +50,21 @@ export type AdvancedDateIconValue =
   | string
   | AdvancedDateIconSvgPath[]
   | Component
+
+export type AdvancedDateInputField = 'start' | 'end'
+
+export interface AdvancedDateInputFieldProps {
+  placeholder?: string
+  prependInnerIcon?: AdvancedDateIconValue
+  appendInnerIcon?: AdvancedDateIconValue
+  readonly?: boolean
+  id?: string
+  name?: string
+  ariaLabel?: string
+  class?: unknown
+  style?: StyleValue
+  attrs?: Record<string, string | number | boolean | null | undefined>
+}
 
 export interface AdvancedDateRangeObject<TDate = Date> {
   start: TDate | null
@@ -141,6 +156,10 @@ export interface DateInputAdvancedLocaleMessages {
     actions: {
       apply: string
       cancel: string
+    }
+    fields: {
+      startDate: string
+      endDate: string
     }
     ariaLabel: {
       previousMonth: string

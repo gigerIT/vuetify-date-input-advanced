@@ -3,3 +3,39 @@
 
 .v-advanced-date-input
   inline-size: 100%
+
+.v-advanced-date-input__range-fields
+  align-items: stretch
+
+.v-advanced-date-input__range-field
+  min-inline-size: 0
+
+.v-advanced-date-input__range-field:focus-within
+  position: relative
+  z-index: 1
+
+.v-advanced-date-input__range-divider
+  margin-inline: 0
+
+.v-advanced-date-input__range-fields:focus-within .v-advanced-date-input__range-divider
+  opacity: 0
+
+.v-advanced-date-input__range-field--start .v-field--variant-outlined
+  border-start-end-radius: 0
+  border-end-end-radius: 0
+
+.v-advanced-date-input__range-field--start .v-field--variant-outlined .v-field__outline__end
+  border-inline-end-width: 0
+
+.v-advanced-date-input__range-field--start:focus-within .v-field--variant-outlined .v-field__outline__end
+  border-inline-end-width: var(--v-field-border-width)
+
+.v-advanced-date-input__range-field--end .v-field--variant-outlined
+  border-start-start-radius: 0
+  border-end-start-radius: 0
+
+.v-advanced-date-input__range-field--end .v-field--variant-outlined .v-field__outline__start
+  border-inline-start-width: 0
+
+.v-advanced-date-input__range-field--end:focus-within .v-field--variant-outlined .v-field__outline__start
+  border-inline-start-width: var(--v-field-border-width)

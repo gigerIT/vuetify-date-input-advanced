@@ -2,6 +2,7 @@ import {
   computed,
   defineComponent,
   mergeProps,
+  nextTick,
   ref,
   toRef,
   useAttrs,
@@ -12,9 +13,11 @@ import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateInput } from '@/composables/useAdvancedDateInput'
+import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
 import { useAdvancedDateOverlay } from '@/composables/useAdvancedDateOverlay'
 import type {
   AdvancedDateAdapter,
+  AdvancedDateInputField,
   AdvancedDateInputClosePayload,
   AdvancedDateInputCloseReason,
   AdvancedDateInputCloseStrategy,
@@ -33,8 +36,10 @@ import {
   formatInputValue,
   isRangeDisabled,
   isStartDateDisabled,
+  joinRangeInputValue,
+  splitRangeInputValue,
 } from '@/util/dates'
-import { normalizeModel, serializeModel } from '@/util/model'
+import { normalizeModel, orderRange, serializeModel } from '@/util/model'
 
 import '@/styles/VAdvancedDateInput.sass'
 
@@ -43,6 +48,7 @@ import {
   buildAdvancedDatePickerBindings,
   type AdvancedDateMobilePresentation,
 } from './advancedDateProps'
+import { VAdvancedDateRangeField } from './VAdvancedDateRangeField'
 import { VAdvancedDatePicker } from './VAdvancedDatePicker'
 
 interface OverlayActivatorProps {
@@ -59,6 +65,7 @@ interface DefaultFieldHandle {
   errorMessages?: string[]
   isValid?: boolean | null
   isPristine?: boolean
+  focusField?: (field: AdvancedDateInputField) => Promise<void> | void
 }
 
 interface DraftValidationResult {
@@ -105,7 +112,9 @@ function isSameSelection<TDate>(
 ): boolean {
   const sameStart =
     (!left.start && !right.start) ||
-    (!!left.start && !!right.start && adapter.isSameDay(left.start, right.start))
+    (!!left.start &&
+      !!right.start &&
+      adapter.isSameDay(left.start, right.start))
   const sameEnd =
     (!left.end && !right.end) ||
     (!!left.end && !!right.end && adapter.isSameDay(left.end, right.end))
@@ -142,6 +151,7 @@ export const VAdvancedDateInput = defineComponent({
     'update:month': (_value: number) => true,
     'update:year': (_value: number) => true,
     'update:text': (_value: string) => true,
+    'update:activeField': (_value: AdvancedDateInputField) => true,
     'update:draft': (_value: AdvancedDateInputDraft<unknown>) => true,
     apply: (_value: AdvancedDateModel<unknown>) => true,
     cancel: () => true,
@@ -155,16 +165,32 @@ export const VAdvancedDateInput = defineComponent({
     const attrs = useAttrs()
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
+    const { tDateInputAdvanced } = useDateInputAdvancedLocale()
     const pickerRef = ref<PickerHandle | null>(null)
     const fieldRef = ref<DefaultFieldHandle | null>(null)
+    const activeField = ref<AdvancedDateInputField>(
+      props.activeField ?? 'start',
+    )
     const mobilePresentation = computed<AdvancedDateMobilePresentation | null>(
-      () =>
-        display.mobile.value && !props.inline ? 'fullscreen' : 'inline',
+      () => (display.mobile.value && !props.inline ? 'fullscreen' : 'inline'),
     )
     const fieldReadonly = computed(() => props.readonly || props.inputReadonly)
-    const textEditable = computed(
-      () => !props.disabled && !props.readonly && !props.inputReadonly,
+    const rangeTextEditable = computed(
+      () =>
+        !props.disabled &&
+        !props.readonly &&
+        (!(props.startFieldProps?.readonly ?? false) ||
+          !(props.endFieldProps?.readonly ?? false)),
     )
+    const textEditable = computed(() =>
+      props.range
+        ? rangeTextEditable.value
+        : !props.disabled && !props.readonly && !props.inputReadonly,
+    )
+    const startPlaceholder = computed(() =>
+      tDateInputAdvanced('fields.startDate'),
+    )
+    const endPlaceholder = computed(() => tDateInputAdvanced('fields.endDate'))
 
     const overlay = useAdvancedDateOverlay({
       menu: toRef(props, 'menu'),
@@ -207,13 +233,12 @@ export const VAdvancedDateInput = defineComponent({
         : 'mirror',
     )
     const draftSource = ref<AdvancedDateInputSource>(
-      controlledTextMode.value === 'draft'
-        ? 'text'
-        : 'picker',
+      controlledTextMode.value === 'draft' ? 'text' : 'picker',
     )
     const hasUncontrolledTextDraft = ref(false)
     const pendingPickerCloseReason = ref<AdvancedDateInputCloseReason>('cancel')
     const pendingControlledTextEchoes = ref<string[]>([])
+    const pickerBoundaryField = ref<AdvancedDateInputField | null>(null)
 
     function formatSelection(selection: NormalizedRange<unknown>) {
       return formatInputValue(adapter, selection, {
@@ -226,6 +251,45 @@ export const VAdvancedDateInput = defineComponent({
     const committedDisplayText = computed(() =>
       formatSelection(committedSelection.value),
     )
+    const rangeTextParts = computed(() =>
+      splitRangeInputValue(input.text.value, props.rangeSeparator),
+    )
+
+    function resolveActiveFieldFromSelection(
+      selection: NormalizedRange<unknown>,
+    ): AdvancedDateInputField {
+      if (!props.range) return 'start'
+      if (selection.start && !selection.end) return 'end'
+
+      return 'start'
+    }
+
+    function syncActiveField(nextField: AdvancedDateInputField) {
+      if (activeField.value === nextField) return
+
+      activeField.value = nextField
+    }
+
+    function syncPassiveActiveField(selection: NormalizedRange<unknown>) {
+      syncActiveField(
+        props.activeField ?? resolveActiveFieldFromSelection(selection),
+      )
+    }
+
+    function setActiveField(nextField: AdvancedDateInputField) {
+      if (activeField.value === nextField) return
+
+      syncActiveField(nextField)
+      emit('update:activeField', nextField)
+    }
+
+    async function focusRangeField(nextField: AdvancedDateInputField) {
+      if (!props.range || props.inline || display.mobile.value) return
+
+      setActiveField(nextField)
+      await nextTick()
+      await fieldRef.value?.focusField?.(nextField)
+    }
 
     function createPickerDraft(
       selection = pickerSelection.value,
@@ -233,13 +297,7 @@ export const VAdvancedDateInput = defineComponent({
     ): AdvancedDateInputDraft<unknown> {
       const normalizedSelection = cloneSelection(selection)
       const isDirty = text !== committedDisplayText.value
-      const constraints = {
-        min: props.min,
-        max: props.max,
-        allowedDates: props.allowedDates,
-        allowedStartDates: props.allowedStartDates,
-        allowedEndDates: props.allowedEndDates,
-      }
+      const constraints = createDateConstraints()
 
       if (!normalizedSelection.start && !normalizedSelection.end) {
         return {
@@ -254,16 +312,13 @@ export const VAdvancedDateInput = defineComponent({
         }
       }
 
-      const parseStatus = !props.range || isSelectionComplete(normalizedSelection, true)
-        ? 'complete'
-        : 'partial'
+      const parseStatus =
+        !props.range || isSelectionComplete(normalizedSelection, true)
+          ? 'complete'
+          : 'partial'
       const unavailable = !props.range
         ? !!normalizedSelection.start &&
-          isStartDateDisabled(
-            adapter,
-            normalizedSelection.start,
-            constraints,
-          )
+          isStartDateDisabled(adapter, normalizedSelection.start, constraints)
         : isRangeDisabled(adapter, normalizedSelection, constraints)
       const errorKey = unavailable
         ? props.range
@@ -289,6 +344,17 @@ export const VAdvancedDateInput = defineComponent({
       input.inputError.value ? [] : props.rules,
     )
 
+    watch(
+      () => props.activeField,
+      (value) => {
+        if (!value) return
+
+        syncActiveField(value)
+        void focusRangeField(value)
+      },
+      { immediate: true },
+    )
+
     function queueControlledTextEcho(value: string) {
       if (props.text === undefined || props.text === value) return
       if (pendingControlledTextEchoes.value.includes(value)) return
@@ -307,7 +373,9 @@ export const VAdvancedDateInput = defineComponent({
     function setPickerSelection(nextSelection: NormalizedRange<unknown>) {
       const normalizedSelection = cloneSelection(nextSelection)
 
-      if (!isSameSelection(adapter, pickerSelection.value, normalizedSelection)) {
+      if (
+        !isSameSelection(adapter, pickerSelection.value, normalizedSelection)
+      ) {
         pickerSelection.value = normalizedSelection
       }
     }
@@ -335,8 +403,10 @@ export const VAdvancedDateInput = defineComponent({
     function syncCommittedMirror(selection = committedSelection.value) {
       hasUncontrolledTextDraft.value = false
       controlledTextMode.value = 'mirror'
+      pickerBoundaryField.value = null
       setPickerSelection(selection)
       draftSource.value = 'picker'
+      syncPassiveActiveField(selection)
       syncInputText(formatSelection(selection))
     }
 
@@ -345,7 +415,7 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     async function validateFieldRules() {
-      return await fieldRef.value?.validate?.() ?? []
+      return (await fieldRef.value?.validate?.()) ?? []
     }
 
     async function resetComponentValidation() {
@@ -375,7 +445,12 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     watch(
-      [() => props.modelValue, () => props.range, () => props.text, textEditable],
+      [
+        () => props.modelValue,
+        () => props.range,
+        () => props.text,
+        textEditable,
+      ],
       ([value, range, text, editable], previous) => {
         const next = normalizeModel(adapter, value, range)
         const previousText = previous?.[2]
@@ -449,9 +524,10 @@ export const VAdvancedDateInput = defineComponent({
     )
 
     const draft = computed<AdvancedDateInputDraft<unknown>>(() => {
-      const base = draftSource.value === 'text'
-        ? input.textDraft.value
-        : createPickerDraft()
+      const base =
+        draftSource.value === 'text'
+          ? input.textDraft.value
+          : createPickerDraft()
 
       return {
         text: input.text.value,
@@ -516,8 +592,7 @@ export const VAdvancedDateInput = defineComponent({
       }
 
       return (
-        currentDraft.errorKey ??
-        (props.range ? 'invalidRange' : 'invalidDate')
+        currentDraft.errorKey ?? (props.range ? 'invalidRange' : 'invalidDate')
       )
     }
 
@@ -555,6 +630,7 @@ export const VAdvancedDateInput = defineComponent({
 
       hasUncontrolledTextDraft.value = false
       controlledTextMode.value = 'mirror'
+      pickerBoundaryField.value = null
       committedSelection.value = cloneSelection(normalizedSelection)
       const committedDraft = createPickerDraft(
         normalizedSelection,
@@ -563,6 +639,7 @@ export const VAdvancedDateInput = defineComponent({
 
       setPickerSelection(normalizedSelection)
       draftSource.value = 'picker'
+      syncPassiveActiveField(normalizedSelection)
       syncInputText(committedDraft.text)
       input.markValid()
 
@@ -618,7 +695,11 @@ export const VAdvancedDateInput = defineComponent({
 
       const ruleMessages = await validateFieldRules()
       if (ruleMessages.length) {
-        return createValidationResult(currentDraft, 'rule', fieldErrorMessages())
+        return createValidationResult(
+          currentDraft,
+          'rule',
+          fieldErrorMessages(),
+        )
       }
 
       return createValidationResult(currentDraft, null)
@@ -726,6 +807,7 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     function closeOverlay() {
+      pickerBoundaryField.value = null
       if (!props.inline) overlay.closeMenu()
     }
 
@@ -790,14 +872,42 @@ export const VAdvancedDateInput = defineComponent({
       closeOverlay()
     }
 
-    function handleFieldTextUpdate(value: string) {
+    function updateFieldText(value: string) {
       hasUncontrolledTextDraft.value = props.text === undefined
       if (props.text !== undefined) {
         controlledTextMode.value = 'draft'
       }
+      pickerBoundaryField.value = null
       draftSource.value = 'text'
       input.setText(value)
       syncPickerSelectionFromText(value)
+    }
+
+    function handleFieldTextUpdate(value: string) {
+      updateFieldText(value)
+    }
+
+    function handleRangeFieldTextUpdate(
+      field: AdvancedDateInputField,
+      value: string,
+    ) {
+      setActiveField(field)
+
+      const currentRangeTextParts = rangeTextParts.value
+
+      const nextText = splitRangeInputValue(value, props.rangeSeparator)
+        .hasSeparator
+        ? value
+        : joinRangeInputValue(
+            {
+              start:
+                field === 'start' ? value : currentRangeTextParts.start,
+              end: field === 'end' ? value : currentRangeTextParts.end,
+            },
+            props.rangeSeparator,
+          )
+
+      updateFieldText(nextText)
     }
 
     async function handleFieldBlur() {
@@ -808,15 +918,109 @@ export const VAdvancedDateInput = defineComponent({
       await validateCurrentDraft()
     }
 
+    function handleRangeFieldFocus(event: FocusEvent) {
+      input.onFocus()
+
+      const { onFocus: userOnFocus } = attrs as Record<string, unknown>
+
+      callForwardedHandler(
+        userOnFocus as ForwardedEventHandler | undefined,
+        event,
+      )
+    }
+
+    async function handleRangeFieldBlur(event: FocusEvent) {
+      const { onBlur: userOnBlur } = attrs as Record<string, unknown>
+
+      await handleFieldBlur()
+      callForwardedHandler(
+        userOnBlur as ForwardedEventHandler | undefined,
+        event,
+      )
+    }
+
     async function handleFieldClear() {
       commitSelection({ start: null, end: null })
       closeOverlay()
     }
 
+    function createDateConstraints() {
+      return {
+        min: props.min,
+        max: props.max,
+        allowedDates: props.allowedDates,
+        allowedStartDates: props.allowedStartDates,
+        allowedEndDates: props.allowedEndDates,
+      }
+    }
+
+    function resolvePickerSelectionFromActiveField(
+      rawSelection: NormalizedRange<unknown>,
+    ) {
+      if (!props.range) {
+        return { selection: rawSelection, replacementField: null }
+      }
+      if (!rawSelection.start || rawSelection.end) {
+        return { selection: rawSelection, replacementField: null }
+      }
+
+      const currentSelection = pickerSelection.value
+      if (!currentSelection.start || !currentSelection.end) {
+        return { selection: rawSelection, replacementField: null }
+      }
+
+      const defaultField = resolveActiveFieldFromSelection(currentSelection)
+      const replacementField =
+        pickerBoundaryField.value ??
+        (props.activeField !== undefined || activeField.value !== defaultField
+          ? activeField.value
+          : null)
+
+      if (!replacementField) {
+        return { selection: rawSelection, replacementField: null }
+      }
+
+      return {
+        selection: orderRange(adapter, {
+          start:
+            replacementField === 'start'
+              ? rawSelection.start
+              : currentSelection.start,
+          end:
+            replacementField === 'end'
+              ? rawSelection.start
+              : currentSelection.end,
+        }),
+        replacementField,
+      }
+    }
+
     function handlePickerDraftChange(value: NormalizedRange<unknown>) {
-      const nextSelection = cloneSelection(value)
+      const resolvedSelection = resolvePickerSelectionFromActiveField(value)
+      const nextSelection = cloneSelection(resolvedSelection.selection)
 
       if (isSameSelection(adapter, pickerSelection.value, nextSelection)) {
+        return
+      }
+
+      const constraints = createDateConstraints()
+
+      if (
+        resolvedSelection.replacementField &&
+        isSelectionComplete(nextSelection, props.range) &&
+        isRangeDisabled(adapter, nextSelection, constraints)
+      ) {
+        return
+      }
+
+      if (
+        props.autoApply &&
+        resolvedSelection.replacementField === 'end' &&
+        isSelectionComplete(nextSelection, props.range) &&
+        !isRangeDisabled(adapter, nextSelection, constraints)
+      ) {
+        commitSelection(nextSelection)
+        closeOverlay()
         return
       }
 
@@ -824,8 +1028,13 @@ export const VAdvancedDateInput = defineComponent({
       controlledTextMode.value = 'mirror'
       setPickerSelection(nextSelection)
       draftSource.value = 'picker'
+      setActiveField(resolveActiveFieldFromSelection(nextSelection))
       input.resetValidation()
       void resetFieldValidation()
+
+      if (props.range && nextSelection.start && !nextSelection.end) {
+        void focusRangeField('end')
+      }
     }
 
     function handlePickerEscape() {
@@ -854,7 +1063,8 @@ export const VAdvancedDateInput = defineComponent({
 
       if (!props.inline) {
         runOptimisticMenuCommit('close', preflight.draft, {
-          onSuccess: () => emit('apply', serializeSelection(committedSelection.value)),
+          onSuccess: () =>
+            emit('apply', serializeSelection(committedSelection.value)),
         })
         return
       }
@@ -870,9 +1080,7 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     function handlePickerCancel() {
-      const reason = props.inline
-        ? 'cancel'
-        : pendingPickerCloseReason.value
+      const reason = props.inline ? 'cancel' : pendingPickerCloseReason.value
 
       pendingPickerCloseReason.value = 'cancel'
 
@@ -899,9 +1107,27 @@ export const VAdvancedDateInput = defineComponent({
       void requestOverlayClose('dismiss')
     }
 
-    function handleKeydown(event: KeyboardEvent) {
+    function isRangeFieldReadonly(field: AdvancedDateInputField) {
+      if (props.disabled || props.readonly) return true
+
+      const fieldProps =
+        field === 'start' ? props.startFieldProps : props.endFieldProps
+
+      return !!fieldProps?.readonly
+    }
+
+    function handleKeydown(
+      event: KeyboardEvent,
+      options: {
+        readonly?: boolean
+        field?: AdvancedDateInputField
+      } = {},
+    ) {
+      const inputReadonly = options.readonly ?? !textEditable.value
+
       if (event.key === 'Enter') {
-        if (!textEditable.value) {
+        if (inputReadonly) {
+          pickerBoundaryField.value = options.field ?? null
           overlay.openMenu()
           return
         }
@@ -912,6 +1138,7 @@ export const VAdvancedDateInput = defineComponent({
           return
         }
 
+        pickerBoundaryField.value = options.field ?? null
         runOptimisticMenuCommit('open', preflight.draft)
       }
 
@@ -960,6 +1187,112 @@ export const VAdvancedDateInput = defineComponent({
           },
           isOpen: overlay.menu.value,
         })
+      }
+
+      if (props.range) {
+        const rootAttrs = mergeProps(activatorProps, fieldAttrs, {
+          class: 'v-advanced-date-input',
+          'aria-expanded': overlay.menu.value,
+        })
+
+        return (
+          <VAdvancedDateRangeField
+            ref={(instance) => {
+              fieldRef.value = instance as DefaultFieldHandle | null
+            }}
+            rootAttrs={rootAttrs as Record<string, unknown>}
+            modelValue={input.text.value}
+            startValue={rangeTextParts.value.start}
+            endValue={rangeTextParts.value.end}
+            activeField={activeField.value}
+            startPlaceholder={startPlaceholder.value}
+            endPlaceholder={endPlaceholder.value}
+            label={props.label}
+            variant={props.variant}
+            hideDetails={props.hideDetails}
+            messages={props.messages}
+            error={props.error || input.isValid.value === false}
+            errorMessages={mergedErrorMessages.value}
+            rules={fieldRules.value}
+            clearable={props.clearable}
+            density={props.density}
+            disabled={props.disabled}
+            readonly={props.readonly}
+            startFieldProps={props.startFieldProps}
+            endFieldProps={props.endFieldProps}
+            onUpdate:startValue={(value) =>
+              handleRangeFieldTextUpdate('start', value)
+            }
+            onUpdate:endValue={(value) =>
+              handleRangeFieldTextUpdate('end', value)
+            }
+            onUpdate:activeField={(value) => {
+              setActiveField(value)
+            }}
+            onFocus={(event: FocusEvent) => {
+              handleRangeFieldFocus(event)
+            }}
+            onBlur={(event: FocusEvent) => {
+              void handleRangeFieldBlur(event)
+            }}
+            onKeydown={({
+              event,
+              field,
+            }: {
+              event: KeyboardEvent
+              field: AdvancedDateInputField
+            }) => {
+              setActiveField(field)
+              handleKeydown(event, {
+                field,
+                readonly: isRangeFieldReadonly(field),
+              })
+              callForwardedHandler(
+                userOnKeydown as ForwardedEventHandler | undefined,
+                event,
+              )
+            }}
+            onClick:control={({
+              event,
+              field,
+            }: {
+              event: MouseEvent
+              field: AdvancedDateInputField
+            }) => {
+              pickerBoundaryField.value = field
+
+              if (!hasActivatorProps) overlay.openMenu()
+              callForwardedHandler(
+                userOnClickControl as ForwardedEventHandler | undefined,
+                event,
+              )
+            }}
+            onClick:appendInner={({
+              event,
+              field,
+            }: {
+              event: MouseEvent
+              field: AdvancedDateInputField
+            }) => {
+              setActiveField(field)
+              pickerBoundaryField.value = field
+
+              if (!hasActivatorProps) overlay.openMenu()
+
+              callForwardedHandler(
+                userOnClickAppendInner as ForwardedEventHandler | undefined,
+                event,
+              )
+            }}
+            onClick:clear={(event: MouseEvent) => {
+              void handleFieldClear()
+              callForwardedHandler(
+                userOnClickClear as ForwardedEventHandler | undefined,
+                event,
+              )
+            }}
+          />
+        )
       }
 
       const fieldProps = mergeProps(activatorProps, fieldAttrs, {

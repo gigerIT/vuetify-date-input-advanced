@@ -15,6 +15,7 @@ import {
   isRangeDisabled,
   isStartDateDisabled,
   parseInputDate,
+  splitRangeInputValue,
 } from '@/util/dates'
 import { normalizeModel, orderRange } from '@/util/model'
 
@@ -27,25 +28,6 @@ interface TextDraftAssessment<TDate> {
   availabilityStatus: AdvancedDateInputAvailabilityStatus
   validationStatus: AdvancedDateInputValidationStatus
   errorKey: InputErrorKey | null
-}
-
-function splitRangeInput(
-  input: string,
-  separator: string,
-): [string, string] | null {
-  if (input.includes(separator)) {
-    const index = input.indexOf(separator)
-
-    return [
-      input.slice(0, index),
-      input.slice(index + separator.length),
-    ]
-  }
-
-  const match = input.match(/^(.*?)(?:\s+[-–—]\s+)(.*)$/)
-  if (!match) return null
-
-  return [match[1], match[2]]
 }
 
 function deriveValidationStatus(
@@ -165,8 +147,8 @@ export function useAdvancedDateInput<TDate>(options: {
       }
     }
 
-    const parts = splitRangeInput(trimmed, options.rangeSeparator.value)
-    if (!parts) {
+    const parts = splitRangeInputValue(trimmed, options.rangeSeparator.value)
+    if (!parts.hasSeparator) {
       const start = parseInputDate(
         options.adapter,
         trimmed,
@@ -199,9 +181,8 @@ export function useAdvancedDateInput<TDate>(options: {
       }
     }
 
-    const [rawStart, rawEnd] = parts
-    const startText = rawStart.trim()
-    const endText = rawEnd.trim()
+    const startText = parts.start.trim()
+    const endText = parts.end.trim()
 
     const start = startText
       ? parseInputDate(options.adapter, startText, options.parseInput.value)
