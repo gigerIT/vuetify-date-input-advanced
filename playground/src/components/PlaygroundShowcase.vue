@@ -214,6 +214,7 @@ const constrainedDraftRangeValue = ref<AdvancedDateModel<Date>>([
   null,
 ])
 const constrainedGapMonthValue = ref<AdvancedDateModel<Date>>(null)
+const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
 </script>
 
 <template>
@@ -586,6 +587,33 @@ const constrainedGapMonthValue = ref<AdvancedDateModel<Date>>(null)
           :month="1"
           :year="2026"
           :allowed-dates="allowOnly('2026-02-10', '2026-04-10')"
+        />
+      </v-sheet>
+
+      <v-sheet
+        border
+        rounded="lg"
+        class="pa-4"
+        data-testid="playground-edge-mobile-fullscreen"
+      >
+        <div class="text-subtitle-2 font-weight-medium">
+          Mobile fullscreen constrained scroll limit
+        </div>
+        <div class="text-caption text-medium-emphasis mb-4">
+          Resize below the mobile breakpoint to activate fullscreen scrolling.
+          In constrained mode, the mobile month list stops at January and
+          February 2026 instead of rendering extra out-of-bounds months.
+        </div>
+        <v-advanced-date-picker
+          v-model="constrainedMobileFullscreenValue"
+          mobile-presentation="fullscreen"
+          :range="false"
+          :months="2"
+          :show-presets="false"
+          :month="0"
+          :year="2026"
+          :min="createLocalDate(2026, 0, 10)"
+          :max="createLocalDate(2026, 1, 10)"
         />
       </v-sheet>
     </v-card-text>

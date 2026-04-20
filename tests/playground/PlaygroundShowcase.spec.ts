@@ -6,6 +6,31 @@ import PlaygroundShowcase from '../../playground/src/components/PlaygroundShowca
 
 import { render } from '../render'
 
+async function runWithWindowWidth(
+  callback: () => Promise<void> | void,
+  width = 375,
+) {
+  const originalWidth = window.innerWidth
+
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: width,
+  })
+  window.dispatchEvent(new Event('resize'))
+
+  try {
+    await callback()
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalWidth,
+    })
+    window.dispatchEvent(new Event('resize'))
+  }
+}
+
 function createLocalDate(year: number, month: number, day: number) {
   return new Date(year, month, day)
 }
@@ -61,6 +86,7 @@ describe('PlaygroundShowcase', () => {
     expect(wrapper.text()).toContain('Revealed month has no selectable dates')
     expect(wrapper.text()).toContain('Pending range end locks future navigation')
     expect(wrapper.text()).toContain('Gap months are not skipped')
+    expect(wrapper.text()).toContain('Mobile fullscreen constrained scroll limit')
   })
 
   it('shows the expected disabled arrow states for each constrained demo', () => {
@@ -104,5 +130,35 @@ describe('PlaygroundShowcase', () => {
     expect(
       gapMonth.find('button[aria-label="Next month"]').attributes('disabled'),
     ).toBeDefined()
+  })
+
+  it('shows the constrained mobile fullscreen month limit in the showcase', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(PlaygroundShowcase, {
+        props: createShowcaseProps(),
+        global: {
+          plugins: [AdvancedDatePlugin],
+        },
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        const mobileFullscreen = wrapper.get(
+          '[data-testid="playground-edge-mobile-fullscreen"]',
+        )
+
+        expect(
+          mobileFullscreen.find('.v-advanced-date-picker').classes(),
+        ).toContain('v-advanced-date-picker--mobile-fullscreen')
+        expect(
+          mobileFullscreen
+            .findAll('.v-advanced-date-picker__month-label-text')
+            .map((node) => node.text()),
+        ).toEqual(['January 2026', 'February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    })
   })
 })

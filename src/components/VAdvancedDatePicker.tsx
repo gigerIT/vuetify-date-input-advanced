@@ -79,12 +79,6 @@ export const VAdvancedDatePicker = defineComponent({
     const navigationMonthsRef = computed(() =>
       isMobileScroll.value ? 1 : monthsRef.value,
     )
-    const minMonth = computed(() =>
-      props.min ? adapter.startOfMonth(props.min) : null,
-    )
-    const maxMonth = computed(() =>
-      props.max ? adapter.startOfMonth(props.max) : null,
-    )
 
     const model = useAdvancedDateModel({
       adapter,
@@ -132,8 +126,13 @@ export const VAdvancedDatePicker = defineComponent({
       isMobileScroll,
       isMobileFullscreen,
       months: monthsRef,
-      minMonth,
-      maxMonth,
+      selection: model.normalized,
+      range: toRef(props, 'range'),
+      min: toRef(props, 'min'),
+      max: toRef(props, 'max'),
+      allowedDates: toRef(props, 'allowedDates'),
+      allowedStartDates: toRef(props, 'allowedStartDates'),
+      allowedEndDates: toRef(props, 'allowedEndDates'),
     })
 
     const isReverse = ref(false)

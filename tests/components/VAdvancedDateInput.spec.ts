@@ -100,6 +100,12 @@ function allowOnly(...allowedDates: string[]) {
   }
 }
 
+function monthLabels(wrapper: ReturnType<typeof render>) {
+  return wrapper
+    .findAll('.v-advanced-date-picker__month-label-text')
+    .map((node) => node.text())
+}
+
 function lastEmitted<T>(
   wrapper: ReturnType<typeof render>,
   eventName: string,
@@ -624,6 +630,35 @@ describe('VAdvancedDateInput', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('limits mobile fullscreen input rendering to the constrained month segment', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          month: 1,
+          year: 2026,
+          months: 1,
+          allowedDates: allowOnly('2026-02-10', '2026-04-10'),
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    }, 375)
   })
 
   it('parses a typed range and emits the normalized tuple on enter', async () => {

@@ -7,8 +7,8 @@ import {
   type Ref,
 } from 'vue'
 
-import type { AdvancedDateAdapter } from '@/types'
-import { dateKey } from '@/util/dates'
+import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
+import { dateKey, monthHasSelectableDate } from '@/util/dates'
 
 const MOBILE_INITIAL_PREVIOUS_MONTHS = 1
 const MOBILE_INITIAL_NEXT_MONTHS = 5
@@ -23,8 +23,13 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   isMobileScroll: Ref<boolean>
   isMobileFullscreen: Ref<boolean>
   months: Ref<number>
-  minMonth: Ref<TDate | null>
-  maxMonth: Ref<TDate | null>
+  selection: Ref<NormalizedRange<TDate>>
+  range: Ref<boolean>
+  min: Ref<TDate | null | undefined>
+  max: Ref<TDate | null | undefined>
+  allowedDates: Ref<((date: TDate) => boolean) | undefined>
+  allowedStartDates: Ref<((date: TDate) => boolean) | undefined>
+  allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
 }) {
   const containerRef = ref<HTMLElement | null>(null)
   const monthsTrackRef = ref<HTMLElement | null>(null)
@@ -39,17 +44,47 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     Math.max(options.months.value + MOBILE_INITIAL_NEXT_MONTHS, 7),
   )
 
+  const constraints = computed<DateBounds<TDate>>(() => ({
+    min: options.min.value,
+    max: options.max.value,
+    allowedDates: options.allowedDates.value,
+    allowedStartDates: options.allowedStartDates.value,
+    allowedEndDates: options.allowedEndDates.value,
+  }))
+
+  function canRenderMonth(month: TDate) {
+    return monthHasSelectableDate(
+      options.adapter,
+      month,
+      options.selection.value,
+      options.range.value,
+      constraints.value,
+    )
+  }
+
   function buildMobileMonthWindow(start: TDate, count: number): TDate[] {
     const months: TDate[] = []
+    const anchor = options.adapter.startOfMonth(options.displayedMonth.value)
 
     for (let index = 0; index < count; index += 1) {
       const month = options.adapter.startOfMonth(
         options.adapter.addMonths(start, index),
       )
+
+      if (!months.length) {
+        months.push(month)
+        continue
+      }
+
       if (
-        options.maxMonth.value &&
-        options.adapter.isAfter(month, options.maxMonth.value)
+        options.adapter.isBefore(month, anchor) ||
+        options.adapter.isSameMonth(month, anchor)
       ) {
+        months.push(month)
+        continue
+      }
+
+      if (!canRenderMonth(month)) {
         break
       }
 
@@ -67,12 +102,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
         options.adapter.addMonths(start, -1),
       )
 
-      if (
-        options.minMonth.value &&
-        options.adapter.isBefore(previous, options.minMonth.value)
-      ) {
-        break
-      }
+      if (!canRenderMonth(previous)) break
 
       start = previous
     }
@@ -240,12 +270,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
         options.adapter.addMonths(mobileWindowStart.value, -index),
       )
 
-      if (
-        options.minMonth.value &&
-        options.adapter.isBefore(month, options.minMonth.value)
-      ) {
-        break
-      }
+      if (!canRenderMonth(month)) break
 
       added += 1
     }
@@ -288,12 +313,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
         options.adapter.addMonths(lastMonth, index),
       )
 
-      if (
-        options.maxMonth.value &&
-        options.adapter.isAfter(month, options.maxMonth.value)
-      ) {
-        break
-      }
+      if (!canRenderMonth(month)) break
 
       added += 1
     }
@@ -367,8 +387,6 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     [
       options.isMobileScroll,
       options.displayedMonth,
-      options.minMonth,
-      options.maxMonth,
     ],
     ([mobile, displayedMonth]) => {
       if (!mobile) {
@@ -385,6 +403,23 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       if (!visible) resetWindow(displayedMonth)
     },
     { immediate: true },
+  )
+
+  watch(
+    [
+      () => options.selection.value.start,
+      () => options.selection.value.end,
+      options.range,
+      options.min,
+      options.max,
+      options.allowedDates,
+      options.allowedStartDates,
+      options.allowedEndDates,
+    ],
+    () => {
+      if (!options.isMobileScroll.value) return
+      resetWindow(options.displayedMonth.value)
+    },
   )
 
   onBeforeUnmount(() => {

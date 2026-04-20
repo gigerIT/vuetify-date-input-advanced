@@ -84,6 +84,37 @@ function allowOnly(...allowedDates: string[]) {
   }
 }
 
+async function runWithWindowWidth(
+  callback: () => Promise<void> | void,
+  width = 375,
+) {
+  const originalWidth = window.innerWidth
+
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: width,
+  })
+  window.dispatchEvent(new Event('resize'))
+
+  try {
+    await callback()
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalWidth,
+    })
+    window.dispatchEvent(new Event('resize'))
+  }
+}
+
+function monthLabels(wrapper: ReturnType<typeof render>) {
+  return wrapper
+    .findAll('.v-advanced-date-picker__month-label-text')
+    .map((node) => node.text())
+}
+
 describe('VAdvancedDatePicker', () => {
   it('hides the optional picker title by default', () => {
     const wrapper = render(VAdvancedDatePicker, {
@@ -320,6 +351,113 @@ describe('VAdvancedDatePicker', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('limits standalone mobile fullscreen rendering to constrained hard bounds', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          range: false,
+          month: 0,
+          year: 2026,
+          months: 2,
+          min: new Date('2026-01-10'),
+          max: new Date('2026-02-10'),
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('stops standalone mobile fullscreen rendering before an unavailable gap month', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          range: false,
+          month: 1,
+          year: 2026,
+          months: 1,
+          allowedDates: allowOnly('2026-02-10', '2026-04-10'),
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('rebuilds standalone mobile fullscreen months from the draft range state', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+          months: 1,
+          autoApply: false,
+          allowedStartDates: allowOnly('2026-01-20', '2026-02-10'),
+          allowedEndDates: allowOnly('2026-01-25'),
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+
+        await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('limits standalone mobile inline rendering to the constrained segment', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          range: false,
+          month: 1,
+          year: 2026,
+          months: 1,
+          allowedDates: allowOnly('2026-02-10', '2026-04-10'),
+          mobilePresentation: 'inline',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    })
   })
 
   it('emits a completed range after two valid clicks', async () => {
