@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.5.0...v2.6.0) (2026-04-20)
+
+
+### Features
+
+* **date-picker:** enhance navigation constraints with allowed date ranges ([77ca964](https://github.com/gigerIT/vuetify-date-input-advanced/commit/77ca9648761901047a84fb5111ed7e6d1bca40c2))
+* **styles:** expose Sass customization entry points ([50c520a](https://github.com/gigerIT/vuetify-date-input-advanced/commit/50c520a1174e2e08b0d9203485010ed13afa89bd))
+
 ## [2.5.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.4.0...v2.5.0) (2026-04-20)
 
 
