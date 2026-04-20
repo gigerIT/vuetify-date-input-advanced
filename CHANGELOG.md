@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.7.0...v3.0.0) (2026-04-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* range-mode input behavior now uses split start/end fields with side-specific startFieldProps/endFieldProps and activeField-controlled boundary selection semantics.
+
+### Features
+
+* split range date input fields ([d3e5a55](https://github.com/gigerIT/vuetify-date-input-advanced/commit/d3e5a55bd67d968fea7ef15768a53757917cf5a9))
+
 ## [2.7.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.6.0...v2.7.0) (2026-04-20)
 
 
