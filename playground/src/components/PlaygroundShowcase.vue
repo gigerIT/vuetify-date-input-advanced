@@ -80,6 +80,16 @@ function toLocalYmd(date: Date | null | undefined) {
   ].join('-')
 }
 
+function createLocalDate(year: number, month: number, day: number) {
+  return new Date(year, month, day)
+}
+
+function allowOnly(...allowedDates: string[]) {
+  const allowed = new Set(allowedDates)
+
+  return (date: Date) => allowed.has(toLocalYmd(date) ?? '')
+}
+
 function serializePreviewModel(value: AdvancedDateModel<Date>) {
   if (value == null) return null
   if (Array.isArray(value)) return value.map((item) => toLocalYmd(item))
@@ -196,6 +206,14 @@ const draftApiOutput = computed(() => ({
       }
     : null,
 }))
+
+const constrainedHardBoundsValue = ref<AdvancedDateModel<Date>>(null)
+const constrainedRevealedMonthValue = ref<AdvancedDateModel<Date>>(null)
+const constrainedDraftRangeValue = ref<AdvancedDateModel<Date>>([
+  createLocalDate(2026, 0, 20),
+  null,
+])
+const constrainedGapMonthValue = ref<AdvancedDateModel<Date>>(null)
 </script>
 
 <template>
@@ -463,6 +481,113 @@ const draftApiOutput = computed(() => ({
         :allowed-start-dates="allowMondays"
         :allowed-end-dates="allowFridays"
       />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
+    <v-card-title>Constrained Navigation Edge Cases</v-card-title>
+    <v-card-subtitle>
+      Desktop inline pickers that show when month arrows disable instead of
+      no-oping or skipping unavailable months.
+    </v-card-subtitle>
+    <v-card-text class="d-flex flex-column ga-4">
+      <v-sheet
+        border
+        rounded="lg"
+        class="pa-4"
+        data-testid="playground-edge-hard-bounds"
+      >
+        <div class="text-subtitle-2 font-weight-medium">Hard min/max bounds</div>
+        <div class="text-caption text-medium-emphasis mb-4">
+          A two-month viewport locked to January and February 2026. Both arrows
+          disable because moving would only reveal months outside the allowed
+          bounds.
+        </div>
+        <v-advanced-date-picker
+          v-model="constrainedHardBoundsValue"
+          :range="false"
+          :months="2"
+          :show-presets="false"
+          :month="0"
+          :year="2026"
+          :min="createLocalDate(2026, 0, 10)"
+          :max="createLocalDate(2026, 1, 10)"
+        />
+      </v-sheet>
+
+      <v-sheet
+        border
+        rounded="lg"
+        class="pa-4"
+        data-testid="playground-edge-revealed-month"
+      >
+        <div class="text-subtitle-2 font-weight-medium">
+          Revealed month has no selectable dates
+        </div>
+        <div class="text-caption text-medium-emphasis mb-4">
+          February 2026 still has one valid date and January stays reachable,
+          but the next arrow disables because March has nothing selectable.
+        </div>
+        <v-advanced-date-picker
+          v-model="constrainedRevealedMonthValue"
+          :range="false"
+          :months="1"
+          :show-presets="false"
+          :month="1"
+          :year="2026"
+          :allowed-dates="allowOnly('2026-01-15', '2026-02-05')"
+        />
+      </v-sheet>
+
+      <v-sheet
+        border
+        rounded="lg"
+        class="pa-4"
+        data-testid="playground-edge-draft-range"
+      >
+        <div class="text-subtitle-2 font-weight-medium">
+          Pending range end locks future navigation
+        </div>
+        <div class="text-caption text-medium-emphasis mb-4">
+          This starts from the intermediate one-click range state. The only
+          valid end date stays in January, so the next arrow disables while the
+          range is still incomplete.
+        </div>
+        <v-advanced-date-picker
+          v-model="constrainedDraftRangeValue"
+          :months="1"
+          :show-presets="false"
+          :auto-apply="false"
+          :month="0"
+          :year="2026"
+          :allowed-start-dates="allowOnly('2026-01-20', '2026-02-10')"
+          :allowed-end-dates="allowOnly('2026-01-25')"
+        />
+      </v-sheet>
+
+      <v-sheet
+        border
+        rounded="lg"
+        class="pa-4"
+        data-testid="playground-edge-gap-month"
+      >
+        <div class="text-subtitle-2 font-weight-medium">
+          Gap months are not skipped
+        </div>
+        <div class="text-caption text-medium-emphasis mb-4">
+          April has a selectable date, but March is empty, so the next arrow
+          stays disabled instead of jumping over the gap.
+        </div>
+        <v-advanced-date-picker
+          v-model="constrainedGapMonthValue"
+          :range="false"
+          :months="1"
+          :show-presets="false"
+          :month="1"
+          :year="2026"
+          :allowed-dates="allowOnly('2026-02-10', '2026-04-10')"
+        />
+      </v-sheet>
     </v-card-text>
   </v-card>
 </template>
