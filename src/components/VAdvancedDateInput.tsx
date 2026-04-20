@@ -5,6 +5,7 @@ import {
   ref,
   toRef,
   useAttrs,
+  watch,
 } from 'vue'
 
 import { VDialog, VMenu, VTextField } from 'vuetify/components'
@@ -14,9 +15,26 @@ import { useAdvancedDateInput } from '@/composables/useAdvancedDateInput'
 import { useAdvancedDateOverlay } from '@/composables/useAdvancedDateOverlay'
 import type {
   AdvancedDateAdapter,
+  AdvancedDateInputClosePayload,
+  AdvancedDateInputCloseReason,
+  AdvancedDateInputCloseStrategy,
+  AdvancedDateInputCommitFailureReason,
+  AdvancedDateInputCommitPayload,
+  AdvancedDateInputDraft,
+  AdvancedDateInputInvalidPayload,
+  AdvancedDateInputPublicInstance,
+  AdvancedDateInputSource,
   AdvancedDateModel,
+  DateInputAdvancedLocaleMessages,
+  NormalizedRange,
   PresetRange,
 } from '@/types'
+import {
+  formatInputValue,
+  isRangeDisabled,
+  isStartDateDisabled,
+} from '@/util/dates'
+import { normalizeModel, serializeModel } from '@/util/model'
 
 import '@/styles/VAdvancedDateInput.sass'
 
@@ -31,9 +49,33 @@ interface OverlayActivatorProps {
   [key: string]: unknown
 }
 
+interface PickerHandle {
+  focusActiveDate?: () => void
+}
+
+interface DefaultFieldHandle {
+  validate?: (silent?: boolean) => Promise<string[]>
+  resetValidation?: () => Promise<void>
+  errorMessages?: string[]
+  isValid?: boolean | null
+  isPristine?: boolean
+}
+
+interface DraftValidationResult {
+  ok: boolean
+  reason: AdvancedDateInputCommitFailureReason | null
+  draft: AdvancedDateInputDraft<unknown>
+  messages: string[]
+}
+
 type ForwardedEventHandler =
   | ((...args: unknown[]) => void)
   | Array<(...args: unknown[]) => void>
+
+type InputErrorKey =
+  keyof DateInputAdvancedLocaleMessages['dateInputAdvanced']['errors']
+
+type OptimisticMenuAction = 'open' | 'close'
 
 function callForwardedHandler(
   handler: ForwardedEventHandler | undefined,
@@ -47,6 +89,47 @@ function callForwardedHandler(
   handler?.(...args)
 }
 
+function cloneSelection<TDate>(
+  selection: NormalizedRange<TDate>,
+): NormalizedRange<TDate> {
+  return {
+    start: selection.start ?? null,
+    end: selection.end ?? null,
+  }
+}
+
+function isSameSelection<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  left: NormalizedRange<TDate>,
+  right: NormalizedRange<TDate>,
+): boolean {
+  const sameStart =
+    (!left.start && !right.start) ||
+    (!!left.start && !!right.start && adapter.isSameDay(left.start, right.start))
+  const sameEnd =
+    (!left.end && !right.end) ||
+    (!!left.end && !!right.end && adapter.isSameDay(left.end, right.end))
+
+  return sameStart && sameEnd
+}
+
+function isSelectionComplete<TDate>(
+  selection: NormalizedRange<TDate>,
+  range: boolean,
+): boolean {
+  if (!range) return !!selection.start
+  return !!selection.start && !!selection.end
+}
+
+function cloneDraft<TDate>(
+  draft: AdvancedDateInputDraft<TDate>,
+): AdvancedDateInputDraft<TDate> {
+  return {
+    ...draft,
+    selection: cloneSelection(draft.selection),
+  }
+}
+
 export const VAdvancedDateInput = defineComponent({
   name: 'VAdvancedDateInput',
   inheritAttrs: false,
@@ -58,16 +141,22 @@ export const VAdvancedDateInput = defineComponent({
     'update:menu': (_value: boolean) => true,
     'update:month': (_value: number) => true,
     'update:year': (_value: number) => true,
+    'update:text': (_value: string) => true,
+    'update:draft': (_value: AdvancedDateInputDraft<unknown>) => true,
     apply: (_value: AdvancedDateModel<unknown>) => true,
     cancel: () => true,
     presetSelect: (_preset: PresetRange<unknown>) => true,
+    inputCommit: (_payload: AdvancedDateInputCommitPayload<unknown>) => true,
+    inputInvalid: (_payload: AdvancedDateInputInvalidPayload<unknown>) => true,
+    draftClose: (_payload: AdvancedDateInputClosePayload<unknown>) => true,
   },
 
-  setup(props, { emit, slots }) {
+  setup(props, { emit, expose, slots }) {
     const attrs = useAttrs()
     const adapter = useDate() as AdvancedDateAdapter<unknown>
     const display = useDisplay()
-    const pickerRef = ref<{ focusActiveDate?: () => void } | null>(null)
+    const pickerRef = ref<PickerHandle | null>(null)
+    const fieldRef = ref<DefaultFieldHandle | null>(null)
     const mobilePresentation = computed<AdvancedDateMobilePresentation | null>(
       () =>
         display.mobile.value && !props.inline ? 'fullscreen' : 'inline',
@@ -77,12 +166,20 @@ export const VAdvancedDateInput = defineComponent({
       () => !props.disabled && !props.readonly && !props.inputReadonly,
     )
 
+    const overlay = useAdvancedDateOverlay({
+      menu: toRef(props, 'menu'),
+      pickerRef,
+      onMenuUpdate: (value) => emit('update:menu', value),
+      onExternalCloseRequest: () =>
+        requestOverlayClose('dismiss', { closeOverlay: false }),
+    })
+
     const input = useAdvancedDateInput({
       adapter,
       modelValue: toRef(props, 'modelValue'),
       editable: textEditable,
+      textValue: toRef(props, 'text'),
       range: toRef(props, 'range'),
-      returnObject: toRef(props, 'returnObject'),
       displayFormat: toRef(props, 'displayFormat'),
       rangeSeparator: toRef(props, 'rangeSeparator'),
       parseInput: toRef(props, 'parseInput'),
@@ -91,20 +188,290 @@ export const VAdvancedDateInput = defineComponent({
       allowedDates: toRef(props, 'allowedDates'),
       allowedStartDates: toRef(props, 'allowedStartDates'),
       allowedEndDates: toRef(props, 'allowedEndDates'),
-      onUpdate: (value) => emit('update:modelValue', value),
+      onTextUpdate: (value) => emit('update:text', value),
     })
-    const overlay = useAdvancedDateOverlay({
-      adapter,
-      menu: toRef(props, 'menu'),
-      inline: toRef(props, 'inline'),
-      autoApply: toRef(props, 'autoApply'),
-      range: toRef(props, 'range'),
-      pickerRef,
-      onMenuUpdate: (value) => emit('update:menu', value),
-      onModelUpdate: (value) => emit('update:modelValue', value),
-      onApply: (value) => emit('apply', value),
-      onCancel: () => emit('cancel'),
+
+    const committedSelection = ref<NormalizedRange<unknown>>({
+      start: null,
+      end: null,
     })
+    const pickerSelection = ref<NormalizedRange<unknown>>({
+      start: null,
+      end: null,
+    })
+    const controlledTextMode = ref<'mirror' | 'draft'>(
+      props.text !== undefined &&
+        textEditable.value &&
+        props.text !== input.committedText.value
+        ? 'draft'
+        : 'mirror',
+    )
+    const draftSource = ref<AdvancedDateInputSource>(
+      controlledTextMode.value === 'draft'
+        ? 'text'
+        : 'picker',
+    )
+    const hasUncontrolledTextDraft = ref(false)
+    const pendingPickerCloseReason = ref<AdvancedDateInputCloseReason>('cancel')
+    const pendingControlledTextEchoes = ref<string[]>([])
+
+    function formatSelection(selection: NormalizedRange<unknown>) {
+      return formatInputValue(adapter, selection, {
+        range: props.range,
+        displayFormat: props.displayFormat,
+        separator: props.rangeSeparator,
+      })
+    }
+
+    const committedDisplayText = computed(() =>
+      formatSelection(committedSelection.value),
+    )
+
+    function createPickerDraft(
+      selection = pickerSelection.value,
+      text = input.text.value,
+    ): AdvancedDateInputDraft<unknown> {
+      const normalizedSelection = cloneSelection(selection)
+      const isDirty = text !== committedDisplayText.value
+      const constraints = {
+        min: props.min,
+        max: props.max,
+        allowedDates: props.allowedDates,
+        allowedStartDates: props.allowedStartDates,
+        allowedEndDates: props.allowedEndDates,
+      }
+
+      if (!normalizedSelection.start && !normalizedSelection.end) {
+        return {
+          text,
+          selection: normalizedSelection,
+          source: 'picker',
+          isDirty,
+          parseStatus: 'empty',
+          availabilityStatus: 'unknown',
+          validationStatus: 'idle',
+          errorKey: null,
+        }
+      }
+
+      const parseStatus = !props.range || isSelectionComplete(normalizedSelection, true)
+        ? 'complete'
+        : 'partial'
+      const unavailable = !props.range
+        ? !!normalizedSelection.start &&
+          isStartDateDisabled(
+            adapter,
+            normalizedSelection.start,
+            constraints,
+          )
+        : isRangeDisabled(adapter, normalizedSelection, constraints)
+      const errorKey = unavailable
+        ? props.range
+          ? 'unavailableRange'
+          : 'unavailableDate'
+        : null
+
+      return {
+        text,
+        selection: normalizedSelection,
+        source: 'picker',
+        isDirty,
+        parseStatus,
+        availabilityStatus: unavailable ? 'unavailable' : 'available',
+        validationStatus:
+          parseStatus === 'complete' && !unavailable ? 'valid' : 'invalid',
+        errorKey,
+      }
+    }
+
+    const pickerText = computed(() => formatSelection(pickerSelection.value))
+    const fieldRules = computed(() =>
+      input.inputError.value ? [] : props.rules,
+    )
+
+    function queueControlledTextEcho(value: string) {
+      if (props.text === undefined || props.text === value) return
+      if (pendingControlledTextEchoes.value.includes(value)) return
+
+      pendingControlledTextEchoes.value.push(value)
+    }
+
+    function consumeControlledTextEcho(value: string) {
+      const index = pendingControlledTextEchoes.value.indexOf(value)
+      if (index === -1) return false
+
+      pendingControlledTextEchoes.value.splice(index, 1)
+      return true
+    }
+
+    function setPickerSelection(nextSelection: NormalizedRange<unknown>) {
+      const normalizedSelection = cloneSelection(nextSelection)
+
+      if (!isSameSelection(adapter, pickerSelection.value, normalizedSelection)) {
+        pickerSelection.value = normalizedSelection
+      }
+    }
+
+    function syncInputText(value: string) {
+      if (value === input.text.value) {
+        if (props.text !== undefined && props.text !== value) {
+          queueControlledTextEcho(value)
+          emit('update:text', value)
+        }
+        return
+      }
+
+      queueControlledTextEcho(value)
+      input.syncText(value)
+    }
+
+    function syncPickerSelectionFromText(value = input.text.value) {
+      const assessed = input.assessText(value)
+      setPickerSelection(assessed.selection)
+
+      return assessed
+    }
+
+    function syncCommittedMirror(selection = committedSelection.value) {
+      hasUncontrolledTextDraft.value = false
+      controlledTextMode.value = 'mirror'
+      setPickerSelection(selection)
+      draftSource.value = 'picker'
+      syncInputText(formatSelection(selection))
+    }
+
+    async function resetFieldValidation() {
+      await fieldRef.value?.resetValidation?.()
+    }
+
+    async function validateFieldRules() {
+      return await fieldRef.value?.validate?.() ?? []
+    }
+
+    async function resetComponentValidation() {
+      input.resetValidation()
+      await resetFieldValidation()
+    }
+
+    function fieldErrorMessages() {
+      if (!fieldRef.value) return [...mergedErrorMessages.value]
+      if (fieldRef.value.isPristine) return [...mergedErrorMessages.value]
+
+      const fieldErrors = fieldRef.value.errorMessages ?? []
+      if (fieldErrors.length) return [...fieldErrors]
+
+      return [...mergedErrorMessages.value]
+    }
+
+    function publicIsValid() {
+      if (input.isPristine.value) return null
+
+      if (input.isValid.value === false) return false
+
+      const fieldIsValid = fieldRef.value?.isValid
+      if (fieldIsValid === false) return false
+
+      return true
+    }
+
+    watch(
+      [() => props.modelValue, () => props.range, () => props.text, textEditable],
+      ([value, range, text, editable], previous) => {
+        const next = normalizeModel(adapter, value, range)
+        const previousText = previous?.[2]
+        const textChanged = text !== previousText
+        const isControlledTextEcho =
+          text !== undefined && textChanged && consumeControlledTextEcho(text)
+        const preserveUncontrolledTextDraft =
+          editable &&
+          draftSource.value === 'text' &&
+          hasUncontrolledTextDraft.value
+        const nextCommittedText = formatSelection(next)
+
+        committedSelection.value = cloneSelection(next)
+
+        if (!editable) {
+          syncCommittedMirror(next)
+        } else if (preserveUncontrolledTextDraft) {
+          syncPickerSelectionFromText(input.text.value)
+        } else if (isControlledTextEcho) {
+          controlledTextMode.value = 'mirror'
+          draftSource.value = 'picker'
+        } else if (text !== undefined) {
+          if (textChanged) {
+            input.setExternalText(text)
+            controlledTextMode.value =
+              text === nextCommittedText ? 'mirror' : 'draft'
+          }
+
+          if (controlledTextMode.value === 'draft') {
+            draftSource.value = 'text'
+            syncPickerSelectionFromText(input.text.value)
+          } else {
+            syncCommittedMirror(next)
+          }
+        } else {
+          syncCommittedMirror(next)
+        }
+
+        input.resetValidation()
+        void resetFieldValidation()
+      },
+      { immediate: true },
+    )
+
+    watch(
+      [
+        () => props.parseInput,
+        () => props.rangeSeparator,
+        () => props.min,
+        () => props.max,
+        () => props.allowedDates,
+        () => props.allowedStartDates,
+        () => props.allowedEndDates,
+      ],
+      () => {
+        if (draftSource.value !== 'text') return
+
+        syncPickerSelectionFromText(input.text.value)
+      },
+    )
+
+    watch(
+      pickerText,
+      (value) => {
+        if (draftSource.value !== 'picker') return
+        if (value === input.text.value) return
+
+        syncInputText(value)
+      },
+      { immediate: true },
+    )
+
+    const draft = computed<AdvancedDateInputDraft<unknown>>(() => {
+      const base = draftSource.value === 'text'
+        ? input.textDraft.value
+        : createPickerDraft()
+
+      return {
+        text: input.text.value,
+        selection: cloneSelection(base.selection),
+        source: draftSource.value,
+        isDirty: input.text.value !== committedDisplayText.value,
+        parseStatus: base.parseStatus,
+        availabilityStatus: base.availabilityStatus,
+        validationStatus: base.validationStatus,
+        errorKey: base.errorKey,
+      }
+    })
+
+    watch(
+      draft,
+      (value) => {
+        emit('update:draft', cloneDraft(value))
+      },
+      { immediate: true },
+    )
 
     const mergedErrorMessages = computed(() => {
       const base = Array.isArray(props.errorMessages)
@@ -115,17 +482,442 @@ export const VAdvancedDateInput = defineComponent({
 
       return [...base, ...input.errorMessages.value]
     })
+
     const pickerBindings = computed(() =>
       buildAdvancedDatePickerBindings(props, mobilePresentation.value),
     )
 
-    function handleKeydown(event: KeyboardEvent) {
-      if (event.key === 'Enter') {
-        if (!input.commitInput()) return
-        overlay.setMenu(true)
+    function resolveFailureReason(
+      currentDraft: AdvancedDateInputDraft<unknown>,
+    ): AdvancedDateInputCommitFailureReason | null {
+      if (currentDraft.parseStatus === 'empty') return null
+      if (currentDraft.availabilityStatus === 'unavailable') {
+        return 'unavailable'
+      }
+      if (currentDraft.parseStatus === 'partial') return 'incomplete'
+      if (currentDraft.parseStatus === 'invalid') return 'invalid'
+      if (!isSelectionComplete(currentDraft.selection, props.range)) {
+        return 'incomplete'
       }
 
-      if (event.key === 'Escape') overlay.setMenu(false)
+      return null
+    }
+
+    function resolveValidationErrorKey(
+      currentDraft: AdvancedDateInputDraft<unknown>,
+      reason: AdvancedDateInputCommitFailureReason,
+    ): InputErrorKey {
+      if (reason === 'unavailable') {
+        return props.range ? 'unavailableRange' : 'unavailableDate'
+      }
+
+      if (reason === 'incomplete') {
+        return props.range ? 'invalidRange' : 'invalidDate'
+      }
+
+      return (
+        currentDraft.errorKey ??
+        (props.range ? 'invalidRange' : 'invalidDate')
+      )
+    }
+
+    function createValidationResult(
+      currentDraft: AdvancedDateInputDraft<unknown>,
+      reason: AdvancedDateInputCommitFailureReason | null,
+      messages: string[] = [],
+    ): DraftValidationResult {
+      return {
+        ok: !reason,
+        reason,
+        draft: currentDraft,
+        messages,
+      }
+    }
+
+    function serializeSelection(
+      selection: NormalizedRange<unknown>,
+    ): AdvancedDateModel<unknown> {
+      return serializeModel(selection, {
+        range: props.range,
+        returnObject: props.returnObject,
+      })
+    }
+
+    function finalizeCommittedSelection(selection: NormalizedRange<unknown>) {
+      const normalizedSelection = cloneSelection(selection)
+      const changed = !isSameSelection(
+        adapter,
+        committedSelection.value,
+        normalizedSelection,
+      )
+      const value = serializeSelection(normalizedSelection)
+      const committedText = formatSelection(normalizedSelection)
+
+      hasUncontrolledTextDraft.value = false
+      controlledTextMode.value = 'mirror'
+      committedSelection.value = cloneSelection(normalizedSelection)
+      const committedDraft = createPickerDraft(
+        normalizedSelection,
+        committedText,
+      )
+
+      setPickerSelection(normalizedSelection)
+      draftSource.value = 'picker'
+      syncInputText(committedDraft.text)
+      input.markValid()
+
+      return {
+        changed,
+        value,
+        draft: committedDraft,
+      }
+    }
+
+    function commitSelection(selection: NormalizedRange<unknown>) {
+      const result = finalizeCommittedSelection(selection)
+      if (!result.changed) return result
+
+      emit('update:modelValue', result.value)
+      emit('inputCommit', {
+        value: result.value,
+        draft: cloneDraft(result.draft),
+      })
+
+      return result
+    }
+
+    function resolveDraftCommitPreflight(
+      currentDraft = cloneDraft(draft.value),
+      options: { resetFieldValidation?: boolean } = {},
+    ): DraftValidationResult {
+      const failureReason = resolveFailureReason(currentDraft)
+      if (failureReason) {
+        input.setValidationError(
+          resolveValidationErrorKey(currentDraft, failureReason),
+        )
+        if (options.resetFieldValidation ?? true) {
+          void resetFieldValidation()
+        }
+
+        return createValidationResult(
+          currentDraft,
+          failureReason,
+          input.errorMessages.value.length
+            ? [...input.errorMessages.value]
+            : fieldErrorMessages(),
+        )
+      }
+
+      return createValidationResult(currentDraft, null)
+    }
+
+    async function finalizeDraftValidation(
+      currentDraft: AdvancedDateInputDraft<unknown>,
+    ): Promise<DraftValidationResult> {
+      input.markValid()
+
+      const ruleMessages = await validateFieldRules()
+      if (ruleMessages.length) {
+        return createValidationResult(currentDraft, 'rule', fieldErrorMessages())
+      }
+
+      return createValidationResult(currentDraft, null)
+    }
+
+    async function resolveDraftValidation(
+      currentDraft = cloneDraft(draft.value),
+    ): Promise<DraftValidationResult> {
+      const preflight = resolveDraftCommitPreflight(currentDraft, {
+        resetFieldValidation: false,
+      })
+
+      if (!preflight.ok) {
+        await resetFieldValidation()
+        return preflight
+      }
+
+      return await finalizeDraftValidation(currentDraft)
+    }
+
+    function handleValidationFailure(
+      result: DraftValidationResult,
+      emitInvalid = true,
+    ): false {
+      if (emitInvalid && result.reason) {
+        emit('inputInvalid', {
+          reason: result.reason,
+          draft: result.draft,
+        })
+      }
+
+      return false
+    }
+
+    function rollbackOptimisticMenu(
+      action: OptimisticMenuAction,
+      menuWasOpen: boolean,
+    ) {
+      if (action === 'open') {
+        if (!menuWasOpen && overlay.menu.value) {
+          closeOverlay()
+        }
+        return
+      }
+
+      if (menuWasOpen && !overlay.menu.value) {
+        overlay.openMenu()
+      }
+    }
+
+    function runOptimisticMenuCommit(
+      action: OptimisticMenuAction,
+      currentDraft: AdvancedDateInputDraft<unknown>,
+      options: { onSuccess?: () => void } = {},
+    ) {
+      const menuWasOpen = overlay.menu.value
+
+      if (action === 'open') {
+        overlay.openMenu()
+      } else {
+        closeOverlay()
+      }
+
+      // Keep overlay timing synchronous while async field rules finish.
+      void (async () => {
+        const result = await finalizeDraftValidation(currentDraft)
+
+        if (!result.ok) {
+          handleValidationFailure(result)
+
+          if (result.reason === 'rule') {
+            rollbackOptimisticMenu(action, menuWasOpen)
+          }
+          return
+        }
+
+        commitSelection(result.draft.selection)
+        options.onSuccess?.()
+      })()
+    }
+
+    async function validateCurrentDraft(
+      currentDraft = cloneDraft(draft.value),
+    ): Promise<string[]> {
+      const result = await resolveDraftValidation(currentDraft)
+
+      return result.messages
+    }
+
+    async function commitInput(emitInvalid = true): Promise<boolean> {
+      const result = await resolveDraftValidation()
+
+      if (!result.ok) {
+        return handleValidationFailure(result, emitInvalid)
+      }
+
+      commitSelection(result.draft.selection)
+      return true
+    }
+
+    function revertDraft() {
+      syncCommittedMirror(committedSelection.value)
+      input.resetValidation()
+      void resetFieldValidation()
+    }
+
+    function closeOverlay() {
+      if (!props.inline) overlay.closeMenu()
+    }
+
+    function emitDraftClose(
+      reason: AdvancedDateInputCloseReason,
+      strategy: AdvancedDateInputCloseStrategy,
+      outcome: 'closed' | 'blocked',
+      currentDraft: AdvancedDateInputDraft<unknown>,
+    ) {
+      emit('draftClose', {
+        reason,
+        strategy,
+        outcome,
+        draft: currentDraft,
+      })
+    }
+
+    function shouldEmitCancelOnClose(reason: AdvancedDateInputCloseReason) {
+      return reason === 'cancel' || reason === 'escape'
+    }
+
+    async function requestOverlayClose(
+      reason: AdvancedDateInputCloseReason,
+      options: { closeOverlay?: boolean } = {},
+    ) {
+      const strategy = props.closeDraftStrategy
+      const currentDraft = cloneDraft(draft.value)
+      const shouldCloseOverlay = options.closeOverlay ?? true
+
+      if (strategy === 'revert') {
+        revertDraft()
+        emitDraftClose(reason, strategy, 'closed', currentDraft)
+        if (shouldEmitCancelOnClose(reason)) emit('cancel')
+        if (shouldCloseOverlay) closeOverlay()
+        return true
+      }
+
+      if (strategy === 'preserve') {
+        await resetComponentValidation()
+        emitDraftClose(reason, strategy, 'closed', currentDraft)
+        if (shouldEmitCancelOnClose(reason)) emit('cancel')
+        if (shouldCloseOverlay) closeOverlay()
+        return true
+      }
+
+      if (!(await commitInput(true))) {
+        emitDraftClose(reason, strategy, 'blocked', currentDraft)
+        return false
+      }
+
+      emitDraftClose(reason, strategy, 'closed', currentDraft)
+      if (shouldCloseOverlay) closeOverlay()
+      return true
+    }
+
+    function cancelOverlayDraft() {
+      const currentDraft = cloneDraft(draft.value)
+
+      revertDraft()
+      emitDraftClose('cancel', 'revert', 'closed', currentDraft)
+      emit('cancel')
+      closeOverlay()
+    }
+
+    function handleFieldTextUpdate(value: string) {
+      hasUncontrolledTextDraft.value = props.text === undefined
+      if (props.text !== undefined) {
+        controlledTextMode.value = 'draft'
+      }
+      draftSource.value = 'text'
+      input.setText(value)
+      syncPickerSelectionFromText(value)
+    }
+
+    async function handleFieldBlur() {
+      input.onBlur()
+      if (!textEditable.value) return
+      if (draftSource.value !== 'text') return
+
+      await validateCurrentDraft()
+    }
+
+    async function handleFieldClear() {
+      commitSelection({ start: null, end: null })
+      closeOverlay()
+    }
+
+    function handlePickerDraftChange(value: NormalizedRange<unknown>) {
+      const nextSelection = cloneSelection(value)
+
+      if (isSameSelection(adapter, pickerSelection.value, nextSelection)) {
+        return
+      }
+
+      hasUncontrolledTextDraft.value = false
+      controlledTextMode.value = 'mirror'
+      setPickerSelection(nextSelection)
+      draftSource.value = 'picker'
+      input.resetValidation()
+      void resetFieldValidation()
+    }
+
+    function handlePickerEscape() {
+      pendingPickerCloseReason.value = 'escape'
+    }
+
+    function handlePickerModelValue(value: AdvancedDateModel<unknown>) {
+      if (!props.autoApply) return
+
+      const selection = normalizeModel(adapter, value, props.range)
+      if (!isSelectionComplete(selection, props.range)) return
+
+      commitSelection(selection)
+
+      if (!props.inline) {
+        closeOverlay()
+      }
+    }
+
+    async function handlePickerApply() {
+      const preflight = resolveDraftCommitPreflight()
+      if (!preflight.ok) {
+        handleValidationFailure(preflight)
+        return
+      }
+
+      if (!props.inline) {
+        runOptimisticMenuCommit('close', preflight.draft, {
+          onSuccess: () => emit('apply', serializeSelection(committedSelection.value)),
+        })
+        return
+      }
+
+      const result = await finalizeDraftValidation(preflight.draft)
+      if (!result.ok) {
+        handleValidationFailure(result)
+        return
+      }
+
+      commitSelection(result.draft.selection)
+      emit('apply', serializeSelection(committedSelection.value))
+    }
+
+    function handlePickerCancel() {
+      const reason = props.inline
+        ? 'cancel'
+        : pendingPickerCloseReason.value
+
+      pendingPickerCloseReason.value = 'cancel'
+
+      if (props.inline) {
+        revertDraft()
+        emit('cancel')
+        return
+      }
+
+      if (reason === 'cancel') {
+        cancelOverlayDraft()
+        return
+      }
+
+      void requestOverlayClose(reason)
+    }
+
+    function handleOverlayModelUpdate(value: boolean) {
+      if (value) {
+        overlay.openMenu()
+        return
+      }
+
+      void requestOverlayClose('dismiss')
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key === 'Enter') {
+        if (!textEditable.value) {
+          overlay.openMenu()
+          return
+        }
+
+        const preflight = resolveDraftCommitPreflight()
+        if (!preflight.ok) {
+          handleValidationFailure(preflight)
+          return
+        }
+
+        runOptimisticMenuCommit('open', preflight.draft)
+      }
+
+      if (event.key === 'Escape' && overlay.menu.value) {
+        void requestOverlayClose('escape')
+      }
     }
 
     function renderPicker(extraProps: Record<string, unknown> = {}) {
@@ -134,11 +926,14 @@ export const VAdvancedDateInput = defineComponent({
           ref={pickerRef}
           {...(extraProps as any)}
           {...pickerBindings.value}
-          onUpdate:modelValue={overlay.handlePickerUpdate}
+          modelValue={serializeSelection(pickerSelection.value)}
+          onDraftChange={handlePickerDraftChange}
+          onEscapeKey={handlePickerEscape}
+          onUpdate:modelValue={handlePickerModelValue}
           onUpdate:month={(value) => emit('update:month', value)}
           onUpdate:year={(value) => emit('update:year', value)}
-          onApply={overlay.handleApply}
-          onCancel={overlay.handleCancel}
+          onApply={handlePickerApply}
+          onCancel={handlePickerCancel}
           onPresetSelect={(preset) => emit('presetSelect', preset)}
           v-slots={slots}
         />
@@ -161,7 +956,7 @@ export const VAdvancedDateInput = defineComponent({
         return slots.activator({
           props: {
             ...activatorProps,
-            onClick: () => overlay.setMenu(true),
+            onClick: () => overlay.openMenu(),
           },
           isOpen: overlay.menu.value,
         })
@@ -170,16 +965,16 @@ export const VAdvancedDateInput = defineComponent({
       const fieldProps = mergeProps(activatorProps, fieldAttrs, {
         class: 'v-advanced-date-input',
         modelValue: input.text.value,
-        'onUpdate:modelValue': input.setText,
+        'onUpdate:modelValue': handleFieldTextUpdate,
         label: props.label,
         placeholder: props.placeholder,
         autocomplete: 'off',
         variant: props.variant,
         hideDetails: props.hideDetails,
         messages: props.messages,
-        error: props.error || !!input.inputError.value,
+        error: props.error || input.isValid.value === false,
         errorMessages: mergedErrorMessages.value,
-        rules: props.rules,
+        rules: fieldRules.value,
         clearable: props.clearable,
         focused: props.focused,
         'aria-expanded': overlay.menu.value,
@@ -196,11 +991,19 @@ export const VAdvancedDateInput = defineComponent({
           )
         },
         onBlur: (event: FocusEvent) => {
-          input.onBlur()
+          handleFieldBlur()
           callForwardedHandler(
             userOnBlur as ForwardedEventHandler | undefined,
             event,
           )
+        },
+        'onUpdate:focused': (focused: boolean) => {
+          if (focused) {
+            input.onFocus()
+            return
+          }
+
+          input.onBlur()
         },
         onKeydown: (event: KeyboardEvent) => {
           handleKeydown(event)
@@ -210,22 +1013,21 @@ export const VAdvancedDateInput = defineComponent({
           )
         },
         'onClick:control': (event: MouseEvent) => {
-          if (!hasActivatorProps) overlay.setMenu(true)
+          if (!hasActivatorProps) overlay.openMenu()
           callForwardedHandler(
             userOnClickControl as ForwardedEventHandler | undefined,
             event,
           )
         },
         'onClick:appendInner': (event: MouseEvent) => {
-          if (!hasActivatorProps) overlay.setMenu(true)
+          if (!hasActivatorProps) overlay.openMenu()
           callForwardedHandler(
             userOnClickAppendInner as ForwardedEventHandler | undefined,
             event,
           )
         },
         'onClick:clear': (event: MouseEvent) => {
-          input.clear()
-          overlay.setMenu(false)
+          handleFieldClear()
           callForwardedHandler(
             userOnClickClear as ForwardedEventHandler | undefined,
             event,
@@ -234,9 +1036,43 @@ export const VAdvancedDateInput = defineComponent({
       })
 
       return (
-        <VTextField {...(fieldProps as any)} />
+        <VTextField
+          ref={(instance) => {
+            fieldRef.value = instance as DefaultFieldHandle | null
+          }}
+          {...(fieldProps as any)}
+        />
       )
     }
+
+    const publicHandle: AdvancedDateInputPublicInstance<unknown> = {
+      commitInput: () => commitInput(true),
+      validate: () => validateCurrentDraft(),
+      resetValidation: async () => {
+        await resetComponentValidation()
+      },
+      revertDraft,
+      get text() {
+        return input.text.value
+      },
+      get draft() {
+        return cloneDraft(draft.value)
+      },
+      get isDirty() {
+        return input.text.value !== committedDisplayText.value
+      },
+      get isPristine() {
+        return input.isPristine.value
+      },
+      get isValid() {
+        return publicIsValid()
+      },
+      get errorMessages() {
+        return fieldErrorMessages()
+      },
+    }
+
+    expose(publicHandle)
 
     return () => {
       if (props.inline) return renderPicker(attrs as Record<string, unknown>)
@@ -247,7 +1083,7 @@ export const VAdvancedDateInput = defineComponent({
             {renderField()}
             <VDialog
               modelValue={overlay.menu.value}
-              onUpdate:modelValue={overlay.setMenu}
+              onUpdate:modelValue={handleOverlayModelUpdate}
               fullscreen
             >
               {renderPicker()}
@@ -259,7 +1095,7 @@ export const VAdvancedDateInput = defineComponent({
       return (
         <VMenu
           modelValue={overlay.menu.value}
-          onUpdate:modelValue={overlay.setMenu}
+          onUpdate:modelValue={handleOverlayModelUpdate}
           closeOnContentClick={false}
           offset={8}
           minWidth={props.minWidth ?? 0}

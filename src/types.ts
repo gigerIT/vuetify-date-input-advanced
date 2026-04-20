@@ -59,6 +59,69 @@ export interface NormalizedRange<TDate = Date> {
   end: TDate | null
 }
 
+export type AdvancedDateInputSource = 'text' | 'picker'
+export type AdvancedDateInputParseStatus =
+  | 'empty'
+  | 'partial'
+  | 'complete'
+  | 'invalid'
+export type AdvancedDateInputAvailabilityStatus =
+  | 'unknown'
+  | 'available'
+  | 'unavailable'
+export type AdvancedDateInputValidationStatus = 'idle' | 'valid' | 'invalid'
+export type AdvancedDateInputCommitFailureReason =
+  | 'invalid'
+  | 'incomplete'
+  | 'rule'
+  | 'unavailable'
+export type AdvancedDateInputCloseReason = 'cancel' | 'dismiss' | 'escape'
+export type AdvancedDateInputCloseStrategy = 'revert' | 'preserve' | 'commit'
+export type AdvancedDateInputCloseOutcome = 'closed' | 'blocked'
+
+export interface AdvancedDateInputDraft<TDate = Date> {
+  text: string
+  selection: NormalizedRange<TDate>
+  source: AdvancedDateInputSource
+  isDirty: boolean
+  parseStatus: AdvancedDateInputParseStatus
+  availabilityStatus: AdvancedDateInputAvailabilityStatus
+  validationStatus: AdvancedDateInputValidationStatus
+  errorKey:
+    | keyof DateInputAdvancedLocaleMessages['dateInputAdvanced']['errors']
+    | null
+}
+
+export interface AdvancedDateInputCommitPayload<TDate = Date> {
+  value: AdvancedDateModel<TDate>
+  draft: AdvancedDateInputDraft<TDate>
+}
+
+export interface AdvancedDateInputInvalidPayload<TDate = Date> {
+  reason: AdvancedDateInputCommitFailureReason
+  draft: AdvancedDateInputDraft<TDate>
+}
+
+export interface AdvancedDateInputClosePayload<TDate = Date> {
+  reason: AdvancedDateInputCloseReason
+  strategy: AdvancedDateInputCloseStrategy
+  outcome: AdvancedDateInputCloseOutcome
+  draft: AdvancedDateInputDraft<TDate>
+}
+
+export interface AdvancedDateInputPublicInstance<TDate = Date> {
+  commitInput: () => Promise<boolean>
+  validate: () => Promise<string[]>
+  resetValidation: () => Promise<void>
+  revertDraft: () => void
+  readonly text: string
+  readonly draft: AdvancedDateInputDraft<TDate>
+  readonly isDirty: boolean
+  readonly isPristine: boolean
+  readonly isValid: boolean | null
+  readonly errorMessages: string[]
+}
+
 export interface PresetRange<TDate = Date> {
   label: string
   value: [TDate, TDate] | (() => [TDate, TDate])

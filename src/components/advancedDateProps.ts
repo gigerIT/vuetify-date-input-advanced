@@ -1,6 +1,11 @@
 import type { ExtractPropTypes, PropType } from 'vue'
 
-import type { AdvancedDateModel, PresetRange } from '@/types'
+import type {
+  AdvancedDateInputCloseStrategy,
+  AdvancedDateModel,
+  NormalizedRange,
+  PresetRange,
+} from '@/types'
 
 export type AdvancedDateDensity = 'default' | 'comfortable' | 'compact'
 export type AdvancedDateMobilePresentation = 'fullscreen' | 'inline'
@@ -79,12 +84,23 @@ export const advancedDatePickerInternalProps = {
     validator: (value: string | null) =>
       value === null || value === 'fullscreen' || value === 'inline',
   },
+  onDraftChange: Function as PropType<
+    ((value: NormalizedRange<unknown>) => void) | undefined
+  >,
+  onEscapeKey: Function as PropType<(() => void) | undefined>,
 }
 
 export const advancedDateInputProps = {
   menu: Boolean,
   inline: Boolean,
   inputReadonly: Boolean,
+  text: String,
+  closeDraftStrategy: {
+    type: String as PropType<AdvancedDateInputCloseStrategy>,
+    default: 'revert',
+    validator: (value: string) =>
+      value === 'revert' || value === 'preserve' || value === 'commit',
+  },
   label: String,
   placeholder: String,
   variant: {

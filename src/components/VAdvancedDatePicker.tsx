@@ -23,6 +23,7 @@ import type {
   AdvancedDateAdapter,
   AdvancedDateModel,
   DateBounds,
+  NormalizedRange,
   PresetRange,
 } from '@/types'
 import { isRangeDisabled } from '@/util/dates'
@@ -223,7 +224,10 @@ export const VAdvancedDatePicker = defineComponent({
       monthsTrackRef: mobileWindow.monthsTrackRef,
       ensureDateVisible,
       onSelect: handleSelectDate,
-      onEscape: () => emit('cancel'),
+      onEscape: () => {
+        props.onEscapeKey?.()
+        emit('cancel')
+      },
     })
     const liveText = useAdvancedDatePickerLiveText({
       adapter,
@@ -252,6 +256,14 @@ export const VAdvancedDatePicker = defineComponent({
     watch(disabledRef, (value) => {
       if (value) model.setHoverDate(null)
     })
+
+    watch(
+      model.normalized,
+      (value) => {
+        props.onDraftChange?.(value as NormalizedRange<unknown>)
+      },
+      { immediate: true },
+    )
 
     function handleApply() {
       if (disabledRef.value) return

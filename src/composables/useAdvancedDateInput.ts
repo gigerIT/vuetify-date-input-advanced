@@ -3,8 +3,12 @@ import { computed, readonly, ref, watch, type Ref } from 'vue'
 import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
 import type {
   AdvancedDateAdapter,
+  AdvancedDateInputAvailabilityStatus,
+  AdvancedDateInputParseStatus,
+  AdvancedDateInputValidationStatus,
   AdvancedDateModel,
   DateInputAdvancedLocaleMessages,
+  NormalizedRange,
 } from '@/types'
 import {
   formatInputValue,
@@ -12,32 +16,66 @@ import {
   isStartDateDisabled,
   parseInputDate,
 } from '@/util/dates'
-import { normalizeModel, orderRange, serializeModel } from '@/util/model'
+import { normalizeModel, orderRange } from '@/util/model'
 
 type InputErrorKey =
   keyof DateInputAdvancedLocaleMessages['dateInputAdvanced']['errors']
+
+interface TextDraftAssessment<TDate> {
+  selection: NormalizedRange<TDate>
+  parseStatus: AdvancedDateInputParseStatus
+  availabilityStatus: AdvancedDateInputAvailabilityStatus
+  validationStatus: AdvancedDateInputValidationStatus
+  errorKey: InputErrorKey | null
+}
 
 function splitRangeInput(
   input: string,
   separator: string,
 ): [string, string] | null {
   if (input.includes(separator)) {
-    const [start, end] = input.split(separator)
-    if (end != null) return [start, end]
+    const index = input.indexOf(separator)
+
+    return [
+      input.slice(0, index),
+      input.slice(index + separator.length),
+    ]
   }
 
-  const fallback = input.split(/\s+[-–—]\s+/)
-  if (fallback.length === 2) return [fallback[0], fallback[1]]
+  const match = input.match(/^(.*?)(?:\s+[-–—]\s+)(.*)$/)
+  if (!match) return null
 
-  return null
+  return [match[1], match[2]]
+}
+
+function deriveValidationStatus(
+  parseStatus: AdvancedDateInputParseStatus,
+  availabilityStatus: AdvancedDateInputAvailabilityStatus,
+): AdvancedDateInputValidationStatus {
+  if (parseStatus === 'empty') return 'idle'
+  if (parseStatus === 'complete' && availabilityStatus === 'available') {
+    return 'valid'
+  }
+
+  return 'invalid'
+}
+
+function emptyAssessment<TDate>(): TextDraftAssessment<TDate> {
+  return {
+    selection: { start: null, end: null },
+    parseStatus: 'empty',
+    availabilityStatus: 'unknown',
+    validationStatus: 'idle',
+    errorKey: null,
+  }
 }
 
 export function useAdvancedDateInput<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   modelValue: Ref<AdvancedDateModel<TDate>>
   editable: Ref<boolean>
+  textValue: Ref<string | undefined>
   range: Ref<boolean>
-  returnObject: Ref<boolean>
   displayFormat: Ref<string>
   rangeSeparator: Ref<string>
   parseInput: Ref<((value: string) => TDate | null) | undefined>
@@ -46,44 +84,37 @@ export function useAdvancedDateInput<TDate>(options: {
   allowedDates: Ref<((date: TDate) => boolean) | undefined>
   allowedStartDates: Ref<((date: TDate) => boolean) | undefined>
   allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
-  onUpdate: (value: AdvancedDateModel<TDate>) => void
+  onTextUpdate: (value: string) => void
 }) {
   const { tDateInputAdvanced } = useDateInputAdvancedLocale()
   const text = ref('')
   const isEditing = ref(false)
   const inputError = ref<InputErrorKey | null>(null)
+  const isPristine = ref(true)
 
-  const normalized = computed(() =>
+  const committedSelection = computed(() =>
     normalizeModel(
       options.adapter,
       options.modelValue.value,
       options.range.value,
     ),
   )
-  const displayText = computed(() => {
-    return formatInputValue(options.adapter, normalized.value, {
+  const committedText = computed(() =>
+    formatInputValue(options.adapter, committedSelection.value, {
       range: options.range.value,
       displayFormat: options.displayFormat.value,
       separator: options.rangeSeparator.value,
-    })
-  })
-
-  watch(
-    displayText,
-    (value) => {
-      if (!isEditing.value) text.value = value
-    },
-    { immediate: true },
+    }),
   )
 
   watch(
-    () => options.editable.value,
+    options.textValue,
     (value) => {
-      if (value) return
+      if (value === undefined || value === text.value) return
 
-      isEditing.value = false
+      text.value = value
       inputError.value = null
-      text.value = displayText.value
+      isPristine.value = true
     },
     { immediate: true },
   )
@@ -98,25 +129,9 @@ export function useAdvancedDateInput<TDate>(options: {
     }
   }
 
-  function isUnavailable(date: TDate): boolean {
-    return isStartDateDisabled(options.adapter, date, constraints())
-  }
-
-  function commitInput(): boolean {
-    if (!options.editable.value) {
-      inputError.value = null
-      text.value = displayText.value
-      return true
-    }
-
-    inputError.value = null
-
-    const trimmed = text.value.trim()
-    if (!trimmed) {
-      options.onUpdate(null)
-      text.value = ''
-      return true
-    }
+  function assessText(value = text.value): TextDraftAssessment<TDate> {
+    const trimmed = value.trim()
+    if (!trimmed) return emptyAssessment<TDate>()
 
     if (!options.range.value) {
       const parsed = parseInputDate(
@@ -124,113 +139,201 @@ export function useAdvancedDateInput<TDate>(options: {
         trimmed,
         options.parseInput.value,
       )
+
       if (!parsed) {
-        inputError.value = 'invalidDate'
-        return false
+        return {
+          selection: { start: null, end: null },
+          parseStatus: 'invalid',
+          availabilityStatus: 'unknown',
+          validationStatus: 'invalid',
+          errorKey: 'invalidDate',
+        }
       }
 
-      if (isUnavailable(parsed)) {
-        inputError.value = 'unavailableDate'
-        return false
-      }
+      const unavailable = isStartDateDisabled(
+        options.adapter,
+        parsed,
+        constraints(),
+      )
 
-      options.onUpdate(parsed)
-      text.value = options.adapter.format(parsed, options.displayFormat.value)
-      return true
+      return {
+        selection: { start: parsed, end: null },
+        parseStatus: 'complete',
+        availabilityStatus: unavailable ? 'unavailable' : 'available',
+        validationStatus: unavailable ? 'invalid' : 'valid',
+        errorKey: unavailable ? 'unavailableDate' : null,
+      }
     }
 
     const parts = splitRangeInput(trimmed, options.rangeSeparator.value)
     if (!parts) {
-      inputError.value = 'invalidRange'
-      return false
+      const start = parseInputDate(
+        options.adapter,
+        trimmed,
+        options.parseInput.value,
+      )
+
+      if (!start) {
+        return {
+          selection: { start: null, end: null },
+          parseStatus: 'invalid',
+          availabilityStatus: 'unknown',
+          validationStatus: 'invalid',
+          errorKey: 'invalidRange',
+        }
+      }
+
+      const selection = { start, end: null }
+      const unavailable = isRangeDisabled(
+        options.adapter,
+        selection,
+        constraints(),
+      )
+
+      return {
+        selection,
+        parseStatus: 'partial',
+        availabilityStatus: unavailable ? 'unavailable' : 'available',
+        validationStatus: 'invalid',
+        errorKey: unavailable ? 'unavailableRange' : null,
+      }
     }
 
-    const start = parseInputDate(
+    const [rawStart, rawEnd] = parts
+    const startText = rawStart.trim()
+    const endText = rawEnd.trim()
+
+    const start = startText
+      ? parseInputDate(options.adapter, startText, options.parseInput.value)
+      : null
+    const end = endText
+      ? parseInputDate(options.adapter, endText, options.parseInput.value)
+      : null
+
+    if (!startText || (startText && !start)) {
+      return {
+        selection: { start: null, end: null },
+        parseStatus: 'invalid',
+        availabilityStatus: 'unknown',
+        validationStatus: 'invalid',
+        errorKey: 'invalidRange',
+      }
+    }
+
+    if (!endText) {
+      const selection = { start, end: null }
+      const unavailable = isRangeDisabled(
+        options.adapter,
+        selection,
+        constraints(),
+      )
+
+      return {
+        selection,
+        parseStatus: 'partial',
+        availabilityStatus: unavailable ? 'unavailable' : 'available',
+        validationStatus: 'invalid',
+        errorKey: unavailable ? 'unavailableRange' : null,
+      }
+    }
+
+    if (!end) {
+      return {
+        selection: { start, end: null },
+        parseStatus: 'invalid',
+        availabilityStatus: 'unknown',
+        validationStatus: 'invalid',
+        errorKey: 'invalidRange',
+      }
+    }
+
+    const selection = orderRange(options.adapter, { start, end })
+    const unavailable = isRangeDisabled(
       options.adapter,
-      parts[0],
-      options.parseInput.value,
-    )
-    const end = parseInputDate(
-      options.adapter,
-      parts[1],
-      options.parseInput.value,
+      selection,
+      constraints(),
     )
 
-    if (!start || !end) {
-      inputError.value = 'invalidRange'
-      return false
+    return {
+      selection,
+      parseStatus: 'complete',
+      availabilityStatus: unavailable ? 'unavailable' : 'available',
+      validationStatus: deriveValidationStatus(
+        'complete',
+        unavailable ? 'unavailable' : 'available',
+      ),
+      errorKey: unavailable ? 'unavailableRange' : null,
     }
+  }
 
-    const ordered = orderRange(options.adapter, { start, end })
+  function resetValidation() {
+    inputError.value = null
+    isPristine.value = true
+  }
 
-    if (isRangeDisabled(options.adapter, ordered, constraints())) {
-      inputError.value = 'unavailableRange'
-      return false
-    }
+  function setValidationError(key: InputErrorKey | null) {
+    inputError.value = key
+    isPristine.value = false
+  }
 
-    options.onUpdate(
-      serializeModel(ordered, {
-        range: true,
-        returnObject: options.returnObject.value,
-      }),
-    )
-    text.value = formatInputValue(options.adapter, ordered, {
-      range: true,
-      displayFormat: options.displayFormat.value,
-      separator: options.rangeSeparator.value,
-    })
+  function markValid() {
+    inputError.value = null
+    isPristine.value = false
+  }
 
-    return true
+  function setExternalText(value: string) {
+    if (value === text.value) return
+
+    text.value = value
+    resetValidation()
   }
 
   function onFocus() {
     if (!options.editable.value) return
-
     isEditing.value = true
   }
 
-  function onBlur(): boolean {
-    if (!options.editable.value) {
-      isEditing.value = false
-      inputError.value = null
-      text.value = displayText.value
-      return true
-    }
-
+  function onBlur() {
     isEditing.value = false
-    const valid = commitInput()
-    if (valid) text.value = displayText.value
-    return valid
-  }
-
-  function clear() {
-    inputError.value = null
-    isEditing.value = false
-    text.value = ''
-    options.onUpdate(null)
   }
 
   return {
     text: readonly(text),
+    committedSelection,
+    committedText,
+    textDraft: computed(() => assessText()),
     inputError: readonly(inputError),
     errorMessages: computed(() =>
       inputError.value
         ? [tDateInputAdvanced(`errors.${inputError.value}`)]
         : [],
     ),
+    isDirty: computed(() => text.value !== committedText.value),
+    isPristine: readonly(isPristine),
+    isValid: computed<boolean | null>(() =>
+      isPristine.value ? null : !inputError.value,
+    ),
+    isEditing: readonly(isEditing),
     onFocus,
     onBlur,
-    commitInput,
-    clear,
+    markValid,
+    resetValidation,
     setText: (value: string) => {
-      if (!options.editable.value) {
-        inputError.value = null
-        text.value = displayText.value
-        return
-      }
+      if (!options.editable.value || value === text.value) return
 
-      inputError.value = null
       text.value = value
+      resetValidation()
+      options.onTextUpdate(value)
     },
+    setValidationError,
+    setExternalText,
+    syncText: (value: string) => {
+      if (value === text.value) return
+
+      text.value = value
+      resetValidation()
+      options.onTextUpdate(value)
+    },
+    assessText,
   }
 }

@@ -1,7 +1,15 @@
+import { flushPromises } from '@vue/test-utils'
 import { h } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
 import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
+import type {
+  AdvancedDateInputClosePayload,
+  AdvancedDateInputCommitPayload,
+  AdvancedDateInputDraft,
+  AdvancedDateInputInvalidPayload,
+  AdvancedDateInputPublicInstance,
+} from '@/types'
 
 import { render, renderWithVuetify } from '../render'
 
@@ -32,6 +40,54 @@ function allowOnly(...allowedDates: string[]) {
 
   return (date: unknown) => {
     return date instanceof Date && allowed.has(toLocalYmd(date) ?? '')
+  }
+}
+
+function lastEmitted<T>(
+  wrapper: ReturnType<typeof render>,
+  eventName: string,
+): T | undefined {
+  return wrapper.emitted(eventName)?.at(-1)?.[0] as T | undefined
+}
+
+function publicHandle(wrapper: ReturnType<typeof render>) {
+  return wrapper.vm as unknown as AdvancedDateInputPublicInstance<Date>
+}
+
+function deferredValue<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve
+  })
+
+  return {
+    promise,
+    resolve,
+  }
+}
+
+async function runWithDesktopWidth(
+  callback: () => Promise<void> | void,
+  width = 1440,
+) {
+  const originalWidth = window.innerWidth
+
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: width,
+  })
+  window.dispatchEvent(new Event('resize'))
+
+  try {
+    await callback()
+  } finally {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalWidth,
+    })
+    window.dispatchEvent(new Event('resize'))
   }
 }
 
@@ -522,7 +578,7 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
-  it('forwards blur hooks without breaking typed input parsing', async () => {
+  it('forwards blur hooks while keeping typed drafts pending', async () => {
     const onBlur = vi.fn()
     const wrapper = render(VAdvancedDateInput, {
       props: {
@@ -541,12 +597,15 @@ describe('VAdvancedDateInput', () => {
 
     await input.setValue('Jan 12, 2026')
     await input.trigger('blur')
+    await flushPromises()
 
-    const emissions = wrapper.emitted('update:modelValue') ?? []
-    const finalValue = emissions.at(-1)?.[0] as Date | null
+    const currentDraft = publicHandle(wrapper).draft
 
     expect(onBlur).toHaveBeenCalledTimes(1)
-    expect(finalValue).toBeInstanceOf(Date)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(currentDraft.source).toBe('text')
+    expect(currentDraft.parseStatus).toBe('complete')
+    expect(toLocalYmd(currentDraft.selection.start)).toBe('2026-01-12')
 
     wrapper.unmount()
   })
@@ -569,6 +628,42 @@ describe('VAdvancedDateInput', () => {
 
     expect(onKeydown).toHaveBeenCalledTimes(1)
     expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+
+    wrapper.unmount()
+  })
+
+  it('rolls back an optimistic Enter open when async field rules fail', async () => {
+    const deferredRule = deferredValue<true | string>()
+    const asyncRule = vi.fn(async () => await deferredRule.promise)
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        rules: [asyncRule],
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 12, 2026')
+    await input.trigger('keydown', { key: 'Enter' })
+
+    expect(wrapper.emitted('update:menu')).toEqual([[true]])
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+    deferredRule.resolve('Async required')
+    await flushPromises()
+
+    const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+      wrapper,
+      'inputInvalid',
+    )
+
+    expect(wrapper.emitted('update:menu')).toEqual([[true], [false]])
+    expect(payload?.reason).toBe('rule')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.text()).toContain('Async required')
 
     wrapper.unmount()
   })
@@ -784,6 +879,108 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
+  it('keeps the desktop apply menu open on synchronous validation failures', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const applyButton = wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Apply')
+
+      expect(applyButton).toBeDefined()
+
+      await applyButton!.trigger('click')
+
+      const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(payload?.reason).toBe('incomplete')
+      expect(wrapper.text()).toContain('Enter a valid date range')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('rolls back the optimistic desktop Apply close when async field rules fail', async () => {
+    const deferredRule = deferredValue<true | string>()
+    const asyncRule = vi.fn(async () => await deferredRule.promise)
+
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          autoApply: false,
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+          rules: [asyncRule],
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const applyButton = wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Apply')
+
+      expect(applyButton).toBeDefined()
+
+      await applyButton!.trigger('click')
+
+      expect(wrapper.emitted('update:menu')).toEqual([[false]])
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('apply')).toBeUndefined()
+
+      deferredRule.resolve('Async required')
+      await flushPromises()
+
+      const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+
+      expect(wrapper.emitted('update:menu')).toEqual([[false], [true]])
+      expect(payload?.reason).toBe('rule')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('apply')).toBeUndefined()
+      expect(wrapper.text()).toContain('Async required')
+
+      wrapper.unmount()
+    })
+  })
+
   it('forwards clear hooks without breaking the internal clear flow', async () => {
     const onClickClear = vi.fn()
     const wrapper = render(VAdvancedDateInput, {
@@ -809,6 +1006,7 @@ describe('VAdvancedDateInput', () => {
       new MouseEvent('click'),
     )
     await wrapper.vm.$nextTick()
+    await flushPromises()
 
     expect(onClickClear).toHaveBeenCalledTimes(1)
     expect(wrapper.find('input').element.value).toBe('')
@@ -852,6 +1050,7 @@ describe('VAdvancedDateInput', () => {
         new MouseEvent('click'),
       )
       await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(wrapper.find('input').element.value).toBe('')
       expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
@@ -866,6 +1065,83 @@ describe('VAdvancedDateInput', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('clears the committed model even when field rules reject empty values', async () => {
+    await runWithDesktopWidth(async () => {
+      const requiredRule = vi.fn((value: string) => !!value || 'Required')
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          menu: true,
+          range: false,
+          clearable: true,
+          rules: [requiredRule],
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
+        'click:clear',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const commitPayload = lastEmitted<AdvancedDateInputCommitPayload<Date>>(
+        wrapper,
+        'inputCommit',
+      )
+
+      expect(wrapper.find('input').element.value).toBe('')
+      expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+      expect(commitPayload?.value).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('emits a single update:text event when a controlled field is cleared', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          text: 'Jan 12, 2026',
+          menu: true,
+          range: false,
+          clearable: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const updateTextCount = wrapper.emitted('update:text')?.length ?? 0
+
+      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
+        'click:clear',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount + 1)
+      expect(wrapper.emitted('update:text')?.at(-1)).toEqual([''])
+      expect(wrapper.find('input').element.value).toBe('')
+      expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
+
+      wrapper.unmount()
+    })
   })
 
   it('keeps attrs on the picker root in inline mode', () => {
@@ -1044,6 +1320,151 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
+  it('routes controlled menu=false through closeDraftStrategy="revert"', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          closeDraftStrategy: 'revert',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.setProps({ menu: false })
+      await flushPromises()
+
+      const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.find('input').element.value).toBe(
+        'Jan 12, 2026 – Jan 19, 2026',
+      )
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(payload?.reason).toBe('dismiss')
+      expect(payload?.strategy).toBe('revert')
+      expect(payload?.outcome).toBe('closed')
+      expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-20')
+      expect(payload?.draft.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('routes controlled menu=false through closeDraftStrategy="commit" for complete drafts', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          range: false,
+          autoApply: false,
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.setProps({ menu: false })
+      await flushPromises()
+
+      const value = lastEmitted<Date | null>(wrapper, 'update:modelValue')
+      const commitPayload = lastEmitted<AdvancedDateInputCommitPayload<Date>>(
+        wrapper,
+        'inputCommit',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(value).toBeInstanceOf(Date)
+      expect(toLocalYmd(value)).toBe('2026-01-12')
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(closePayload?.reason).toBe('dismiss')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('closed')
+      expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe('2026-01-12')
+      expect(commitPayload?.draft.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('reopens controlled overlays when external menu=false is blocked by closeDraftStrategy="commit"', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.setProps({ menu: false })
+      await flushPromises()
+
+      const invalidPayload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toEqual([[true]])
+      expect(invalidPayload?.reason).toBe('incomplete')
+      expect(closePayload?.reason).toBe('dismiss')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('blocked')
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+
+      wrapper.unmount()
+    })
+  })
+
   it('shows an error for invalid typed ranges', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {
@@ -1059,6 +1480,7 @@ describe('VAdvancedDateInput', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('update:menu')).toBeUndefined()
     expect(wrapper.text()).toContain('Enter a valid date range')
 
     wrapper.unmount()
@@ -1078,6 +1500,7 @@ describe('VAdvancedDateInput', () => {
 
     await input.setValue('not a range')
     await input.trigger('blur')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('Enter a valid date range')
 
@@ -1107,6 +1530,7 @@ describe('VAdvancedDateInput', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('update:menu')).toBeUndefined()
     expect(wrapper.text()).toContain('Date is unavailable')
 
     wrapper.unmount()
@@ -1202,6 +1626,1734 @@ describe('VAdvancedDateInput', () => {
     wrapper.unmount()
   })
 
+  it('keeps the first auto-apply range click as draft-only state in the input wrapper', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: true,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+        wrapper,
+        'update:draft',
+      )
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('inputCommit')).toBeUndefined()
+      expect(draft?.source).toBe('picker')
+      expect(draft?.parseStatus).toBe('partial')
+      expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-20')
+      expect(draft?.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('commits only after the second valid auto-apply range click in the input wrapper', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: true,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const value = lastEmitted<[Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+      const payload = lastEmitted<AdvancedDateInputCommitPayload<Date>>(
+        wrapper,
+        'inputCommit',
+      )
+
+      expect(toLocalYmd(value?.[0])).toBe('2026-01-20')
+      expect(toLocalYmd(value?.[1])).toBe('2026-01-23')
+      expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-20')
+      expect(toLocalYmd(payload?.draft.selection.end)).toBe('2026-01-23')
+      expect(payload?.draft.parseStatus).toBe('complete')
+      expect(payload?.draft.isDirty).toBe(false)
+      expect(publicHandle(wrapper).isDirty).toBe(false)
+      expect(publicHandle(wrapper).draft.isDirty).toBe(false)
+
+      wrapper.unmount()
+    })
+  })
+
+  it('emits typed partial ranges through text and draft state without committing the model', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 20, 2026')
+    await wrapper.vm.$nextTick()
+
+    const text = lastEmitted<string>(wrapper, 'update:text')
+    const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+      wrapper,
+      'update:draft',
+    )
+
+    expect(text).toBe('Jan 20, 2026')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(draft?.source).toBe('text')
+    expect(draft?.parseStatus).toBe('partial')
+    expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-20')
+    expect(draft?.selection.end).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('preserves a controlled draft text value on mount instead of replacing it with the committed model', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        text: 'Jan 20, 2026',
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+      wrapper,
+      'update:draft',
+    )
+
+    expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+    expect(wrapper.emitted('update:text')).toBeUndefined()
+    expect(draft?.source).toBe('text')
+    expect(draft?.parseStatus).toBe('partial')
+    expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-20')
+    expect(draft?.selection.end).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('syncs an initial controlled draft text value into the picker selection on mount', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 20, 2026',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-12"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps controlled v-model:text in sync with picker-authored drafts', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 12, 2026 – Jan 19, 2026',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const partialText = lastEmitted<string>(wrapper, 'update:text')
+
+      expect(partialText).toBe('Jan 20, 2026')
+
+      await wrapper.setProps({ text: partialText })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(publicHandle(wrapper).draft.source).toBe('picker')
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const committedText = lastEmitted<string>(wrapper, 'update:text')
+      const committedValue = lastEmitted<[Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(committedText).toBe('Jan 20, 2026 – Jan 23, 2026')
+      expect(toLocalYmd(committedValue?.[0])).toBe('2026-01-20')
+      expect(toLocalYmd(committedValue?.[1])).toBe('2026-01-23')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('treats committed controlled text as a mirror when modelValue changes', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 12, 2026 – Jan 19, 2026',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.setProps({
+        modelValue: [
+          new Date('2026-01-25T00:00:00.000Z'),
+          new Date('2026-01-29T00:00:00.000Z'),
+        ],
+      })
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const text = lastEmitted<string>(wrapper, 'update:text')
+
+      expect(text).toBe('Jan 25, 2026 – Jan 29, 2026')
+      expect(wrapper.find('input').element.value).toBe(
+        'Jan 25, 2026 – Jan 29, 2026',
+      )
+      expect(publicHandle(wrapper).draft.source).toBe('picker')
+      expect(publicHandle(wrapper).isDirty).toBe(false)
+      expect(
+        wrapper.find('[data-date="2026-01-25"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-12"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps an explicitly supplied controlled draft text authoritative across modelValue updates', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 12, 2026 – Jan 19, 2026',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const updateTextCount = wrapper.emitted('update:text')?.length ?? 0
+
+      await wrapper.setProps({
+        modelValue: [
+          new Date('2026-01-25T00:00:00.000Z'),
+          new Date('2026-01-29T00:00:00.000Z'),
+        ],
+        text: 'Jan 20, 2026',
+      })
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount)
+      expect(publicHandle(wrapper).draft.source).toBe('text')
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-25"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps a controlled draft text authoritative when modelValue changes without a new text prop', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          text: 'Jan 20, 2026',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const updateTextCount = wrapper.emitted('update:text')?.length ?? 0
+
+      await wrapper.setProps({
+        modelValue: [
+          new Date('2026-01-25T00:00:00.000Z'),
+          new Date('2026-01-29T00:00:00.000Z'),
+        ],
+      })
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount)
+      expect(publicHandle(wrapper).draft.source).toBe('text')
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-25"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps a controlled draft text authoritative when range changes without a new text prop', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          text: 'Jan 20, 2026',
+          range: false,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const updateTextCount = wrapper.emitted('update:text')?.length ?? 0
+
+      await wrapper.setProps({
+        range: true,
+        modelValue: [
+          new Date('2026-01-25T00:00:00.000Z'),
+          new Date('2026-01-29T00:00:00.000Z'),
+        ],
+      })
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount)
+      expect(publicHandle(wrapper).draft.source).toBe('text')
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-25"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('re-syncs controlled text drafts into the picker when parser context changes', async () => {
+    await runWithDesktopWidth(async () => {
+      const initialParseInput = (value: string) => {
+        return value === 'special'
+          ? new Date('2026-01-20T00:00:00.000Z')
+          : null
+      }
+      const updatedParseInput = (value: string) => {
+        return value === 'special'
+          ? new Date('2026-01-25T00:00:00.000Z')
+          : null
+      }
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          text: 'special',
+          parseInput: initialParseInput,
+          allowedStartDates: allowOnly('2026-01-20'),
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-12"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      await wrapper.setProps({
+        parseInput: updatedParseInput,
+        allowedStartDates: allowOnly('2026-01-25'),
+      })
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+        wrapper,
+        'update:draft',
+      )
+
+      expect(wrapper.find('input').element.value).toBe('special')
+      expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-25')
+      expect(draft?.availabilityStatus).toBe('available')
+      expect(
+        wrapper.find('[data-date="2026-01-25"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('preserves an uncontrolled typed draft when modelValue changes mid-edit', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      await input.setValue('Jan 20, 2026')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(publicHandle(wrapper).draft.source).toBe('text')
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
+
+      const updateTextCount = wrapper.emitted('update:text')?.length ?? 0
+
+      await wrapper.setProps({
+        modelValue: [
+          new Date('2026-01-25T00:00:00.000Z'),
+          new Date('2026-01-29T00:00:00.000Z'),
+        ],
+      })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount)
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-25"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('emits invalid typed text through text and draft state without committing the model', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('not a range')
+    await wrapper.vm.$nextTick()
+
+    const text = lastEmitted<string>(wrapper, 'update:text')
+    const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+      wrapper,
+      'update:draft',
+    )
+
+    expect(text).toBe('not a range')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(draft?.source).toBe('text')
+    expect(draft?.parseStatus).toBe('invalid')
+    expect(draft?.selection.start).toBeNull()
+    expect(draft?.selection.end).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('preserves the parsed start date for invalid range text with an invalid end', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('input').setValue('Jan 20, 2026 - foo')
+      await wrapper.vm.$nextTick()
+
+      const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+        wrapper,
+        'update:draft',
+      )
+
+      expect(draft?.parseStatus).toBe('invalid')
+      expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-20')
+      expect(draft?.selection.end).toBeNull()
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-12"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('syncs valid typed drafts into the picker selection before submit or blur', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('input').setValue('Jan 20, 2026')
+      await wrapper.vm.$nextTick()
+
+      expect(
+        wrapper.find('[data-date="2026-01-20"]').classes(),
+      ).toContain('v-advanced-date-picker__day--selected')
+      expect(
+        wrapper.find('[data-date="2026-01-12"]').classes(),
+      ).not.toContain('v-advanced-date-picker__day--selected')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps complete typed drafts pending after blur until commitInput runs', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const input = wrapper.find('input')
+
+    await input.setValue('Jan 12, 2026')
+    await input.trigger('blur')
+    await flushPromises()
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+    const success = await publicHandle(wrapper).commitInput()
+    const value = lastEmitted<Date | null>(wrapper, 'update:modelValue')
+
+    expect(success).toBe(true)
+    expect(value).toBeInstanceOf(Date)
+    expect(toLocalYmd(value)).toBe('2026-01-12')
+
+    wrapper.unmount()
+  })
+
+  it('treats a clean commitInput call as a no-op success', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: new Date('2026-01-12T00:00:00.000Z'),
+        range: false,
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    const success = await publicHandle(wrapper).commitInput()
+
+    expect(success).toBe(true)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('inputCommit')).toBeUndefined()
+    expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
+    expect(publicHandle(wrapper).isDirty).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('normalizes equivalent typed ranges without emitting a redundant commit', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-20T00:00:00.000Z'),
+          new Date('2026-01-23T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('input').setValue('Jan 23, 2026 - Jan 20, 2026')
+    await wrapper.vm.$nextTick()
+
+    const success = await publicHandle(wrapper).commitInput()
+
+    expect(success).toBe(true)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('inputCommit')).toBeUndefined()
+    expect(wrapper.find('input').element.value).toBe(
+      'Jan 20, 2026 – Jan 23, 2026',
+    )
+    expect(publicHandle(wrapper).isDirty).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('blocks commitInput for incomplete drafts instead of reusing the committed model', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('input').setValue('Jan 20, 2026')
+    await wrapper.vm.$nextTick()
+
+    const success = await publicHandle(wrapper).commitInput()
+    const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+      wrapper,
+      'inputInvalid',
+    )
+
+    expect(success).toBe(false)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(payload?.reason).toBe('incomplete')
+    expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-20')
+    expect(payload?.draft.selection.end).toBeNull()
+    expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+
+    wrapper.unmount()
+  })
+
+  it('blocks commitInput for invalid drafts', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('input').setValue('not a range')
+    await wrapper.vm.$nextTick()
+
+    const success = await publicHandle(wrapper).commitInput()
+    const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+      wrapper,
+      'inputInvalid',
+    )
+
+    expect(success).toBe(false)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(payload?.reason).toBe('invalid')
+    expect(payload?.draft.parseStatus).toBe('invalid')
+
+    wrapper.unmount()
+  })
+
+  it('blocks commitInput for unavailable drafts', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: new Date('2026-01-12T00:00:00.000Z'),
+        range: false,
+        allowedStartDates: allowOnly('2026-01-12'),
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('input').setValue('Jan 13, 2026')
+    await wrapper.vm.$nextTick()
+
+    const success = await publicHandle(wrapper).commitInput()
+    const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+      wrapper,
+      'inputInvalid',
+    )
+
+    expect(success).toBe(false)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(payload?.reason).toBe('unavailable')
+    expect(payload?.draft.availabilityStatus).toBe('unavailable')
+    expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-13')
+
+    wrapper.unmount()
+  })
+
+  it('surfaces picker-originated incomplete drafts on commitInput', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const success = await publicHandle(wrapper).commitInput()
+      const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+
+      expect(success).toBe(false)
+      expect(payload?.reason).toBe('incomplete')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(publicHandle(wrapper).errorMessages).toContain(
+        'Enter a valid date range',
+      )
+      expect(publicHandle(wrapper).isValid).toBe(false)
+      expect(wrapper.text()).toContain('Enter a valid date range')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('returns picker-originated incomplete draft errors from the exposed validate API', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const messages = await publicHandle(wrapper).validate()
+      await flushPromises()
+
+      expect(messages).toEqual(['Enter a valid date range'])
+      expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(publicHandle(wrapper).errorMessages).toContain(
+        'Enter a valid date range',
+      )
+      expect(publicHandle(wrapper).isValid).toBe(false)
+      expect(wrapper.text()).toContain('Enter a valid date range')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('revalidates picker drafts when availability constraints change before commitInput', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          autoApply: false,
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.setProps({
+        allowedStartDates: allowOnly('2026-01-13'),
+      })
+      await wrapper.vm.$nextTick()
+
+      const draft = lastEmitted<AdvancedDateInputDraft<Date>>(
+        wrapper,
+        'update:draft',
+      )
+      const validationMessages = await publicHandle(wrapper).validate()
+      const success = await publicHandle(wrapper).commitInput()
+      const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+
+      expect(draft?.availabilityStatus).toBe('unavailable')
+      expect(publicHandle(wrapper).draft.availabilityStatus).toBe('unavailable')
+      expect(validationMessages).toEqual(['Date is unavailable'])
+      expect(success).toBe(false)
+      expect(payload?.reason).toBe('unavailable')
+      expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-12')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(publicHandle(wrapper).errorMessages).toContain('Date is unavailable')
+      expect(publicHandle(wrapper).isValid).toBe(false)
+      expect(wrapper.text()).toContain('Date is unavailable')
+
+      wrapper.unmount()
+    })
+  })
+
+  it('runs field rules through the exposed validate and commit API', async () => {
+    const requiredRule = vi.fn((value: string) => !!value || 'Required')
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        rules: [requiredRule],
+      },
+      attachTo: document.body,
+    })
+
+    const messages = await publicHandle(wrapper).validate()
+    await flushPromises()
+
+    expect(messages).toEqual(['Required'])
+    expect(publicHandle(wrapper).errorMessages).toContain('Required')
+
+    const success = await publicHandle(wrapper).commitInput()
+    const payload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+      wrapper,
+      'inputInvalid',
+    )
+
+    expect(success).toBe(false)
+    expect(payload?.reason).toBe('rule')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+    wrapper.unmount()
+  })
+
+  it('keeps the public validity API nullable while pristine and after resetValidation', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+      },
+      attachTo: document.body,
+    })
+
+    expect(publicHandle(wrapper).isPristine).toBe(true)
+    expect(publicHandle(wrapper).isValid).toBeNull()
+
+    const input = wrapper.find('input')
+
+    await input.setValue('not a date')
+    await input.trigger('blur')
+    await flushPromises()
+
+    expect(publicHandle(wrapper).isPristine).toBe(false)
+    expect(publicHandle(wrapper).isValid).toBe(false)
+
+    await publicHandle(wrapper).resetValidation()
+    await flushPromises()
+
+    expect(publicHandle(wrapper).errorMessages).toEqual([])
+    expect(publicHandle(wrapper).isPristine).toBe(true)
+    expect(publicHandle(wrapper).isValid).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('clears dirty state immediately after a successful commitInput before props round-trip', async () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-01-19T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('input').setValue('Jan 20, 2026 - Jan 23, 2026')
+    await wrapper.vm.$nextTick()
+
+    const success = await publicHandle(wrapper).commitInput()
+    const payload = lastEmitted<AdvancedDateInputCommitPayload<Date>>(
+      wrapper,
+      'inputCommit',
+    )
+
+    expect(success).toBe(true)
+    expect(payload?.draft.isDirty).toBe(false)
+    expect(publicHandle(wrapper).isDirty).toBe(false)
+    expect(publicHandle(wrapper).draft.isDirty).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('awaits async field rules in the exposed validate API', async () => {
+    const asyncRule = vi.fn(async (value: string) => {
+      return value ? true : 'Async required'
+    })
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        rules: [asyncRule],
+      },
+      attachTo: document.body,
+    })
+
+    const messages = await publicHandle(wrapper).validate()
+    await flushPromises()
+
+    expect(messages).toEqual(['Async required'])
+    expect(publicHandle(wrapper).errorMessages).toContain('Async required')
+
+    wrapper.unmount()
+  })
+
+  it("restores the last committed value when closeDraftStrategy is 'revert'", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          closeDraftStrategy: 'revert',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+
+      const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.find('input').element.value).toBe(
+        'Jan 12, 2026 – Jan 19, 2026',
+      )
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(payload?.reason).toBe('dismiss')
+      expect(payload?.strategy).toBe('revert')
+      expect(payload?.outcome).toBe('closed')
+      expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-20')
+      expect(payload?.draft.selection.end).toBeNull()
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-12',
+      )
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
+        '2026-01-19',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it("lets closeDraftStrategy 'revert' discard a complete typed draft after blur", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          closeDraftStrategy: 'revert',
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      await input.setValue('Jan 20, 2026')
+      await input.trigger('blur')
+      await flushPromises()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(payload?.reason).toBe('dismiss')
+      expect(payload?.strategy).toBe('revert')
+      expect(payload?.outcome).toBe('closed')
+      expect(payload?.draft.source).toBe('text')
+      expect(payload?.draft.parseStatus).toBe('complete')
+      expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-20')
+
+      wrapper.unmount()
+    })
+  })
+
+  it("keeps partial draft state across close and reopen when closeDraftStrategy is 'preserve'", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          closeDraftStrategy: 'preserve',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
+        'click:control',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+
+      const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(payload?.strategy).toBe('preserve')
+      expect(payload?.outcome).toBe('closed')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+      expect(wrapper.emitted('update:menu')).toEqual([[false], [true]])
+
+      wrapper.unmount()
+    })
+  })
+
+  it("lets closeDraftStrategy 'preserve' keep a complete typed draft after blur", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          closeDraftStrategy: 'preserve',
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      const input = wrapper.find('input')
+
+      await input.setValue('Jan 20, 2026')
+      await input.trigger('blur')
+      await flushPromises()
+
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
+        'click:control',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+
+      const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(payload?.strategy).toBe('preserve')
+      expect(payload?.outcome).toBe('closed')
+      expect(payload?.draft.source).toBe('text')
+      expect(payload?.draft.parseStatus).toBe('complete')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(wrapper.emitted('update:menu')).toEqual([[false], [true]])
+
+      wrapper.unmount()
+    })
+  })
+
+  it("blocks overlay close for incomplete drafts when closeDraftStrategy is 'commit'", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const invalidPayload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(invalidPayload?.reason).toBe('incomplete')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('blocked')
+      expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
+      expect(publicHandle(wrapper).errorMessages).toContain(
+        'Enter a valid date range',
+      )
+      expect(publicHandle(wrapper).isValid).toBe(false)
+      expect(wrapper.text()).toContain('Enter a valid date range')
+
+      wrapper.unmount()
+    })
+  })
+
+  it("blocks closeDraftStrategy 'commit' when a picker draft becomes unavailable before dismiss", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          autoApply: false,
+          closeDraftStrategy: 'commit',
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-12"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.setProps({
+        allowedStartDates: allowOnly('2026-01-13'),
+      })
+      await wrapper.vm.$nextTick()
+
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const invalidPayload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(publicHandle(wrapper).draft.availabilityStatus).toBe('unavailable')
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(invalidPayload?.reason).toBe('unavailable')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('blocked')
+      expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
+
+      wrapper.unmount()
+    })
+  })
+
+  it("lets the picker Cancel action discard the draft even when closeDraftStrategy is 'commit'", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const cancelButton = wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Cancel')
+
+      expect(cancelButton).toBeDefined()
+
+      await cancelButton!.trigger('click')
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.find('input').element.value).toBe(
+        'Jan 12, 2026 – Jan 19, 2026',
+      )
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('inputCommit')).toBeUndefined()
+      expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+      expect(wrapper.emitted('cancel')?.length).toBe(1)
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(closePayload?.reason).toBe('cancel')
+      expect(closePayload?.strategy).toBe('revert')
+      expect(closePayload?.outcome).toBe('closed')
+      expect(toLocalYmd(closePayload?.draft.selection.start)).toBe('2026-01-20')
+      expect(closePayload?.draft.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('re-emits cancel when Escape closes the picker', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.findComponent({ name: 'VAdvancedDatePicker' })
+      const onEscapeKey = picker.props('onEscapeKey') as (() => void) | undefined
+
+      onEscapeKey?.()
+      picker.vm.$emit('cancel')
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('cancel')?.length).toBe(1)
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(closePayload?.reason).toBe('escape')
+      expect(closePayload?.strategy).toBe('revert')
+      expect(closePayload?.outcome).toBe('closed')
+      expect(wrapper.find('input').element.value).toBe(
+        'Jan 12, 2026 – Jan 19, 2026',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it("does not emit cancel when Escape is blocked by closeDraftStrategy='commit'", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.findComponent({ name: 'VAdvancedDatePicker' })
+      const onEscapeKey = picker.props('onEscapeKey') as (() => void) | undefined
+
+      onEscapeKey?.()
+      picker.vm.$emit('cancel')
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const invalidPayload = lastEmitted<AdvancedDateInputInvalidPayload<Date>>(
+        wrapper,
+        'inputInvalid',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('cancel')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(invalidPayload?.reason).toBe('incomplete')
+      expect(closePayload?.reason).toBe('escape')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('blocked')
+
+      wrapper.unmount()
+    })
+  })
+
+  it("does not emit cancel when Escape successfully commits with closeDraftStrategy='commit'", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const picker = wrapper.findComponent({ name: 'VAdvancedDatePicker' })
+      const onEscapeKey = picker.props('onEscapeKey') as (() => void) | undefined
+
+      onEscapeKey?.()
+      picker.vm.$emit('cancel')
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const value = lastEmitted<[Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+      const commitPayload = lastEmitted<AdvancedDateInputCommitPayload<Date>>(
+        wrapper,
+        'inputCommit',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('cancel')).toBeUndefined()
+      expect(toLocalYmd(value?.[0])).toBe('2026-01-20')
+      expect(toLocalYmd(value?.[1])).toBe('2026-01-23')
+      expect(closePayload?.reason).toBe('escape')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('closed')
+      expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(toLocalYmd(commitPayload?.draft.selection.end)).toBe(
+        '2026-01-23',
+      )
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+
+      wrapper.unmount()
+    })
+  })
+
+  it("commits and closes overlay-driven dismissals when closeDraftStrategy is 'commit' and the draft is complete", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit(
+        'update:modelValue',
+        false,
+      )
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const value = lastEmitted<[Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+      const commitPayload = lastEmitted<AdvancedDateInputCommitPayload<Date>>(
+        wrapper,
+        'inputCommit',
+      )
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(toLocalYmd(value?.[0])).toBe('2026-01-20')
+      expect(toLocalYmd(value?.[1])).toBe('2026-01-23')
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('closed')
+      expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe(
+        '2026-01-20',
+      )
+      expect(toLocalYmd(commitPayload?.draft.selection.end)).toBe(
+        '2026-01-23',
+      )
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+
+      wrapper.unmount()
+    })
+  })
+
+  it("closes untouched overlays with closeDraftStrategy='commit' without emitting a redundant commit", async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          closeDraftStrategy: 'commit',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      wrapper.findComponent({ name: 'VMenu' }).vm.$emit(
+        'update:modelValue',
+        false,
+      )
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      const closePayload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
+        wrapper,
+        'draftClose',
+      )
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('inputCommit')).toBeUndefined()
+      expect(closePayload?.strategy).toBe('commit')
+      expect(closePayload?.outcome).toBe('closed')
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+
+      wrapper.unmount()
+    })
+  })
+
   it('clears typed errors and restores the formatted value when inputReadonly is enabled later', async () => {
     const wrapper = render(VAdvancedDateInput, {
       props: {
@@ -1229,4 +3381,28 @@ describe('VAdvancedDateInput', () => {
 
     wrapper.unmount()
   })
+
+  for (const propName of ['readonly', 'inputReadonly', 'disabled'] as const) {
+    it(`renders the committed text on mount when ${propName} is already true`, async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          text: 'Jan 20, 2026',
+          range: false,
+          [propName]: true,
+        },
+        attachTo: document.body,
+      })
+
+      const text = lastEmitted<string>(wrapper, 'update:text')
+
+      expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
+      expect(text).toBe('Jan 12, 2026')
+      expect(publicHandle(wrapper).draft.source).toBe('picker')
+      expect(publicHandle(wrapper).isDirty).toBe(false)
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('complete')
+
+      wrapper.unmount()
+    })
+  }
 })

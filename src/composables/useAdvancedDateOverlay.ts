@@ -1,38 +1,48 @@
 import { nextTick, readonly, ref, watch, type Ref } from 'vue'
 
-import type { AdvancedDateAdapter, AdvancedDateModel } from '@/types'
-import { normalizeModel } from '@/util/model'
-
 interface OverlayPickerHandle {
   focusActiveDate?: () => void
 }
 
-function shouldCloseOnSelection<TDate>(
-  adapter: AdvancedDateAdapter<TDate>,
-  modelValue: AdvancedDateModel<TDate>,
-  range: boolean,
-): boolean {
-  const selection = normalizeModel(adapter, modelValue, range)
-  if (!range) return !!selection.start
-  return !!selection.start && !!selection.end
-}
-
-export function useAdvancedDateOverlay<TDate>(options: {
-  adapter: AdvancedDateAdapter<TDate>
+export function useAdvancedDateOverlay(options: {
   menu: Ref<boolean>
-  inline: Ref<boolean>
-  autoApply: Ref<boolean>
-  range: Ref<boolean>
   pickerRef: Ref<OverlayPickerHandle | null>
   onMenuUpdate: (value: boolean) => void
-  onModelUpdate: (value: AdvancedDateModel<TDate>) => void
-  onApply: (value: AdvancedDateModel<TDate>) => void
-  onCancel: () => void
+  onExternalCloseRequest?: (() => boolean | Promise<boolean>) | undefined
 }) {
   const menu = ref(options.menu.value)
+  let menuSyncRequestId = 0
 
-  watch(options.menu, (value) => {
-    menu.value = value
+  watch(options.menu, async (value) => {
+    const requestId = ++menuSyncRequestId
+
+    if (value) {
+      menu.value = true
+      return
+    }
+
+    if (!menu.value) {
+      menu.value = false
+      return
+    }
+
+    if (!options.onExternalCloseRequest) {
+      menu.value = false
+      return
+    }
+
+    const shouldClose = await options.onExternalCloseRequest()
+    if (requestId !== menuSyncRequestId) return
+
+    if (shouldClose) {
+      menu.value = false
+      return
+    }
+
+    menu.value = true
+    if (!options.menu.value) {
+      options.onMenuUpdate(true)
+    }
   })
 
   watch(menu, async (value) => {
@@ -46,33 +56,18 @@ export function useAdvancedDateOverlay<TDate>(options: {
     options.onMenuUpdate(value)
   }
 
-  function handlePickerUpdate(value: AdvancedDateModel<TDate>) {
-    options.onModelUpdate(value)
-
-    if (
-      !options.inline.value &&
-      options.autoApply.value &&
-      shouldCloseOnSelection(options.adapter, value, options.range.value)
-    ) {
-      setMenu(false)
-    }
+  function openMenu() {
+    setMenu(true)
   }
 
-  function handleApply(value: AdvancedDateModel<TDate>) {
-    options.onApply(value)
-    setMenu(false)
-  }
-
-  function handleCancel() {
-    options.onCancel()
+  function closeMenu() {
     setMenu(false)
   }
 
   return {
     menu: readonly(menu),
     setMenu,
-    handlePickerUpdate,
-    handleApply,
-    handleCancel,
+    openMenu,
+    closeMenu,
   }
 }

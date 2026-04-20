@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+
 import type {
+  AdvancedDateInputClosePayload,
+  AdvancedDateInputCloseStrategy,
+  AdvancedDateInputCommitPayload,
+  AdvancedDateInputDraft,
+  AdvancedDateInputInvalidPayload,
+  AdvancedDateInputPublicInstance,
   AdvancedDateModel,
   PresetRange,
 } from '@gigerit/vuetify-date-input-advanced'
@@ -40,6 +48,151 @@ const presetMenu = defineModel<boolean>('presetMenu', { required: true })
 const customPresetMenu = defineModel<boolean>('customPresetMenu', {
   required: true,
 })
+
+const closeStrategyOptions = [
+  { title: 'Revert', value: 'revert' },
+  { title: 'Preserve', value: 'preserve' },
+  { title: 'Commit', value: 'commit' },
+] satisfies { title: string; value: AdvancedDateInputCloseStrategy }[]
+
+function cloneDate(date: Date) {
+  return new Date(date)
+}
+
+function formatDemoDate(date: Date) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date)
+}
+
+function toLocalYmd(date: Date | null | undefined) {
+  if (!date) return null
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function serializePreviewModel(value: AdvancedDateModel<Date>) {
+  if (value == null) return null
+  if (Array.isArray(value)) return value.map((item) => toLocalYmd(item))
+  if (value instanceof Date) return toLocalYmd(value)
+  if ('start' in value && 'end' in value) {
+    return {
+      start: toLocalYmd(value.start),
+      end: toLocalYmd(value.end),
+    }
+  }
+
+  return value
+}
+
+function serializeDraft(draft: AdvancedDateInputDraft<Date>) {
+  return {
+    ...draft,
+    selection: {
+      start: toLocalYmd(draft.selection.start),
+      end: toLocalYmd(draft.selection.end),
+    },
+  }
+}
+
+const draftApiStart = new Date()
+draftApiStart.setDate(draftApiStart.getDate() + 14)
+
+const draftApiEnd = new Date(draftApiStart)
+draftApiEnd.setDate(draftApiStart.getDate() + 5)
+
+const draftApiValue = ref<AdvancedDateModel<Date>>([
+  cloneDate(draftApiStart),
+  cloneDate(draftApiEnd),
+])
+const draftApiText = ref(
+  `${formatDemoDate(draftApiStart)} – ${formatDemoDate(draftApiEnd)}`,
+)
+const draftApiMenu = ref(false)
+const draftApiCloseStrategy = ref<AdvancedDateInputCloseStrategy>('revert')
+const draftApiRef = ref<AdvancedDateInputPublicInstance<Date> | null>(null)
+const draftApiDraft = ref<AdvancedDateInputDraft<Date> | null>(null)
+const draftApiCommit = ref<AdvancedDateInputCommitPayload<Date> | null>(null)
+const draftApiInvalid = ref<AdvancedDateInputInvalidPayload<Date> | null>(null)
+const draftApiClose = ref<AdvancedDateInputClosePayload<Date> | null>(null)
+const draftApiValidation = ref<string[]>([])
+
+function handleDraftUpdate(value: AdvancedDateInputDraft<Date>) {
+  draftApiDraft.value = value
+}
+
+function handleDraftCommit(value: AdvancedDateInputCommitPayload<Date>) {
+  draftApiCommit.value = value
+  draftApiInvalid.value = null
+  draftApiValidation.value = []
+}
+
+function handleDraftInvalid(value: AdvancedDateInputInvalidPayload<Date>) {
+  draftApiInvalid.value = value
+  draftApiValidation.value = [...(draftApiRef.value?.errorMessages ?? [])]
+}
+
+function handleDraftClose(value: AdvancedDateInputClosePayload<Date>) {
+  draftApiClose.value = value
+}
+
+async function runDraftValidate() {
+  draftApiValidation.value = (await draftApiRef.value?.validate()) ?? []
+}
+
+async function runDraftCommit() {
+  const committed = (await draftApiRef.value?.commitInput()) ?? false
+
+  draftApiValidation.value = committed
+    ? []
+    : [...(draftApiRef.value?.errorMessages ?? [])]
+}
+
+function runDraftRevert() {
+  draftApiRef.value?.revertDraft()
+  draftApiValidation.value = []
+}
+
+const draftApiOutput = computed(() => ({
+  closeDraftStrategy: draftApiCloseStrategy.value,
+  menu: draftApiMenu.value,
+  text: draftApiText.value,
+  committedValue: serializePreviewModel(draftApiValue.value),
+  publicState: {
+    isDirty: draftApiRef.value?.isDirty ?? null,
+    isPristine: draftApiRef.value?.isPristine ?? null,
+    isValid: draftApiRef.value?.isValid ?? null,
+    errorMessages: draftApiRef.value?.errorMessages ?? [],
+  },
+  draft: draftApiDraft.value ? serializeDraft(draftApiDraft.value) : null,
+  lastValidate: draftApiValidation.value,
+  lastCommit: draftApiCommit.value
+    ? {
+        value: serializePreviewModel(draftApiCommit.value.value),
+        draft: serializeDraft(draftApiCommit.value.draft),
+      }
+    : null,
+  lastInvalid: draftApiInvalid.value
+    ? {
+        reason: draftApiInvalid.value.reason,
+        draft: serializeDraft(draftApiInvalid.value.draft),
+      }
+    : null,
+  lastClose: draftApiClose.value
+    ? {
+        reason: draftApiClose.value.reason,
+        strategy: draftApiClose.value.strategy,
+        outcome: draftApiClose.value.outcome,
+        draft: serializeDraft(draftApiClose.value.draft),
+      }
+    : null,
+}))
 </script>
 
 <template>
@@ -199,6 +352,55 @@ const customPresetMenu = defineModel<boolean>('customPresetMenu', {
   </v-card>
 
   <v-card variant="flat">
+    <v-card-title>Draft API + External Submit</v-card-title>
+    <v-card-subtitle>
+      Binds <code>v-model:text</code>, surfaces <code>update:draft</code>, and
+      uses the exposed public handle so a parent form can validate or commit on
+      submit.
+    </v-card-subtitle>
+    <v-card-text class="d-flex flex-column ga-4">
+      <div class="d-flex flex-wrap align-center ga-3">
+        <v-select
+          v-model="draftApiCloseStrategy"
+          label="Close strategy"
+          :items="closeStrategyOptions"
+          density="comfortable"
+          hide-details
+          style="min-width: 220px; max-width: 320px"
+        />
+
+        <v-btn color="primary" @click="runDraftCommit">Parent submit</v-btn>
+        <v-btn variant="tonal" @click="runDraftValidate">Validate draft</v-btn>
+        <v-btn variant="text" @click="runDraftRevert">Revert draft</v-btn>
+      </div>
+
+      <v-advanced-date-input
+        ref="draftApiRef"
+        v-model="draftApiValue"
+        v-model:text="draftApiText"
+        v-model:menu="draftApiMenu"
+        label="Travel dates with draft API"
+        :months="2"
+        :close-draft-strategy="draftApiCloseStrategy"
+        @update:draft="handleDraftUpdate"
+        @input-commit="handleDraftCommit"
+        @input-invalid="handleDraftInvalid"
+        @draft-close="handleDraftClose"
+      />
+
+      <div class="text-caption text-medium-emphasis">
+        Try one range click, then dismiss the overlay or press Escape after
+        switching strategies. The preview distinguishes committed model state
+        from pending partial draft state.
+      </div>
+
+      <v-sheet border rounded="lg" class="pa-4">
+        <pre class="draft-api-output text-body-2">{{ JSON.stringify(draftApiOutput, null, 2) }}</pre>
+      </v-sheet>
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
     <v-card-title>Picker-only Input</v-card-title>
     <v-card-subtitle>
       Disables manual typing while keeping the field, icon, and picker actions interactive.
@@ -236,3 +438,13 @@ const customPresetMenu = defineModel<boolean>('customPresetMenu', {
     </v-card-text>
   </v-card>
 </template>
+
+<style scoped>
+.draft-api-output {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>
