@@ -67,6 +67,11 @@
   overflow: hidden
   padding: $advanced-date-picker-months-padding
 
+.v-advanced-date-picker__months-viewport
+  position: relative
+  min-inline-size: 0
+  overflow: hidden
+
 .v-advanced-date-picker__months--mobile-scroll
   overflow-x: hidden
   overflow-y: auto
@@ -82,6 +87,37 @@
   gap: var(--v-advanced-date-gap)
   inline-size: 100%
   min-inline-size: 0
+
+.v-advanced-date-picker__calendar-slide-enter-active,
+.v-advanced-date-picker__calendar-slide-leave-active,
+.v-advanced-date-picker__calendar-slide-reverse-enter-active,
+.v-advanced-date-picker__calendar-slide-reverse-leave-active
+  transition: transform var(--v-advanced-date-month-slide-duration) var(--v-advanced-date-month-slide-easing)
+  will-change: transform
+
+.v-advanced-date-picker__calendar-slide-leave-from,
+.v-advanced-date-picker__calendar-slide-leave-active,
+.v-advanced-date-picker__calendar-slide-leave-to,
+.v-advanced-date-picker__calendar-slide-reverse-leave-from,
+.v-advanced-date-picker__calendar-slide-reverse-leave-active,
+.v-advanced-date-picker__calendar-slide-reverse-leave-to
+  position: absolute
+  inset-block-start: 0
+  inset-inline: 0
+  inline-size: 100%
+  pointer-events: none
+
+.v-advanced-date-picker__calendar-slide-enter-from
+  transform: translateX(var(--v-advanced-date-month-slide-distance))
+
+.v-advanced-date-picker__calendar-slide-leave-to
+  transform: translateX(calc(-1 * var(--v-advanced-date-month-slide-distance)))
+
+.v-advanced-date-picker__calendar-slide-reverse-enter-from
+  transform: translateX(calc(-1 * var(--v-advanced-date-month-slide-distance)))
+
+.v-advanced-date-picker__calendar-slide-reverse-leave-to
+  transform: translateX(var(--v-advanced-date-month-slide-distance))
 
 .v-advanced-date-picker--stacked .v-advanced-date-picker__months-track
   flex-direction: column

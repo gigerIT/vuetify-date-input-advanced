@@ -94,10 +94,16 @@ of importing `style.css`:
 ```scss
 @use '@gigerit/vuetify-date-input-advanced/styles' with (
   $advanced-date-picker-cell-size: 44px,
+  $advanced-date-picker-month-slide-duration: 0.36s,
+  $advanced-date-picker-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1),
   $advanced-date-picker-preset-width: 260px,
   $advanced-date-picker-day-font-weight: 600,
 );
 ```
+
+Desktop month navigation can be tuned with
+`$advanced-date-picker-month-slide-duration` and
+`$advanced-date-picker-month-slide-easing`.
 
 Package Sass variables default to Vuetify's native date-picker and button
 variables where equivalent values exist. To let customized Vuetify Sass

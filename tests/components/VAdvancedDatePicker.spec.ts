@@ -704,13 +704,21 @@ describe('VAdvancedDatePicker', () => {
 
     const labels = wrapper.findAll('.v-advanced-date-picker__month-label')
     const months = wrapper.find('.v-advanced-date-picker__months')
+    const viewport = wrapper.find('.v-advanced-date-picker__months-viewport')
 
     expect(wrapper.find('.v-advanced-date-picker__header').exists()).toBe(false)
+    expect(viewport.exists()).toBe(true)
     expect(months.find('.v-advanced-date-picker__nav--prev').exists()).toBe(
       true,
     )
     expect(months.find('.v-advanced-date-picker__nav--next').exists()).toBe(
       true,
+    )
+    expect(viewport.find('.v-advanced-date-picker__nav--prev').exists()).toBe(
+      false,
+    )
+    expect(viewport.find('.v-advanced-date-picker__nav--next').exists()).toBe(
+      false,
     )
     expect(labels[0].find('.v-advanced-date-picker__nav--prev').exists()).toBe(
       false,
@@ -718,6 +726,23 @@ describe('VAdvancedDatePicker', () => {
     expect(
       labels.at(-1)?.find('.v-advanced-date-picker__nav--next').exists(),
     ).toBe(false)
+  })
+
+  it('exposes the rendered month count to the desktop slide animation', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        months: 3,
+        year: 2026,
+      },
+    })
+
+    expect(
+      wrapper
+        .find('.v-advanced-date-picker__months')
+        .attributes('style'),
+    ).toContain('--v-advanced-date-visible-month-count: 3;')
   })
 
   it('does not reuse the clicked previous button as the next button after navigation', async () => {

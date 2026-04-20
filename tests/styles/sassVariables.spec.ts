@@ -24,6 +24,10 @@ describe('Sass variables', () => {
     const dayRule = extractRule(css, '.v-advanced-date-picker__day')
 
     expect(css).toContain('--v-advanced-date-cell-size: 40px;')
+    expect(css).toContain('--v-advanced-date-month-slide-duration: 0.36s;')
+    expect(css).toContain(
+      '--v-advanced-date-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1);',
+    )
     expect(css).toContain('--v-advanced-date-preset-width: 220px;')
     expect(dayRule).toContain('font-size: 0.875rem;')
     expect(dayRule).toContain('font-weight: 500;')
@@ -33,6 +37,8 @@ describe('Sass variables', () => {
     const css = compileStyles(`
       @use 'styles' with (
         $advanced-date-picker-cell-size: 44px,
+        $advanced-date-picker-month-slide-duration: 0.32s,
+        $advanced-date-picker-month-slide-easing: linear,
         $advanced-date-picker-preset-width: 260px,
         $advanced-date-picker-day-font-weight: 600
       );
@@ -40,6 +46,8 @@ describe('Sass variables', () => {
     const dayRule = extractRule(css, '.v-advanced-date-picker__day')
 
     expect(css).toContain('--v-advanced-date-cell-size: 44px;')
+    expect(css).toContain('--v-advanced-date-month-slide-duration: 0.32s;')
+    expect(css).toContain('--v-advanced-date-month-slide-easing: linear;')
     expect(css).toContain('--v-advanced-date-preset-width: 260px;')
     expect(dayRule).toContain('font-weight: 600;')
   })

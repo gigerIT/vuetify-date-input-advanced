@@ -166,8 +166,16 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     const monthTransition = computed(() =>
-      isReverse.value ? 'picker-reverse-transition' : 'picker-transition',
+      isReverse.value
+        ? 'v-advanced-date-picker__calendar-slide-reverse'
+        : 'v-advanced-date-picker__calendar-slide',
     )
+    const monthsStyle = computed<Record<string, string>>(() => ({
+      ...mobileWindow.monthsStyle.value,
+      // Slide by one rendered month plus the shared gap so adjacent months
+      // feel anchored during horizontal navigation.
+      '--v-advanced-date-visible-month-count': String(monthsRef.value),
+    }))
     const baseTitle = computed(() => props.title?.trim() ?? '')
     const startDateTitle = computed(() => props.titleStartDate?.trim() ?? '')
     const endDateTitle = computed(() => props.titleEndDate?.trim() ?? '')
@@ -381,7 +389,7 @@ export const VAdvancedDatePicker = defineComponent({
                   isMobileScroll.value,
               },
             ]}
-            style={mobileWindow.monthsStyle.value}
+            style={monthsStyle.value}
             onMouseleave={() => handleHoverDate(null)}
             onScroll={
               isMobileScroll.value ? mobileWindow.onMonthsScroll : undefined
@@ -404,28 +412,30 @@ export const VAdvancedDatePicker = defineComponent({
             ) : null}
 
             {!isMobileScroll.value ? (
-              <Transition name={monthTransition.value}>
-                <div
-                  ref={mobileWindow.setMonthsTrackRef}
-                  key={mobileWindow.monthsTrackKey.value}
-                  class="v-advanced-date-picker__months-track"
-                >
-                  {grid.months.value.map((month) => (
-                    <VAdvancedDateMonth
-                      key={month.key}
-                      month={month}
-                      disabled={disabledRef.value}
-                      activeDateKey={focus.activeDateKey.value}
-                      showWeekNumbers={props.showWeekNumbers}
-                      onSelect={handleSelectDate}
-                      onHover={handleHoverDate}
-                      onFocusDate={focus.setActiveDate}
-                      onKeydown={focus.onKeydown}
-                      v-slots={slots}
-                    />
-                  ))}
-                </div>
-              </Transition>
+              <div class="v-advanced-date-picker__months-viewport">
+                <Transition name={monthTransition.value}>
+                  <div
+                    ref={mobileWindow.setMonthsTrackRef}
+                    key={mobileWindow.monthsTrackKey.value}
+                    class="v-advanced-date-picker__months-track"
+                  >
+                    {grid.months.value.map((month) => (
+                      <VAdvancedDateMonth
+                        key={month.key}
+                        month={month}
+                        disabled={disabledRef.value}
+                        activeDateKey={focus.activeDateKey.value}
+                        showWeekNumbers={props.showWeekNumbers}
+                        onSelect={handleSelectDate}
+                        onHover={handleHoverDate}
+                        onFocusDate={focus.setActiveDate}
+                        onKeydown={focus.onKeydown}
+                        v-slots={slots}
+                      />
+                    ))}
+                  </div>
+                </Transition>
+              </div>
             ) : (
               <div
                 ref={mobileWindow.setMonthsTrackRef}
