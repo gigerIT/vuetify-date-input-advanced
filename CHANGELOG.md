@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.0.0...v3.1.0) (2026-04-20)
+
+
+### Features
+
+* introduce selection change origin tracking ([4ce43d3](https://github.com/gigerIT/vuetify-date-input-advanced/commit/4ce43d3815aa433a874a7110f117a36acc16623c))
+
+
+### Bug Fixes
+
+* **picker:** restore viewport sync for presets and mobile ranges ([2a99e23](https://github.com/gigerIT/vuetify-date-input-advanced/commit/2a99e23f72fa0f128d4bdefbbf66294b22f02e5b))
+
 ## [3.0.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.7.0...v3.0.0) (2026-04-20)
 
 
