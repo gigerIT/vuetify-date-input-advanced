@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.4.0...v2.5.0) (2026-04-20)
+
+
+### Features
+
+* **icons:** support official Vuetify icon setups ([95f3f10](https://github.com/gigerIT/vuetify-date-input-advanced/commit/95f3f10f86e63e13855fd8aa805648a9614c54cd))
+* **input:** add controlled draft text API ([be39413](https://github.com/gigerIT/vuetify-date-input-advanced/commit/be39413b14ddbea5a596837acc1c7ba3cf5a5bc3))
+
 ## [2.4.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v2.3.0...v2.4.0) (2026-04-19)
 
 
