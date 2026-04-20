@@ -119,6 +119,13 @@ function pickerLiveText(wrapper: ReturnType<typeof render>) {
   return wrapper.get('.v-advanced-date-picker__live').text().trim()
 }
 
+function lastEmitted<T>(
+  wrapper: ReturnType<typeof render>,
+  eventName: string,
+): T | undefined {
+  return wrapper.emitted(eventName)?.at(-1)?.[0] as T | undefined
+}
+
 describe('VAdvancedDatePicker', () => {
   it('hides the optional picker title by default', () => {
     const wrapper = render(VAdvancedDatePicker, {
@@ -408,7 +415,7 @@ describe('VAdvancedDatePicker', () => {
     })
   })
 
-  it('keeps standalone mobile fullscreen months anchored after a draft range selection', async () => {
+  it('rebuilds standalone mobile fullscreen months after a draft range selection narrows later options', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
         props: {
@@ -433,7 +440,8 @@ describe('VAdvancedDatePicker', () => {
         await wrapper.find('[data-date="2026-01-20"]').trigger('click')
         await wrapper.vm.$nextTick()
 
-        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+        expect(monthLabels(wrapper)).toEqual(['January 2026'])
         expect(pickerLiveText(wrapper)).toBe('January 2026')
       } finally {
         wrapper.unmount()
@@ -472,6 +480,86 @@ describe('VAdvancedDatePicker', () => {
     })
   })
 
+  it('keeps a later visible start month rendered while pruning invalid months after it', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+          months: 1,
+          autoApply: false,
+          allowedStartDates: allowOnly('2026-01-20', '2026-02-10'),
+          allowedEndDates: allowOnly('2026-01-25'),
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+
+        await wrapper.find('[data-date="2026-02-10"]').trigger('click')
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('realigns standalone mobile fullscreen months when a preset selects an off-screen range', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+          months: 2,
+          mobilePresentation: 'fullscreen',
+          presets: [
+            {
+              label: 'October Window',
+              value: () => [new Date('2026-10-10'), new Date('2026-10-15')],
+            },
+          ],
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        expect(monthLabels(wrapper)).toContain('January 2026')
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+
+        await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
+        await wrapper.vm.$nextTick()
+        await wrapper.vm.$nextTick()
+
+        const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+          wrapper,
+          'update:modelValue',
+        )
+
+        expect(monthLabels(wrapper)).toContain('October 2026')
+        expect(monthLabels(wrapper)).not.toContain('January 2026')
+        expect(pickerLiveText(wrapper).endsWith('October 2026')).toBe(true)
+        expect(toLocalYmd(finalValue?.[0])).toBe('2026-10-10')
+        expect(toLocalYmd(finalValue?.[1])).toBe('2026-10-15')
+        expect(wrapper.emitted('presetSelect')).toHaveLength(1)
+        expect(wrapper.emitted('update:month')).toBeUndefined()
+        expect(wrapper.emitted('update:year')).toBeUndefined()
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
   it('limits standalone mobile inline rendering to the constrained segment', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
@@ -491,6 +579,40 @@ describe('VAdvancedDatePicker', () => {
         await wrapper.vm.$nextTick()
 
         expect(monthLabels(wrapper)).toEqual(['February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('rebuilds standalone mobile inline months after a draft range selection narrows later options', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+          months: 1,
+          autoApply: false,
+          allowedStartDates: allowOnly('2026-01-20', '2026-02-10'),
+          allowedEndDates: allowOnly('2026-01-25'),
+          mobilePresentation: 'inline',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+
+        await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+        expect(monthLabels(wrapper)).toEqual(['January 2026'])
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
       } finally {
         wrapper.unmount()
       }
@@ -607,6 +729,44 @@ describe('VAdvancedDatePicker', () => {
     await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
 
     expect(wrapper.emitted('presetSelect')).toHaveLength(1)
+  })
+
+  it('realigns the desktop viewport when a preset selects a later off-screen range', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        months: 2,
+        presets: [
+          {
+            label: 'March Window',
+            value: () => [new Date('2026-03-10'), new Date('2026-03-15')],
+          },
+        ],
+      },
+    })
+
+    expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+
+    await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+      wrapper,
+      'update:modelValue',
+    )
+
+    expect(monthLabels(wrapper).slice(-2)).toEqual(['March 2026', 'April 2026'])
+    expect(pickerLiveText(wrapper).endsWith('March 2026, April 2026')).toBe(
+      true,
+    )
+    expect(toLocalYmd(finalValue?.[0])).toBe('2026-03-10')
+    expect(toLocalYmd(finalValue?.[1])).toBe('2026-03-15')
+    expect(wrapper.emitted('presetSelect')).toHaveLength(1)
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
   })
 
   for (const propName of ['readonly', 'disabled'] as const) {

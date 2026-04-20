@@ -236,6 +236,13 @@ npm run build
 - Picker visual tokens in `src/styles/variables.sass` are public Sass API via
   the package `./styles` exports; keep changes synchronized with README,
   `package.json`, and Sass variable tests.
+- Internal picker selections are not uniformly “stay put” events: preset
+  selections that land outside the current viewport must explicitly realign the
+  rendered months and live-region labels even when the selection change is
+  marked internal.
+- Mobile month-window logic must rebuild whenever `monthHasSelectableDate()`
+  inputs change, including internal partial/completed range picks; preserving
+  the current anchor must not leave stale non-selectable months rendered.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and
@@ -297,6 +304,12 @@ Default to the narrowest correct target.
 
 **Quality standard**
 Keep `AGENTS.md` high-signal and durable. Summarize, deduplicate, and prune stale or overly narrow entries so it stays useful without wasting tokens.
+
+**Caveat capture**
+When a task uncovers a durable caveat, regression trap, or non-obvious
+invariant, update `AGENTS.md` in the same task. Keep those caveats current as
+behavior changes, and rewrite or remove stale entries instead of accumulating
+contradictory guidance.
 
 **Completion check**
 Before finalizing any task: confirm that all needed `AGENTS.md` updates and relevant code comments have been made, or explicitly verify that none are needed. The task is incomplete until this check passes.

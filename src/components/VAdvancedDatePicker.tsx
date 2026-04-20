@@ -263,6 +263,27 @@ export const VAdvancedDatePicker = defineComponent({
       }
     }
 
+    async function realignSelectionViewport(date: unknown) {
+      const targetMonth = adapter.startOfMonth(date)
+      const visible = mobileWindow.visibleMonths.value.some((month) =>
+        adapter.isSameMonth(month, targetMonth),
+      )
+
+      if (visible) return
+
+      if (isMobileScroll.value) {
+        mobileWindow.resetWindow(targetMonth)
+        navigation.setDisplayedMonth(targetMonth, false)
+
+        await nextTick()
+        mobileWindow.scrollMonthIntoView(targetMonth)
+        return
+      }
+
+      navigation.setDisplayedMonth(targetMonth, false)
+      await nextTick()
+    }
+
     const focus = useAdvancedDatePickerFocus({
       adapter,
       months: grid.months,
@@ -333,7 +354,7 @@ export const VAdvancedDatePicker = defineComponent({
       )
     }
 
-    function handlePresetSelect(preset: PresetRange<unknown>) {
+    async function handlePresetSelect(preset: PresetRange<unknown>) {
       if (disabledRef.value) return
 
       markInternalSelectionChange()
@@ -341,6 +362,11 @@ export const VAdvancedDatePicker = defineComponent({
         localSelectionChangeOrigin.value = null
         return
       }
+
+      if (model.normalized.value.start) {
+        await realignSelectionViewport(model.normalized.value.start)
+      }
+
       emit('presetSelect', preset)
     }
 

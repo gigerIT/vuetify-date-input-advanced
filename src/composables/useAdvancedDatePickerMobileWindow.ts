@@ -65,9 +65,13 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     )
   }
 
-  function buildMobileMonthWindow(start: TDate, count: number): TDate[] {
+  function buildMobileMonthWindow(
+    start: TDate,
+    count: number,
+    keepThroughMonth = options.displayedMonth.value,
+  ): TDate[] {
     const months: TDate[] = []
-    const anchor = options.adapter.startOfMonth(options.displayedMonth.value)
+    const anchor = options.adapter.startOfMonth(keepThroughMonth)
 
     for (let index = 0; index < count; index += 1) {
       const month = options.adapter.startOfMonth(
@@ -113,7 +117,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     return start
   }
 
-  function syncMobileVisibleMonths() {
+  function syncMobileVisibleMonths(keepThroughMonth = options.displayedMonth.value) {
     if (!mobileWindowStart.value) {
       mobileVisibleMonths.value = []
       return
@@ -122,7 +126,27 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     mobileVisibleMonths.value = buildMobileMonthWindow(
       mobileWindowStart.value,
       mobileWindowCount.value,
+      keepThroughMonth,
     )
+  }
+
+  function latestPreservedMonth() {
+    let preservedMonth = options.adapter.startOfMonth(options.displayedMonth.value)
+
+    for (const date of [
+      options.selection.value.start,
+      options.selection.value.end,
+    ]) {
+      if (!date) continue
+
+      const candidate = options.adapter.startOfMonth(date)
+
+      if (options.adapter.isAfter(candidate, preservedMonth)) {
+        preservedMonth = candidate
+      }
+    }
+
+    return preservedMonth
   }
 
   function resetWindow(anchor: TDate) {
@@ -420,9 +444,31 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     [() => options.selection.value.start, () => options.selection.value.end],
     () => {
       if (!options.isMobileScroll.value) return
-      if (options.selectionChangeOrigin.value === 'internal') return
+      const anchorMonth =
+        options.selection.value.start ?? options.displayedMonth.value
 
-      resetWindow(options.selection.value.start ?? options.displayedMonth.value)
+      if (options.selectionChangeOrigin.value === 'internal') {
+        if (!mobileWindowStart.value || !mobileWindowCount.value) {
+          resetWindow(anchorMonth)
+          return
+        }
+
+        // Internal picks still need to prune stale months without recentering
+        // the mobile viewport away from the current anchor or selected month.
+        syncMobileVisibleMonths(latestPreservedMonth())
+
+        const displayedMonthStillVisible = mobileVisibleMonths.value.some(
+          (month) => options.adapter.isSameMonth(month, options.displayedMonth.value),
+        )
+
+        if (!mobileVisibleMonths.value.length || !displayedMonthStillVisible) {
+          resetWindow(anchorMonth)
+        }
+
+        return
+      }
+
+      resetWindow(anchorMonth)
     },
   )
 
