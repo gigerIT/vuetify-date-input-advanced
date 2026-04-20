@@ -14,6 +14,12 @@ import type {
   SelectOption,
   ThemeMode,
 } from '../playgroundTypes'
+import {
+  normalizePlaygroundLocale,
+  normalizeThemeMode,
+  writePlaygroundLocalePreference,
+  writeThemeModePreference,
+} from '../playgroundPreferences'
 
 const localeOptions = [
   { title: 'English', value: 'en' },
@@ -56,25 +62,6 @@ const densityOptions = [
   { title: 'Comfortable', value: 'comfortable' },
   { title: 'Compact', value: 'compact' },
 ] satisfies SelectOption<InlineDensity>[]
-
-function normalizePlaygroundLocale(value: string): PlaygroundLocale {
-  return (
-    value === 'cs' ||
-    value === 'de' ||
-    value === 'en' ||
-    value === 'fr' ||
-    value === 'it' ||
-    value === 'lt'
-  )
-    ? value
-    : 'en'
-}
-
-function normalizeThemeMode(value: string): ThemeMode {
-  return value === 'light' || value === 'dark' || value === 'system'
-    ? value
-    : 'system'
-}
 
 function toLocalYmd(date: Date | null | undefined) {
   if (!date) return null
@@ -155,6 +142,22 @@ export function usePlaygroundState() {
       theme.global.name.value = value
     },
   })
+
+  watch(
+    playgroundLocale,
+    (value) => {
+      writePlaygroundLocalePreference(value)
+    },
+    { immediate: true },
+  )
+
+  watch(
+    themeMode,
+    (value) => {
+      writeThemeModePreference(value)
+    },
+    { immediate: true },
+  )
 
   const today = new Date()
   const inSevenDays = new Date(today)
