@@ -121,6 +121,27 @@ export function monthIntersectsBounds<TDate>(
   return true
 }
 
+export function monthHasSelectableDate<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  month: TDate,
+  selection: NormalizedRange<TDate>,
+  range: boolean,
+  bounds: DateBounds<TDate>,
+): boolean {
+  let day = adapter.startOfMonth(month)
+  const end = adapter.endOfMonth(month)
+
+  while (!adapter.isAfter(day, end)) {
+    if (!isSelectionDateDisabled(adapter, day, selection, range, bounds)) {
+      return true
+    }
+
+    day = adapter.addDays(day, 1)
+  }
+
+  return false
+}
+
 export function formatInputValue<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
   range: NormalizedRange<TDate>,

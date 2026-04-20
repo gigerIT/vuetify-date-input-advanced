@@ -623,6 +623,92 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.emitted('update:year')).toBeUndefined()
   })
 
+  it('disables both month buttons when a multi-month viewport cannot reveal another allowed month', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        months: 2,
+        min: new Date('2026-01-10'),
+        max: new Date('2026-02-10'),
+      },
+    })
+
+    const previousButton = wrapper.find('button[aria-label="Previous month"]')
+    const nextButton = wrapper.find('button[aria-label="Next month"]')
+
+    expect(previousButton.attributes('disabled')).toBeDefined()
+    expect(nextButton.attributes('disabled')).toBeDefined()
+
+    await previousButton.trigger('click')
+    await nextButton.trigger('click')
+
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+  })
+
+  it('disables next navigation when the revealed month has no selectable dates', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 1,
+        year: 2026,
+        months: 1,
+        allowedDates: allowOnly('2026-01-15', '2026-02-05'),
+      },
+    })
+
+    expect(
+      wrapper.find('button[aria-label="Previous month"]').attributes('disabled'),
+    ).toBeUndefined()
+    expect(
+      wrapper.find('button[aria-label="Next month"]').attributes('disabled'),
+    ).toBeDefined()
+  })
+
+  it('recomputes navigation availability from the draft range when autoApply is false', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        months: 1,
+        autoApply: false,
+        allowedStartDates: allowOnly('2026-01-20', '2026-02-10'),
+        allowedEndDates: allowOnly('2026-01-25'),
+      },
+    })
+
+    expect(
+      wrapper.find('button[aria-label="Next month"]').attributes('disabled'),
+    ).toBeUndefined()
+
+    await wrapper.find('[data-date="2026-01-20"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(
+      wrapper.find('button[aria-label="Next month"]').attributes('disabled'),
+    ).toBeDefined()
+  })
+
+  it('does not skip a fully unavailable adjacent month when a later month is selectable', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 1,
+        year: 2026,
+        months: 1,
+        allowedDates: allowOnly('2026-02-10', '2026-04-10'),
+      },
+    })
+
+    expect(
+      wrapper.find('button[aria-label="Next month"]').attributes('disabled'),
+    ).toBeDefined()
+  })
+
   it('renders built-in picker strings from the active locale', () => {
     const wrapper = render(VAdvancedDatePicker, {
       locale: 'lt',

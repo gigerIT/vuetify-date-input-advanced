@@ -214,6 +214,40 @@ describe('VAdvancedDateInput', () => {
     })
   })
 
+  it('renders disabled constrained navigation buttons through the input wrapper', async () => {
+    await runWithDesktopWidth(() => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          month: 1,
+          year: 2026,
+          months: 1,
+          allowedDates: allowOnly('2026-01-15', '2026-02-05'),
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      try {
+        expect(
+          wrapper.find('button[aria-label="Previous month"]').attributes(
+            'disabled',
+          ),
+        ).toBeUndefined()
+        expect(
+          wrapper.find('button[aria-label="Next month"]').attributes(
+            'disabled',
+          ),
+        ).toBeDefined()
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
   it('accepts component icon values for field icon overrides', async () => {
     await runWithDesktopWidth(() => {
       const wrapper = render(VAdvancedDateInput, {

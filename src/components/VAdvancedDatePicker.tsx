@@ -111,13 +111,16 @@ export const VAdvancedDatePicker = defineComponent({
 
     const navigation = useAdvancedDateNavigation({
       adapter,
-      modelValue: toRef(props, 'modelValue'),
+      selection: model.normalized,
       range: toRef(props, 'range'),
       months: navigationMonthsRef,
       month: monthRef,
       year: yearRef,
       min: toRef(props, 'min'),
       max: toRef(props, 'max'),
+      allowedDates: toRef(props, 'allowedDates'),
+      allowedStartDates: toRef(props, 'allowedStartDates'),
+      allowedEndDates: toRef(props, 'allowedEndDates'),
       onMonthChange: (value) => emit('update:month', value),
       onYearChange: (value) => emit('update:year', value),
     })
