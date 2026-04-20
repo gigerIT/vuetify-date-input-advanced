@@ -43,6 +43,23 @@ function clampMonthCount(value: number): number {
   return Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1
 }
 
+function isSameSelection<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  left: NormalizedRange<TDate>,
+  right: NormalizedRange<TDate>,
+) {
+  const sameStart =
+    (!left.start && !right.start) ||
+    (!!left.start &&
+      !!right.start &&
+      adapter.isSameDay(left.start, right.start))
+  const sameEnd =
+    (!left.end && !right.end) ||
+    (!!left.end && !!right.end && adapter.isSameDay(left.end, right.end))
+
+  return sameStart && sameEnd
+}
+
 export const VAdvancedDatePicker = defineComponent({
   name: 'VAdvancedDatePicker',
 
@@ -79,6 +96,10 @@ export const VAdvancedDatePicker = defineComponent({
     const navigationMonthsRef = computed(() =>
       isMobileScroll.value ? 1 : monthsRef.value,
     )
+    const localSelectionChangeOrigin = ref<'internal' | null>(null)
+    const selectionChangeOrigin = computed<'external' | 'internal'>(() => {
+      return localSelectionChangeOrigin.value ?? props.selectionChangeOrigin
+    })
 
     const model = useAdvancedDateModel({
       adapter,
@@ -106,6 +127,7 @@ export const VAdvancedDatePicker = defineComponent({
     const navigation = useAdvancedDateNavigation({
       adapter,
       selection: model.normalized,
+      selectionChangeOrigin,
       range: toRef(props, 'range'),
       months: navigationMonthsRef,
       month: monthRef,
@@ -123,6 +145,7 @@ export const VAdvancedDatePicker = defineComponent({
       desktopVisibleMonths: navigation.visibleMonths,
       displayedMonth: navigation.displayedMonth,
       setDisplayedMonth: navigation.setDisplayedMonth,
+      selectionChangeOrigin,
       isMobileScroll,
       isMobileFullscreen,
       months: monthsRef,
@@ -195,9 +218,24 @@ export const VAdvancedDatePicker = defineComponent({
       return baseTitle.value
     })
 
+    function markInternalSelectionChange() {
+      localSelectionChangeOrigin.value = 'internal'
+    }
+
     function handleSelectDate(date: unknown) {
       if (disabledRef.value) return
+
+      const previousSelection = {
+        start: model.normalized.value.start,
+        end: model.normalized.value.end,
+      } as NormalizedRange<unknown>
+
+      markInternalSelectionChange()
       model.selectDate(date)
+
+      if (isSameSelection(adapter, previousSelection, model.normalized.value)) {
+        localSelectionChangeOrigin.value = null
+      }
     }
 
     function handleHoverDate(date: unknown | null) {
@@ -271,6 +309,14 @@ export const VAdvancedDatePicker = defineComponent({
       model.normalized,
       (value) => {
         props.onDraftChange?.(value as NormalizedRange<unknown>)
+
+        if (localSelectionChangeOrigin.value !== 'internal') return
+
+        void nextTick(() => {
+          if (localSelectionChangeOrigin.value === 'internal') {
+            localSelectionChangeOrigin.value = null
+          }
+        })
       },
       { immediate: true },
     )
@@ -289,7 +335,12 @@ export const VAdvancedDatePicker = defineComponent({
 
     function handlePresetSelect(preset: PresetRange<unknown>) {
       if (disabledRef.value) return
-      if (!model.selectPreset(preset)) return
+
+      markInternalSelectionChange()
+      if (!model.selectPreset(preset)) {
+        localSelectionChangeOrigin.value = null
+        return
+      }
       emit('presetSelect', preset)
     }
 

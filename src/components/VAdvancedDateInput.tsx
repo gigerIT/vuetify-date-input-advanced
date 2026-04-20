@@ -239,6 +239,9 @@ export const VAdvancedDateInput = defineComponent({
     const pendingPickerCloseReason = ref<AdvancedDateInputCloseReason>('cancel')
     const pendingControlledTextEchoes = ref<string[]>([])
     const pickerBoundaryField = ref<AdvancedDateInputField | null>(null)
+    const pickerSelectionChangeOrigin = ref<'external' | 'internal'>(
+      'external',
+    )
 
     function formatSelection(selection: NormalizedRange<unknown>) {
       return formatInputValue(adapter, selection, {
@@ -370,8 +373,13 @@ export const VAdvancedDateInput = defineComponent({
       return true
     }
 
-    function setPickerSelection(nextSelection: NormalizedRange<unknown>) {
+    function setPickerSelection(
+      nextSelection: NormalizedRange<unknown>,
+      origin: 'external' | 'internal' = pickerSelectionChangeOrigin.value,
+    ) {
       const normalizedSelection = cloneSelection(nextSelection)
+
+      pickerSelectionChangeOrigin.value = origin
 
       if (
         !isSameSelection(adapter, pickerSelection.value, normalizedSelection)
@@ -393,9 +401,12 @@ export const VAdvancedDateInput = defineComponent({
       input.syncText(value)
     }
 
-    function syncPickerSelectionFromText(value = input.text.value) {
+    function syncPickerSelectionFromText(
+      value = input.text.value,
+      origin: 'external' | 'internal' = 'internal',
+    ) {
       const assessed = input.assessText(value)
-      setPickerSelection(assessed.selection)
+      setPickerSelection(assessed.selection, origin)
 
       return assessed
     }
@@ -404,7 +415,7 @@ export const VAdvancedDateInput = defineComponent({
       hasUncontrolledTextDraft.value = false
       controlledTextMode.value = 'mirror'
       pickerBoundaryField.value = null
-      setPickerSelection(selection)
+      setPickerSelection(selection, 'external')
       draftSource.value = 'picker'
       syncPassiveActiveField(selection)
       syncInputText(formatSelection(selection))
@@ -472,6 +483,7 @@ export const VAdvancedDateInput = defineComponent({
         } else if (isControlledTextEcho) {
           controlledTextMode.value = 'mirror'
           draftSource.value = 'picker'
+          pickerSelectionChangeOrigin.value = 'internal'
         } else if (text !== undefined) {
           if (textChanged) {
             input.setExternalText(text)
@@ -481,7 +493,10 @@ export const VAdvancedDateInput = defineComponent({
 
           if (controlledTextMode.value === 'draft') {
             draftSource.value = 'text'
-            syncPickerSelectionFromText(input.text.value)
+            syncPickerSelectionFromText(
+              input.text.value,
+              textChanged ? 'external' : pickerSelectionChangeOrigin.value,
+            )
           } else {
             syncCommittedMirror(next)
           }
@@ -637,7 +652,7 @@ export const VAdvancedDateInput = defineComponent({
         committedText,
       )
 
-      setPickerSelection(normalizedSelection)
+      setPickerSelection(normalizedSelection, 'internal')
       draftSource.value = 'picker'
       syncPassiveActiveField(normalizedSelection)
       syncInputText(committedDraft.text)
@@ -980,6 +995,19 @@ export const VAdvancedDateInput = defineComponent({
         return { selection: rawSelection, replacementField: null }
       }
 
+      if (
+        replacementField === 'start' &&
+        adapter.isAfter(rawSelection.start, currentSelection.end)
+      ) {
+        return {
+          selection: {
+            start: rawSelection.start,
+            end: null,
+          },
+          replacementField,
+        }
+      }
+
       return {
         selection: orderRange(adapter, {
           start:
@@ -993,6 +1021,21 @@ export const VAdvancedDateInput = defineComponent({
         }),
         replacementField,
       }
+    }
+
+    function resolveNextPickerActiveField(
+      selection: NormalizedRange<unknown>,
+      replacementField: AdvancedDateInputField | null,
+    ): AdvancedDateInputField {
+      if (
+        props.range &&
+        replacementField &&
+        isSelectionComplete(selection, props.range)
+      ) {
+        return 'end'
+      }
+
+      return resolveActiveFieldFromSelection(selection)
     }
 
     function handlePickerDraftChange(value: NormalizedRange<unknown>) {
@@ -1026,9 +1069,17 @@ export const VAdvancedDateInput = defineComponent({
 
       hasUncontrolledTextDraft.value = false
       controlledTextMode.value = 'mirror'
-      setPickerSelection(nextSelection)
+      if (resolvedSelection.replacementField && pickerBoundaryField.value) {
+        pickerBoundaryField.value = null
+      }
+      setPickerSelection(nextSelection, 'internal')
       draftSource.value = 'picker'
-      setActiveField(resolveActiveFieldFromSelection(nextSelection))
+      setActiveField(
+        resolveNextPickerActiveField(
+          nextSelection,
+          resolvedSelection.replacementField,
+        ),
+      )
       input.resetValidation()
       void resetFieldValidation()
 
@@ -1154,6 +1205,7 @@ export const VAdvancedDateInput = defineComponent({
           {...(extraProps as any)}
           {...pickerBindings.value}
           modelValue={serializeSelection(pickerSelection.value)}
+          selectionChangeOrigin={pickerSelectionChangeOrigin.value}
           onDraftChange={handlePickerDraftChange}
           onEscapeKey={handlePickerEscape}
           onUpdate:modelValue={handlePickerModelValue}

@@ -3,6 +3,7 @@ import {
   nextTick,
   onBeforeUnmount,
   ref,
+  shallowRef,
   watch,
   type Ref,
 } from 'vue'
@@ -20,6 +21,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   desktopVisibleMonths: Ref<TDate[]>
   displayedMonth: Ref<TDate>
   setDisplayedMonth: (month: TDate) => void
+  selectionChangeOrigin: Ref<'external' | 'internal'>
   isMobileScroll: Ref<boolean>
   isMobileFullscreen: Ref<boolean>
   months: Ref<number>
@@ -35,6 +37,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   const monthsTrackRef = ref<HTMLElement | null>(null)
   const mobileWindowStart = ref<TDate | null>(null)
   const mobileWindowCount = ref(0)
+  const mobileVisibleMonths = shallowRef<TDate[]>([])
   const mobileInlineHeight = ref<number | null>(null)
   const mobileMutating = ref(false)
   const pendingMobileScrollMonthKey = ref('')
@@ -110,21 +113,26 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     return start
   }
 
+  function syncMobileVisibleMonths() {
+    if (!mobileWindowStart.value) {
+      mobileVisibleMonths.value = []
+      return
+    }
+
+    mobileVisibleMonths.value = buildMobileMonthWindow(
+      mobileWindowStart.value,
+      mobileWindowCount.value,
+    )
+  }
+
   function resetWindow(anchor: TDate) {
     const targetMonth = options.adapter.startOfMonth(anchor)
 
     mobileWindowStart.value = createWindowStart(targetMonth)
     mobileWindowCount.value = mobileWindowBaseCount.value
+    syncMobileVisibleMonths()
     pendingMobileScrollMonthKey.value = dateKey(options.adapter, targetMonth)
   }
-
-  const mobileVisibleMonths = computed(() => {
-    if (!mobileWindowStart.value) return []
-    return buildMobileMonthWindow(
-      mobileWindowStart.value,
-      mobileWindowCount.value,
-    )
-  })
 
   const visibleMonths = computed(() =>
     options.isMobileScroll.value
@@ -287,6 +295,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       mobileWindowCount.value + added,
       MOBILE_MAX_RENDERED_MONTHS,
     )
+    syncMobileVisibleMonths()
 
     await nextTick()
     restoreMonthScrollReference(reference)
@@ -338,6 +347,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       mobileWindowCount.value + added,
       MOBILE_MAX_RENDERED_MONTHS,
     )
+    syncMobileVisibleMonths()
 
     await nextTick()
     restoreMonthScrollReference(reference)
@@ -392,6 +402,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       if (!mobile) {
         mobileWindowStart.value = null
         mobileWindowCount.value = 0
+        mobileVisibleMonths.value = []
         mobileInlineHeight.value = null
         return
       }
@@ -406,9 +417,17 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   )
 
   watch(
+    [() => options.selection.value.start, () => options.selection.value.end],
+    () => {
+      if (!options.isMobileScroll.value) return
+      if (options.selectionChangeOrigin.value === 'internal') return
+
+      resetWindow(options.selection.value.start ?? options.displayedMonth.value)
+    },
+  )
+
+  watch(
     [
-      () => options.selection.value.start,
-      () => options.selection.value.end,
       options.range,
       options.min,
       options.max,
@@ -418,6 +437,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     ],
     () => {
       if (!options.isMobileScroll.value) return
+
       resetWindow(options.displayedMonth.value)
     },
   )

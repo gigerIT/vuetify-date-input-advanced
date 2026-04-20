@@ -115,6 +115,10 @@ function monthLabels(wrapper: ReturnType<typeof render>) {
     .map((node) => node.text())
 }
 
+function pickerLiveText(wrapper: ReturnType<typeof render>) {
+  return wrapper.get('.v-advanced-date-picker__live').text().trim()
+}
+
 describe('VAdvancedDatePicker', () => {
   it('hides the optional picker title by default', () => {
     const wrapper = render(VAdvancedDatePicker, {
@@ -404,7 +408,7 @@ describe('VAdvancedDatePicker', () => {
     })
   })
 
-  it('rebuilds standalone mobile fullscreen months from the draft range state', async () => {
+  it('keeps standalone mobile fullscreen months anchored after a draft range selection', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
         props: {
@@ -424,11 +428,44 @@ describe('VAdvancedDatePicker', () => {
         await wrapper.vm.$nextTick()
 
         expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
 
         await wrapper.find('[data-date="2026-01-20"]').trigger('click')
         await wrapper.vm.$nextTick()
 
-        expect(monthLabels(wrapper)).toEqual(['January 2026'])
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('keeps the mobile fullscreen anchor month when selecting a later rendered month', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          range: false,
+          month: 0,
+          year: 2026,
+          months: 2,
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+        const initialLabels = monthLabels(wrapper)
+
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+
+        await wrapper.find('[data-date="2026-02-10"]').trigger('click')
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(initialLabels)
+        expect(pickerLiveText(wrapper).endsWith('January 2026')).toBe(true)
       } finally {
         wrapper.unmount()
       }
@@ -786,6 +823,24 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.emitted('update:year')).toBeUndefined()
   })
 
+  it('keeps the desktop multi-month viewport anchored when selecting a later visible month', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        range: false,
+        month: 0,
+        year: 2026,
+        months: 2,
+      },
+    })
+
+    await wrapper.find('[data-date="2026-02-10"]').trigger('click')
+
+    expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+  })
+
   it('disables both month buttons when a multi-month viewport cannot reveal another allowed month', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
@@ -921,6 +976,29 @@ describe('VAdvancedDatePicker', () => {
 
     await wrapper.setProps({ months: 3 })
 
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+  })
+
+  it('realigns the rendered months when the parent updates modelValue after mount', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        range: false,
+        month: 0,
+        year: 2026,
+      },
+    })
+
+    expect(pickerLiveText(wrapper)).toBe('January 2026, February 2026')
+
+    await wrapper.setProps({
+      modelValue: new Date('2026-03-05'),
+    })
+
+    expect(pickerLiveText(wrapper).endsWith('March 2026, April 2026')).toBe(
+      true,
+    )
     expect(wrapper.emitted('update:month')).toBeUndefined()
     expect(wrapper.emitted('update:year')).toBeUndefined()
   })

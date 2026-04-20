@@ -29,7 +29,7 @@ function monthLabels(wrapper: ReturnType<typeof render>) {
 }
 
 describe('review repro', () => {
-  it('keeps selected month visible', async () => {
+  it('keeps the anchored month window after selecting a later month', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
         props: {
@@ -49,7 +49,7 @@ describe('review repro', () => {
         expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
         await wrapper.find('[data-date="2026-02-10"]').trigger('click')
         await wrapper.vm.$nextTick()
-        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
       } finally {
         wrapper.unmount()
       }

@@ -114,6 +114,10 @@ function monthLabels(wrapper: ReturnType<typeof render>) {
     .map((node) => node.text())
 }
 
+function pickerLiveText(wrapper: ReturnType<typeof render>) {
+  return wrapper.get('.v-advanced-date-picker__live').text().trim()
+}
+
 function lastEmitted<T>(
   wrapper: ReturnType<typeof render>,
   eventName: string,
@@ -705,6 +709,42 @@ describe('VAdvancedDateInput', () => {
         await wrapper.vm.$nextTick()
 
         expect(monthLabels(wrapper)).toEqual(['February 2026'])
+      } finally {
+        wrapper.unmount()
+      }
+    }, 375)
+  })
+
+  it('keeps the mobile fullscreen picker anchored when typed input resolves to a later month', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          range: false,
+          month: 0,
+          year: 2026,
+          months: 2,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      try {
+        const input = wrapper.get('input')
+        const initialLabels = monthLabels(wrapper)
+
+        expect(pickerLiveText(wrapper)).toBe('January 2026')
+
+        await input.setValue('Feb 10, 2026')
+        await flushPromises()
+
+        expect(monthLabels(wrapper)).toEqual(initialLabels)
+        expect(pickerLiveText(wrapper).endsWith('January 2026')).toBe(true)
       } finally {
         wrapper.unmount()
       }
@@ -1405,7 +1445,60 @@ describe('VAdvancedDateInput', () => {
     })
   })
 
-  it('keeps the range complete when the start picker selects after the current end', async () => {
+  it('switches to end-date selection after replacing the start date from the start input', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 19, 2026',
+      })
+
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-15')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-23')
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 23, 2026',
+      })
+
+      wrapper.unmount()
+    })
+  })
+
+  it('clears the end date when the start picker selects after the current end', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
@@ -1432,17 +1525,170 @@ describe('VAdvancedDateInput', () => {
 
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
       expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
       expect(rangeInputValues(wrapper)).toEqual({
-        start: 'Jan 19, 2026',
-        end: 'Jan 25, 2026',
+        start: 'Jan 25, 2026',
+        end: '',
+      })
+      expect(publicHandle(wrapper).draft.parseStatus).toBe('partial')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-25',
+      )
+      expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('completes the range after a later start picker selection clears the end date', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-25"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      await wrapper.find('[data-date="2026-01-28"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-25')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-28')
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 25, 2026',
+        end: 'Jan 28, 2026',
+      })
+
+      wrapper.unmount()
+    })
+  })
+
+  it('keeps end selection active after a start-side replacement when autoApply is false', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          autoApply: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 19, 2026',
+      })
+
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 23, 2026',
       })
       expect(publicHandle(wrapper).draft.parseStatus).toBe('complete')
       expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
-        '2026-01-19',
+        '2026-01-15',
       )
       expect(toLocalYmd(publicHandle(wrapper).draft.selection.end)).toBe(
-        '2026-01-25',
+        '2026-01-23',
       )
+
+      wrapper.unmount()
+    })
+  })
+
+  it('consumes a controlled start active-field override after the first picker click', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          activeField: 'start',
+          menu: false,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.setProps({ menu: true })
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-15"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:menu')).toBeUndefined()
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 15, 2026',
+        end: 'Jan 19, 2026',
+      })
+
+      await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-15')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-23')
 
       wrapper.unmount()
     })

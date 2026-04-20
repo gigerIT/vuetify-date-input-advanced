@@ -21,6 +21,7 @@ function createMonthFromParts<TDate>(
 export function useAdvancedDateNavigation<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   selection: Ref<NormalizedRange<TDate>>
+  selectionChangeOrigin: Ref<'external' | 'internal'>
   range: Ref<boolean>
   months: Ref<number>
   month: Ref<number>
@@ -147,6 +148,7 @@ export function useAdvancedDateNavigation<TDate>(options: {
       const selection = options.selection.value
 
       if (!selection.start) return
+      if (options.selectionChangeOrigin.value === 'internal') return
 
       const isVisible = visibleMonths.value.some((month) =>
         options.adapter.isSameMonth(month, selection.start as TDate),
