@@ -6,36 +6,58 @@ import * as directives from 'vuetify/directives'
 import { cs, de, en, fr, it, lt } from 'vuetify/locale'
 
 type TestLocale = 'cs' | 'de' | 'en' | 'fr' | 'it' | 'lt'
+type CreateVuetifyOptions = Parameters<typeof createVuetify>[0]
 
 interface RenderOptions extends MountingOptions<any> {
   locale?: TestLocale
+  vuetify?: CreateVuetifyOptions
 }
 
-function createTestVuetify(locale: TestLocale = 'en') {
+function createTestVuetify(
+  locale: TestLocale = 'en',
+  options: CreateVuetifyOptions = {},
+) {
+  const defaultLocaleMessages = { cs, de, en, fr, it, lt }
+  const defaultDateLocale = {
+    cs: 'cs-CZ',
+    de: 'de-DE',
+    en: 'en-US',
+    fr: 'fr-FR',
+    it: 'it-IT',
+    lt: 'lt-LT',
+  }
+
   return createVuetify({
     components,
     directives,
+    ...options,
     locale: {
       locale,
       fallback: 'en',
-      messages: { cs, de, en, fr, it, lt },
+      ...options.locale,
+      messages: {
+        ...defaultLocaleMessages,
+        ...(options.locale?.messages ?? {}),
+      },
     },
     date: {
+      ...options.date,
       locale: {
-        cs: 'cs-CZ',
-        de: 'de-DE',
-        en: 'en-US',
-        fr: 'fr-FR',
-        it: 'it-IT',
-        lt: 'lt-LT',
+        ...defaultDateLocale,
+        ...(options.date?.locale ?? {}),
       },
     },
   })
 }
 
 export function render(component: unknown, options: RenderOptions = {}) {
-  const { locale = 'en', global, ...mountOptions } = options
-  const vuetify = createTestVuetify(locale)
+  const {
+    locale = 'en',
+    vuetify: vuetifyOptions,
+    global,
+    ...mountOptions
+  } = options
+  const vuetify = createTestVuetify(locale, vuetifyOptions)
 
   return mount(component as any, {
     ...mountOptions,
@@ -55,8 +77,13 @@ export function renderWithVuetify(
   component: unknown,
   options: RenderOptions = {},
 ) {
-  const { locale = 'en', global, ...mountOptions } = options
-  const vuetify = createTestVuetify(locale)
+  const {
+    locale = 'en',
+    vuetify: vuetifyOptions,
+    global,
+    ...mountOptions
+  } = options
+  const vuetify = createTestVuetify(locale, vuetifyOptions)
   const wrapper = mount(component as any, {
     ...mountOptions,
     global: {

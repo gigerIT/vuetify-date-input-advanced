@@ -381,7 +381,9 @@ export const VAdvancedDatePicker = defineComponent({
             ]}
             style={mobileWindow.monthsStyle.value}
             onMouseleave={() => handleHoverDate(null)}
-            onScroll={isMobileScroll.value ? mobileWindow.onMonthsScroll : undefined}
+            onScroll={
+              isMobileScroll.value ? mobileWindow.onMonthsScroll : undefined
+            }
           >
             {!isMobileScroll.value ? (
               <VBtn
@@ -390,7 +392,7 @@ export const VAdvancedDatePicker = defineComponent({
                     'v-advanced-date-picker__nav',
                     'v-advanced-date-picker__nav--prev',
                   ],
-                  icon: 'mdi-chevron-left',
+                  icon: props.prevIcon,
                   variant: 'text',
                   disabled: !navigation.canPrev.value || props.disabled,
                   'aria-label': tDateInputAdvanced('ariaLabel.previousMonth'),
@@ -451,7 +453,7 @@ export const VAdvancedDatePicker = defineComponent({
                     'v-advanced-date-picker__nav',
                     'v-advanced-date-picker__nav--next',
                   ],
-                  icon: 'mdi-chevron-right',
+                  icon: props.nextIcon,
                   variant: 'text',
                   disabled: !navigation.canNext.value || props.disabled,
                   'aria-label': tDateInputAdvanced('ariaLabel.nextMonth'),

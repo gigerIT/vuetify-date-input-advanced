@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 export interface AdvancedDateAdapter<TDate = Date> {
   date: (value?: any) => TDate | null
   format: (
@@ -42,6 +44,12 @@ export type AdvancedDateRangeTuple<TDate = Date> = readonly [
   TDate | null,
   TDate | null,
 ]
+
+export type AdvancedDateIconSvgPath = string | [path: string, opacity: number]
+export type AdvancedDateIconValue =
+  | string
+  | AdvancedDateIconSvgPath[]
+  | Component
 
 export interface AdvancedDateRangeObject<TDate = Date> {
   start: TDate | null

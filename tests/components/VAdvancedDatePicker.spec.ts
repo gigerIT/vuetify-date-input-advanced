@@ -1,8 +1,70 @@
 import { describe, expect, it } from 'vitest'
+import { aliases as mdAliases, md } from 'vuetify/iconsets/md'
+import { aliases as mdiAliases, mdi as mdiClassSet } from 'vuetify/iconsets/mdi'
+import {
+  aliases as mdiSvgAliases,
+  mdi as mdiSvgSet,
+} from 'vuetify/iconsets/mdi-svg'
 
 import { VAdvancedDatePicker } from '@/components/VAdvancedDatePicker'
 
 import { render } from '../render'
+
+const pickerIconCases = [
+  {
+    name: 'Material Icons',
+    vuetify: {
+      icons: {
+        defaultSet: 'md',
+        aliases: mdAliases,
+        sets: { md },
+      },
+    },
+    assertIcons: (wrapper: ReturnType<typeof render>) => {
+      const previousButton = wrapper.find('button[aria-label="Previous month"]')
+      const nextButton = wrapper.find('button[aria-label="Next month"]')
+
+      expect(previousButton.html()).toContain('material-icons')
+      expect(previousButton.text()).toContain('chevron_left')
+      expect(nextButton.html()).toContain('material-icons')
+      expect(nextButton.text()).toContain('chevron_right')
+    },
+  },
+  {
+    name: 'Material Design Icons',
+    vuetify: {
+      icons: {
+        defaultSet: 'mdi',
+        aliases: mdiAliases,
+        sets: { mdi: mdiClassSet },
+      },
+    },
+    assertIcons: (wrapper: ReturnType<typeof render>) => {
+      const previousButton = wrapper.find('button[aria-label="Previous month"]')
+      const nextButton = wrapper.find('button[aria-label="Next month"]')
+
+      expect(previousButton.html()).toContain('mdi-chevron-left')
+      expect(nextButton.html()).toContain('mdi-chevron-right')
+    },
+  },
+  {
+    name: 'Material Design Icons SVG',
+    vuetify: {
+      icons: {
+        defaultSet: 'mdi',
+        aliases: mdiSvgAliases,
+        sets: { mdi: mdiSvgSet },
+      },
+    },
+    assertIcons: (wrapper: ReturnType<typeof render>) => {
+      const previousButton = wrapper.find('button[aria-label="Previous month"]')
+      const nextButton = wrapper.find('button[aria-label="Next month"]')
+
+      expect(previousButton.find('svg.v-icon__svg').exists()).toBe(true)
+      expect(nextButton.find('svg.v-icon__svg').exists()).toBe(true)
+    },
+  },
+] as const
 
 function toLocalYmd(date: Date | null | undefined) {
   if (!date) return null
@@ -106,6 +168,51 @@ describe('VAdvancedDatePicker', () => {
 
     expect(wrapper.find('.v-advanced-date-picker__title').text()).toBe(
       'Travel dates',
+    )
+  })
+
+  it.each(pickerIconCases)(
+    'renders default navigation icons with $name',
+    ({ vuetify, assertIcons }) => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+        },
+        vuetify,
+      })
+
+      assertIcons(wrapper)
+    },
+  )
+
+  it('accepts prefixed icon-set strings for navigation overrides', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        prevIcon: 'mdi:mdi-minus',
+        nextIcon: 'mdi:mdi-plus',
+      },
+      vuetify: {
+        icons: {
+          defaultSet: 'md',
+          aliases: mdAliases,
+          sets: {
+            md,
+            mdi: mdiClassSet,
+          },
+        },
+      },
+    })
+
+    expect(
+      wrapper.find('button[aria-label="Previous month"]').html(),
+    ).toContain('mdi-minus')
+    expect(wrapper.find('button[aria-label="Next month"]').html()).toContain(
+      'mdi-plus',
     )
   })
 
@@ -532,12 +639,10 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.text()).toContain('Atšaukti')
     expect(wrapper.text()).toContain('Šiandien')
     expect(wrapper.text()).toContain('Sav.')
-    expect(
-      wrapper.find('button[aria-label="Ankstesnis mėnuo"]').exists(),
-    ).toBe(true)
-    expect(
-      wrapper.find('button[aria-label="Kitas mėnuo"]').exists(),
-    ).toBe(true)
+    expect(wrapper.find('button[aria-label="Ankstesnis mėnuo"]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('button[aria-label="Kitas mėnuo"]').exists()).toBe(true)
   })
 
   it('does not echo synced month props back to the parent', async () => {

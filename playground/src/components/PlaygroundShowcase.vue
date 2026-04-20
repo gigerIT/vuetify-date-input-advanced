@@ -40,9 +40,12 @@ const constrainedValue = defineModel<AdvancedDateModel<Date>>(
 const typedValue = defineModel<AdvancedDateModel<Date>>('typedValue', {
   required: true,
 })
-const pickerOnlyValue = defineModel<AdvancedDateModel<Date>>('pickerOnlyValue', {
-  required: true,
-})
+const pickerOnlyValue = defineModel<AdvancedDateModel<Date>>(
+  'pickerOnlyValue',
+  {
+    required: true,
+  },
+)
 const rangeMenu = defineModel<boolean>('rangeMenu', { required: true })
 const presetMenu = defineModel<boolean>('presetMenu', { required: true })
 const customPresetMenu = defineModel<boolean>('customPresetMenu', {
@@ -206,7 +209,9 @@ const draftApiOutput = computed(() => ({
         <template #preset-highlight="{ preset }">
           <div class="d-flex align-center justify-space-between w-100">
             <span>{{ preset.label }}</span>
-            <v-chip size="x-small" color="primary" variant="tonal">Custom</v-chip>
+            <v-chip size="x-small" color="primary" variant="tonal"
+              >Custom</v-chip
+            >
           </div>
         </template>
       </v-advanced-date-input>
@@ -225,6 +230,24 @@ const draftApiOutput = computed(() => ({
         label="Travel dates"
         :months="2"
         :show-presets="false"
+      />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
+    <v-card-title>Range Input with custom navigation icons</v-card-title>
+    <v-card-subtitle>
+      Demonstrates explicit picker icon overrides on the shared input surface.
+    </v-card-subtitle>
+    <v-card-text>
+      <v-advanced-date-input
+        v-model="rangeValue"
+        label="Travel dates"
+        :months="2"
+        :show-presets="false"
+        prev-icon="mdi-page-first"
+        next-icon="mdi-page-last"
+        append-inner-icon="mdi-calendar-range"
       />
     </v-card-text>
   </v-card>
@@ -281,7 +304,8 @@ const draftApiOutput = computed(() => ({
   <v-card variant="flat">
     <v-card-title>Forwarded Input Attrs</v-card-title>
     <v-card-subtitle>
-      Shows form attrs reaching the default text input when no custom activator is used.
+      Shows form attrs reaching the default text input when no custom activator
+      is used.
     </v-card-subtitle>
     <v-card-text>
       <v-advanced-date-input
@@ -303,7 +327,8 @@ const draftApiOutput = computed(() => ({
   <v-card variant="flat">
     <v-card-title>Custom Picker Title</v-card-title>
     <v-card-subtitle>
-      Shows an optional picker heading that stays visible in desktop and mobile overlays.
+      Shows an optional picker heading that stays visible in desktop and mobile
+      overlays.
     </v-card-subtitle>
     <v-card-text>
       <v-advanced-date-input
@@ -395,7 +420,9 @@ const draftApiOutput = computed(() => ({
       </div>
 
       <v-sheet border rounded="lg" class="pa-4">
-        <pre class="draft-api-output text-body-2">{{ JSON.stringify(draftApiOutput, null, 2) }}</pre>
+        <pre class="draft-api-output text-body-2">{{
+          JSON.stringify(draftApiOutput, null, 2)
+        }}</pre>
       </v-sheet>
     </v-card-text>
   </v-card>
@@ -403,7 +430,8 @@ const draftApiOutput = computed(() => ({
   <v-card variant="flat">
     <v-card-title>Picker-only Input</v-card-title>
     <v-card-subtitle>
-      Disables manual typing while keeping the field, icon, and picker actions interactive.
+      Disables manual typing while keeping the field, icon, and picker actions
+      interactive.
     </v-card-subtitle>
     <v-card-text>
       <v-advanced-date-input

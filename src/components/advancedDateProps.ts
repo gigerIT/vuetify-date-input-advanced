@@ -2,6 +2,7 @@ import type { ExtractPropTypes, PropType } from 'vue'
 
 import type {
   AdvancedDateInputCloseStrategy,
+  AdvancedDateIconValue,
   AdvancedDateModel,
   NormalizedRange,
   PresetRange,
@@ -9,6 +10,13 @@ import type {
 
 export type AdvancedDateDensity = 'default' | 'comfortable' | 'compact'
 export type AdvancedDateMobilePresentation = 'fullscreen' | 'inline'
+
+const advancedDateIconPropType = [
+  String,
+  Array,
+  Object,
+  Function,
+] as PropType<AdvancedDateIconValue>
 
 export const advancedDatePickerProps = {
   modelValue: {
@@ -53,6 +61,14 @@ export const advancedDatePickerProps = {
   allowedEndDates: Function as PropType<(date: unknown) => boolean>,
   showWeekNumbers: Boolean,
   firstDayOfWeek: [String, Number] as PropType<string | number>,
+  prevIcon: {
+    type: advancedDateIconPropType,
+    default: '$prev',
+  },
+  nextIcon: {
+    type: advancedDateIconPropType,
+    default: '$next',
+  },
   disabled: Boolean,
   readonly: Boolean,
   theme: String,
@@ -126,10 +142,10 @@ export const advancedDateInputProps = {
   },
   clearable: Boolean,
   focused: Boolean,
-  prependInnerIcon: String,
+  prependInnerIcon: advancedDateIconPropType,
   appendInnerIcon: {
-    type: String,
-    default: 'mdi-calendar',
+    type: advancedDateIconPropType,
+    default: '$calendar',
   },
   ...advancedDatePickerProps,
   displayFormat: {
@@ -176,6 +192,8 @@ export function buildAdvancedDatePickerBindings(
     allowedEndDates: props.allowedEndDates,
     showWeekNumbers: props.showWeekNumbers,
     firstDayOfWeek: props.firstDayOfWeek,
+    prevIcon: props.prevIcon,
+    nextIcon: props.nextIcon,
     disabled: props.disabled,
     readonly: props.readonly,
     theme: props.theme,

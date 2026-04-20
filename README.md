@@ -35,21 +35,22 @@ The components use Vuetify's active date adapter through `useDate()`, so locale,
 
 ## Exports
 
-| Export                                                                                                                                                                                                                                                                                                                  | Description                                  |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `AdvancedDatePlugin`                                                                                                                                                                                                                                                                                                    | Registers both components globally           |
-| `VAdvancedDateInput`                                                                                                                                                                                                                                                                                                    | Text field wrapper + picker                  |
-| `VAdvancedDatePicker`                                                                                                                                                                                                                                                                                                   | Standalone picker panel                      |
-| `dateInputAdvancedEn`, `dateInputAdvancedCs`, `dateInputAdvancedDe`, `dateInputAdvancedFr`, `dateInputAdvancedIt`, `dateInputAdvancedLt`                                                                                                                                                                              | Built-in locale message bundles              |
-| `AdvancedDateModel`, `PresetRange`, `AdvancedDateAdapter`, `AdvancedDateDay`, `AdvancedDateMonthData`, `AdvancedDateWeek`, `DateBounds`, `NormalizedRange`, `DateInputAdvancedLocaleMessages`                                                                                                                         | Core public TypeScript types                 |
+| Export                                                                                                                                                                                                                                                                                                                                     | Description                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `AdvancedDatePlugin`                                                                                                                                                                                                                                                                                                                       | Registers both components globally           |
+| `VAdvancedDateInput`                                                                                                                                                                                                                                                                                                                       | Text field wrapper + picker                  |
+| `VAdvancedDatePicker`                                                                                                                                                                                                                                                                                                                      | Standalone picker panel                      |
+| `dateInputAdvancedEn`, `dateInputAdvancedCs`, `dateInputAdvancedDe`, `dateInputAdvancedFr`, `dateInputAdvancedIt`, `dateInputAdvancedLt`                                                                                                                                                                                                   | Built-in locale message bundles              |
+| `AdvancedDateModel`, `PresetRange`, `AdvancedDateAdapter`, `AdvancedDateDay`, `AdvancedDateMonthData`, `AdvancedDateWeek`, `DateBounds`, `NormalizedRange`, `DateInputAdvancedLocaleMessages`, `AdvancedDateIconValue`, `AdvancedDateIconSvgPath`                                                                                          | Core public TypeScript types                 |
 | `AdvancedDateInputDraft`, `AdvancedDateInputPublicInstance`, `AdvancedDateInputCommitPayload`, `AdvancedDateInputInvalidPayload`, `AdvancedDateInputClosePayload`, `AdvancedDateInputSource`, `AdvancedDateInputParseStatus`, `AdvancedDateInputAvailabilityStatus`, `AdvancedDateInputValidationStatus`, `AdvancedDateInputCloseStrategy` | Text-input draft and public-handle contracts |
 
 ## Requirements
 
 - `vue@^3.5.0`
 - `vuetify@^4.0.0`
-- A Vuetify app already configured in your project
-- An icon set that includes `mdi-calendar`, or a custom `appendInnerIcon`
+- A Vuetify app already configured in your project, including any official Vuetify icon setup you want to use
+
+Default component icons use Vuetify aliases (`$calendar`, `$prev`, and `$next`), so they resolve through the same icon configuration as native Vuetify components.
 
 ## Install
 
@@ -358,8 +359,10 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 | `allowedEndDates`   | `(date: TDate) => boolean`                 | `undefined`               | Additional availability check for ordered range ends                                                              |
 | `showWeekNumbers`   | `boolean`                                  | `false`                   | Displays week numbers; uses adapter week calculations when available and otherwise falls back to ISO week numbers |
 | `firstDayOfWeek`    | `string \| number \| undefined`            | adapter or locale default | Mirrors Vuetify `VDatePicker`; `0` starts weeks on Sunday, `1` on Monday, and so on                               |
+| `prevIcon`          | `AdvancedDateIconValue`                    | `$prev`                   | Previous-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components     |
+| `nextIcon`          | `AdvancedDateIconValue`                    | `$next`                   | Next-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components         |
 | `disabled`          | `boolean`                                  | `false`                   | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints          |
-| `readonly`          | `boolean`                                  | `false`                   | Full picker read-only mode: blocks calendar and preset interaction, and hides the manual action footer           |
+| `readonly`          | `boolean`                                  | `false`                   | Full picker read-only mode: blocks calendar and preset interaction, and hides the manual action footer            |
 | `color`             | `string`                                   | `primary`                 | Accent color for selected days and range previews                                                                 |
 | `theme`             | `string \| undefined`                      | inherited                 | Passed to the picker `VSheet`                                                                                     |
 | `rounded`           | `string \| number \| boolean \| undefined` | `undefined`               | Passed to the picker `VSheet`                                                                                     |
@@ -372,45 +375,45 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 
 ### `VAdvancedDateInput`-Only Props
 
-| Prop               | Type                               | Default        | Notes                                                   |
-| ------------------ | ---------------------------------- | -------------- | ------------------------------------------------------- |
-| `menu`             | `boolean`                          | `false`        | Controlled open state for the menu or dialog            |
-| `inline`           | `boolean`                          | `false`        | Renders the picker directly instead of using an overlay |
-| `label`            | `string \| undefined`              | `undefined`    | Forwarded to `VTextField`                               |
-| `placeholder`      | `string \| undefined`              | `undefined`    | Forwarded to `VTextField`                               |
-| `variant`          | `string`                           | `outlined`     | Forwarded to `VTextField`                               |
-| `hideDetails`      | `boolean \| 'auto'`                | `auto`         | Forwarded to `VTextField`                               |
-| `messages`         | `string \| string[] \| undefined`  | `undefined`    | Forwarded to `VTextField`                               |
-| `error`            | `boolean`                          | `false`        | Combines with internal parse and validation errors      |
-| `errorMessages`    | `string \| string[] \| undefined`  | `undefined`    | Merged with internal parse and validation errors        |
-| `rules`            | `readonly unknown[]`               | `[]`           | Forwarded to `VTextField`                               |
-| `clearable`        | `boolean`                          | `false`        | Clears both text and model                              |
-| `focused`          | `boolean`                          | `false`        | Forwarded to `VTextField`                               |
-| `prependInnerIcon` | `string \| undefined`              | `undefined`    | Forwarded to `VTextField`                               |
-| `appendInnerIcon`  | `string`                           | `mdi-calendar` | Forwarded to `VTextField`                               |
-| `inputReadonly`    | `boolean`                          | `false`        | Makes the default text field readonly while keeping the picker, icon, and footer actions interactive |
-| `text`             | `string \| undefined`              | `undefined`    | Controlled text value for parent-owned draft flows      |
-| `closeDraftStrategy` | `'revert' \| 'preserve' \| 'commit'` | `revert`     | Controls how pending drafts behave when the overlay closes |
-| `displayFormat`    | `string`                           | `fullDate`     | Passed to `adapter.format(...)` for text display        |
-| `rangeSeparator`   | `string`                           | `–`            | Separator used for formatted range text                 |
-| `parseInput`       | `(value: string) => TDate \| null` | `undefined`    | Custom parser used before adapter and native parsing    |
+| Prop                 | Type                                 | Default     | Notes                                                                                                    |
+| -------------------- | ------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `menu`               | `boolean`                            | `false`     | Controlled open state for the menu or dialog                                                             |
+| `inline`             | `boolean`                            | `false`     | Renders the picker directly instead of using an overlay                                                  |
+| `label`              | `string \| undefined`                | `undefined` | Forwarded to `VTextField`                                                                                |
+| `placeholder`        | `string \| undefined`                | `undefined` | Forwarded to `VTextField`                                                                                |
+| `variant`            | `string`                             | `outlined`  | Forwarded to `VTextField`                                                                                |
+| `hideDetails`        | `boolean \| 'auto'`                  | `auto`      | Forwarded to `VTextField`                                                                                |
+| `messages`           | `string \| string[] \| undefined`    | `undefined` | Forwarded to `VTextField`                                                                                |
+| `error`              | `boolean`                            | `false`     | Combines with internal parse and validation errors                                                       |
+| `errorMessages`      | `string \| string[] \| undefined`    | `undefined` | Merged with internal parse and validation errors                                                         |
+| `rules`              | `readonly unknown[]`                 | `[]`        | Forwarded to `VTextField`                                                                                |
+| `clearable`          | `boolean`                            | `false`     | Clears both text and model                                                                               |
+| `focused`            | `boolean`                            | `false`     | Forwarded to `VTextField`                                                                                |
+| `prependInnerIcon`   | `AdvancedDateIconValue \| undefined` | `undefined` | Forwarded to `VTextField`; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components |
+| `appendInnerIcon`    | `AdvancedDateIconValue`              | `$calendar` | Forwarded to `VTextField`; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components |
+| `inputReadonly`      | `boolean`                            | `false`     | Makes the default text field readonly while keeping the picker, icon, and footer actions interactive     |
+| `text`               | `string \| undefined`                | `undefined` | Controlled text value for parent-owned draft flows                                                       |
+| `closeDraftStrategy` | `'revert' \| 'preserve' \| 'commit'` | `revert`    | Controls how pending drafts behave when the overlay closes                                               |
+| `displayFormat`      | `string`                             | `fullDate`  | Passed to `adapter.format(...)` for text display                                                         |
+| `rangeSeparator`     | `string`                             | `–`         | Separator used for formatted range text                                                                  |
+| `parseInput`         | `(value: string) => TDate \| null`   | `undefined` | Custom parser used before adapter and native parsing                                                     |
 
 ### Events
 
-| Event               | Component | Payload                    | Notes                                                                  |
-| ------------------- | --------- | -------------------------- | ---------------------------------------------------------------------- |
-| `update:modelValue` | both      | `AdvancedDateModel<TDate>` | Main value update                                                      |
-| `update:menu`       | input     | `boolean`                  | Overlay open state                                                     |
-| `update:text`       | input     | `string`                   | Requested text change for controlled text mode                         |
-| `update:draft`      | input     | `AdvancedDateInputDraft<TDate>` | Current parsed draft snapshot                                     |
-| `update:month`      | both      | `number`                   | Leading visible month after user navigation                            |
-| `update:year`       | both      | `number`                   | Leading visible year after user navigation                             |
-| `apply`             | both      | `AdvancedDateModel<TDate>` | Fired when Apply is used with `autoApply=false`                        |
-| `cancel`            | both      | none                       | Fired from picker cancel flows, including `Escape` inside the calendar |
-| `inputCommit`       | input     | `AdvancedDateInputCommitPayload<TDate>` | Fired when a text or picker draft commits                      |
-| `inputInvalid`      | input     | `AdvancedDateInputInvalidPayload<TDate>` | Fired when commit validation fails                            |
-| `draftClose`        | input     | `AdvancedDateInputClosePayload<TDate>` | Fired after an overlay close attempt resolves or is blocked     |
-| `presetSelect`      | both      | `PresetRange<TDate>`       | Fired when a preset is chosen                                          |
+| Event               | Component | Payload                                  | Notes                                                                  |
+| ------------------- | --------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| `update:modelValue` | both      | `AdvancedDateModel<TDate>`               | Main value update                                                      |
+| `update:menu`       | input     | `boolean`                                | Overlay open state                                                     |
+| `update:text`       | input     | `string`                                 | Requested text change for controlled text mode                         |
+| `update:draft`      | input     | `AdvancedDateInputDraft<TDate>`          | Current parsed draft snapshot                                          |
+| `update:month`      | both      | `number`                                 | Leading visible month after user navigation                            |
+| `update:year`       | both      | `number`                                 | Leading visible year after user navigation                             |
+| `apply`             | both      | `AdvancedDateModel<TDate>`               | Fired when Apply is used with `autoApply=false`                        |
+| `cancel`            | both      | none                                     | Fired from picker cancel flows, including `Escape` inside the calendar |
+| `inputCommit`       | input     | `AdvancedDateInputCommitPayload<TDate>`  | Fired when a text or picker draft commits                              |
+| `inputInvalid`      | input     | `AdvancedDateInputInvalidPayload<TDate>` | Fired when commit validation fails                                     |
+| `draftClose`        | input     | `AdvancedDateInputClosePayload<TDate>`   | Fired after an overlay close attempt resolves or is blocked            |
+| `presetSelect`      | both      | `PresetRange<TDate>`                     | Fired when a preset is chosen                                          |
 
 ### Slots
 
@@ -441,18 +444,18 @@ A `ref` on `VAdvancedDatePicker` exposes these methods:
 
 A `ref` on `VAdvancedDateInput` exposes the `AdvancedDateInputPublicInstance<TDate>` handle:
 
-| Member              | Type                                      | Description |
-| ------------------- | ----------------------------------------- | ----------- |
-| `commitInput()`     | `() => Promise<boolean>`                  | Validates the current draft and commits it when possible |
-| `validate()`        | `() => Promise<string[]>`                 | Runs draft validation and returns the current messages |
-| `resetValidation()` | `() => Promise<void>`                     | Clears parse and rule validation state |
-| `revertDraft()`     | `() => void`                              | Restores the committed value and formatted text |
-| `text`              | `string`                                  | Current visible input text |
-| `draft`             | `AdvancedDateInputDraft<TDate>`           | Current draft snapshot |
-| `isDirty`           | `boolean`                                 | Whether the current text differs from the committed display text |
-| `isPristine`        | `boolean`                                 | Whether the field has avoided validation so far |
-| `isValid`           | `boolean \| null`                         | `null` while pristine, then the current validation state |
-| `errorMessages`     | `string[]`                                | Current merged parse and field-rule errors |
+| Member              | Type                            | Description                                                      |
+| ------------------- | ------------------------------- | ---------------------------------------------------------------- |
+| `commitInput()`     | `() => Promise<boolean>`        | Validates the current draft and commits it when possible         |
+| `validate()`        | `() => Promise<string[]>`       | Runs draft validation and returns the current messages           |
+| `resetValidation()` | `() => Promise<void>`           | Clears parse and rule validation state                           |
+| `revertDraft()`     | `() => void`                    | Restores the committed value and formatted text                  |
+| `text`              | `string`                        | Current visible input text                                       |
+| `draft`             | `AdvancedDateInputDraft<TDate>` | Current draft snapshot                                           |
+| `isDirty`           | `boolean`                       | Whether the current text differs from the committed display text |
+| `isPristine`        | `boolean`                       | Whether the field has avoided validation so far                  |
+| `isValid`           | `boolean \| null`               | `null` while pristine, then the current validation state         |
+| `errorMessages`     | `string[]`                      | Current merged parse and field-rule errors                       |
 
 ## Styling and Theming
 
@@ -575,4 +578,4 @@ Verified from the repository configuration:
 ## Notes
 
 - Examples in this README use native `Date`, but the actual value type follows your configured Vuetify date adapter.
-- The default input icon is `mdi-calendar`. If your app does not provide that icon, configure an icon set or override `appendInnerIcon`.
+- Default package icons use Vuetify aliases (`$calendar`, `$prev`, `$next`) so they follow your app's official Vuetify icon configuration.

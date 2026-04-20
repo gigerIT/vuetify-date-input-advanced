@@ -231,6 +231,8 @@ npm run build
 - Plan and implement changes the way Vuetify would build its own components;
   prefer established Vuetify patterns for API shape, naming, slots, defaults,
   and UX before introducing repo-specific conventions.
+- Package-owned icons must use Vuetify aliases or forwarded icon props; never
+  hardcode icon-set-specific names such as `mdi-*` in component defaults.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and

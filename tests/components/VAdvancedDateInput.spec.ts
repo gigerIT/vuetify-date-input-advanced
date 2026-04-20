@@ -1,6 +1,12 @@
 import { flushPromises } from '@vue/test-utils'
 import { h } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
+import { aliases as mdAliases, md } from 'vuetify/iconsets/md'
+import { aliases as mdiAliases, mdi as mdiClassSet } from 'vuetify/iconsets/mdi'
+import {
+  aliases as mdiSvgAliases,
+  mdi as mdiSvgSet,
+} from 'vuetify/iconsets/mdi-svg'
 
 import { VAdvancedDateInput } from '@/components/VAdvancedDateInput'
 import type {
@@ -24,6 +30,57 @@ const menuStub = {
   props: ['modelValue', 'closeOnContentClick', 'offset', 'minWidth'],
   template: '<div><slot name="activator" :props="{}" /><slot /></div>',
 }
+
+const inputIconCases = [
+  {
+    name: 'Material Icons',
+    vuetify: {
+      icons: {
+        defaultSet: 'md',
+        aliases: mdAliases,
+        sets: { md },
+      },
+    },
+    assertIcon: (wrapper: ReturnType<typeof render>) => {
+      const appendInner = wrapper.find('.v-field__append-inner')
+
+      expect(appendInner.html()).toContain('material-icons')
+      expect(appendInner.text()).toContain('event')
+    },
+  },
+  {
+    name: 'Material Design Icons',
+    vuetify: {
+      icons: {
+        defaultSet: 'mdi',
+        aliases: mdiAliases,
+        sets: { mdi: mdiClassSet },
+      },
+    },
+    assertIcon: (wrapper: ReturnType<typeof render>) => {
+      expect(wrapper.find('.v-field__append-inner').html()).toContain(
+        'mdi-calendar',
+      )
+    },
+  },
+  {
+    name: 'Material Design Icons SVG',
+    vuetify: {
+      icons: {
+        defaultSet: 'mdi',
+        aliases: mdiSvgAliases,
+        sets: { mdi: mdiSvgSet },
+      },
+    },
+    assertIcon: (wrapper: ReturnType<typeof render>) => {
+      expect(
+        wrapper.find('.v-field__append-inner svg.v-icon__svg').exists(),
+      ).toBe(true)
+    },
+  },
+] as const
+
+const testFieldIcon = () => h('span', { class: 'test-field-icon' }, 'custom')
 
 function toLocalYmd(date: Date | null | undefined) {
   if (!date) return null
@@ -92,6 +149,94 @@ async function runWithDesktopWidth(
 }
 
 describe('VAdvancedDateInput', () => {
+  it.each(inputIconCases)(
+    'renders the default calendar icon with $name',
+    async ({ vuetify, assertIcon }) => {
+      await runWithDesktopWidth(() => {
+        const wrapper = render(VAdvancedDateInput, {
+          props: {
+            modelValue: null,
+          },
+          global: {
+            stubs: {
+              VMenu: menuStub,
+            },
+          },
+          vuetify,
+        })
+
+        try {
+          assertIcon(wrapper)
+        } finally {
+          wrapper.unmount()
+        }
+      })
+    },
+  )
+
+  it('forwards navigation icon overrides to the internal picker', async () => {
+    await runWithDesktopWidth(() => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          month: 0,
+          year: 2026,
+          prevIcon: 'mdi:mdi-minus',
+          nextIcon: 'mdi:mdi-plus',
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+        vuetify: {
+          icons: {
+            defaultSet: 'md',
+            aliases: mdAliases,
+            sets: {
+              md,
+              mdi: mdiClassSet,
+            },
+          },
+        },
+      })
+
+      try {
+        expect(
+          wrapper.find('button[aria-label="Previous month"]').html(),
+        ).toContain('mdi-minus')
+        expect(
+          wrapper.find('button[aria-label="Next month"]').html(),
+        ).toContain('mdi-plus')
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('accepts component icon values for field icon overrides', async () => {
+    await runWithDesktopWidth(() => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          prependInnerIcon: testFieldIcon,
+          appendInnerIcon: testFieldIcon,
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      try {
+        expect(wrapper.findAll('.test-field-icon')).toHaveLength(2)
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
   it('forwards the optional title to the desktop picker', () => {
     const originalWidth = window.innerWidth
 
@@ -1001,10 +1146,9 @@ describe('VAdvancedDateInput', () => {
       },
     })
 
-    wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
-      'click:clear',
-      new MouseEvent('click'),
-    )
+    wrapper
+      .findComponent({ name: 'VTextField' })
+      .vm.$emit('click:clear', new MouseEvent('click'))
     await wrapper.vm.$nextTick()
     await flushPromises()
 
@@ -1045,10 +1189,9 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
-        'click:clear',
-        new MouseEvent('click'),
-      )
+      wrapper
+        .findComponent({ name: 'VTextField' })
+        .vm.$emit('click:clear', new MouseEvent('click'))
       await wrapper.vm.$nextTick()
       await flushPromises()
 
@@ -1086,10 +1229,9 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
-        'click:clear',
-        new MouseEvent('click'),
-      )
+      wrapper
+        .findComponent({ name: 'VTextField' })
+        .vm.$emit('click:clear', new MouseEvent('click'))
       await wrapper.vm.$nextTick()
       await flushPromises()
 
@@ -1128,14 +1270,15 @@ describe('VAdvancedDateInput', () => {
 
       const updateTextCount = wrapper.emitted('update:text')?.length ?? 0
 
-      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
-        'click:clear',
-        new MouseEvent('click'),
-      )
+      wrapper
+        .findComponent({ name: 'VTextField' })
+        .vm.$emit('click:clear', new MouseEvent('click'))
       await wrapper.vm.$nextTick()
       await flushPromises()
 
-      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount + 1)
+      expect(wrapper.emitted('update:text')?.length ?? 0).toBe(
+        updateTextCount + 1,
+      )
       expect(wrapper.emitted('update:text')?.at(-1)).toEqual([''])
       expect(wrapper.find('input').element.value).toBe('')
       expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
@@ -1409,7 +1552,9 @@ describe('VAdvancedDateInput', () => {
       expect(closePayload?.reason).toBe('dismiss')
       expect(closePayload?.strategy).toBe('commit')
       expect(closePayload?.outcome).toBe('closed')
-      expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe('2026-01-12')
+      expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe(
+        '2026-01-12',
+      )
       expect(commitPayload?.draft.selection.end).toBeNull()
 
       wrapper.unmount()
@@ -1503,7 +1648,6 @@ describe('VAdvancedDateInput', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Enter a valid date range')
-
     ;(vuetify as any).locale.current.value = 'cs'
     await wrapper.vm.$nextTick()
 
@@ -1797,12 +1941,12 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-12"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-12"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -1901,12 +2045,12 @@ describe('VAdvancedDateInput', () => {
       )
       expect(publicHandle(wrapper).draft.source).toBe('picker')
       expect(publicHandle(wrapper).isDirty).toBe(false)
-      expect(
-        wrapper.find('[data-date="2026-01-25"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-12"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-12"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -1954,12 +2098,12 @@ describe('VAdvancedDateInput', () => {
         '2026-01-20',
       )
       expect(publicHandle(wrapper).draft.selection.end).toBeNull()
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-25"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -2005,12 +2149,12 @@ describe('VAdvancedDateInput', () => {
         '2026-01-20',
       )
       expect(publicHandle(wrapper).draft.selection.end).toBeNull()
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-25"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -2055,12 +2199,12 @@ describe('VAdvancedDateInput', () => {
         '2026-01-20',
       )
       expect(publicHandle(wrapper).draft.selection.end).toBeNull()
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-25"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -2069,14 +2213,10 @@ describe('VAdvancedDateInput', () => {
   it('re-syncs controlled text drafts into the picker when parser context changes', async () => {
     await runWithDesktopWidth(async () => {
       const initialParseInput = (value: string) => {
-        return value === 'special'
-          ? new Date('2026-01-20T00:00:00.000Z')
-          : null
+        return value === 'special' ? new Date('2026-01-20T00:00:00.000Z') : null
       }
       const updatedParseInput = (value: string) => {
-        return value === 'special'
-          ? new Date('2026-01-25T00:00:00.000Z')
-          : null
+        return value === 'special' ? new Date('2026-01-25T00:00:00.000Z') : null
       }
       const wrapper = render(VAdvancedDateInput, {
         props: {
@@ -2097,12 +2237,12 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-12"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-12"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       await wrapper.setProps({
         parseInput: updatedParseInput,
@@ -2119,12 +2259,12 @@ describe('VAdvancedDateInput', () => {
       expect(wrapper.find('input').element.value).toBe('special')
       expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-25')
       expect(draft?.availabilityStatus).toBe('available')
-      expect(
-        wrapper.find('[data-date="2026-01-25"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -2171,12 +2311,12 @@ describe('VAdvancedDateInput', () => {
 
       expect(wrapper.find('input').element.value).toBe('Jan 20, 2026')
       expect(wrapper.emitted('update:text')?.length ?? 0).toBe(updateTextCount)
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-25"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
       expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
         '2026-01-20',
       )
@@ -2251,12 +2391,12 @@ describe('VAdvancedDateInput', () => {
       expect(draft?.parseStatus).toBe('invalid')
       expect(toLocalYmd(draft?.selection.start)).toBe('2026-01-20')
       expect(draft?.selection.end).toBeNull()
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-12"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-12"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -2285,12 +2425,12 @@ describe('VAdvancedDateInput', () => {
       await wrapper.find('input').setValue('Jan 20, 2026')
       await wrapper.vm.$nextTick()
 
-      expect(
-        wrapper.find('[data-date="2026-01-20"]').classes(),
-      ).toContain('v-advanced-date-picker__day--selected')
-      expect(
-        wrapper.find('[data-date="2026-01-12"]').classes(),
-      ).not.toContain('v-advanced-date-picker__day--selected')
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-12"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
 
       wrapper.unmount()
     })
@@ -2596,7 +2736,9 @@ describe('VAdvancedDateInput', () => {
       expect(payload?.reason).toBe('unavailable')
       expect(toLocalYmd(payload?.draft.selection.start)).toBe('2026-01-12')
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
-      expect(publicHandle(wrapper).errorMessages).toContain('Date is unavailable')
+      expect(publicHandle(wrapper).errorMessages).toContain(
+        'Date is unavailable',
+      )
       expect(publicHandle(wrapper).isValid).toBe(false)
       expect(wrapper.text()).toContain('Date is unavailable')
 
@@ -2739,7 +2881,9 @@ describe('VAdvancedDateInput', () => {
       })
 
       await wrapper.find('[data-date="2026-01-20"]').trigger('click')
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
 
       const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
@@ -2794,7 +2938,9 @@ describe('VAdvancedDateInput', () => {
 
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
 
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
@@ -2838,14 +2984,15 @@ describe('VAdvancedDateInput', () => {
       })
 
       await wrapper.find('[data-date="2026-01-20"]').trigger('click')
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
-      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
-        'click:control',
-        new MouseEvent('click'),
-      )
+      wrapper
+        .findComponent({ name: 'VTextField' })
+        .vm.$emit('click:control', new MouseEvent('click'))
       await wrapper.vm.$nextTick()
 
       const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
@@ -2892,14 +3039,15 @@ describe('VAdvancedDateInput', () => {
       await input.trigger('blur')
       await flushPromises()
 
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
-      wrapper.findComponent({ name: 'VTextField' }).vm.$emit(
-        'click:control',
-        new MouseEvent('click'),
-      )
+      wrapper
+        .findComponent({ name: 'VTextField' })
+        .vm.$emit('click:control', new MouseEvent('click'))
       await wrapper.vm.$nextTick()
 
       const payload = lastEmitted<AdvancedDateInputClosePayload<Date>>(
@@ -2945,7 +3093,9 @@ describe('VAdvancedDateInput', () => {
       })
 
       await wrapper.find('[data-date="2026-01-20"]').trigger('click')
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
@@ -3002,7 +3152,9 @@ describe('VAdvancedDateInput', () => {
       })
       await wrapper.vm.$nextTick()
 
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit('update:modelValue', false)
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
@@ -3109,7 +3261,9 @@ describe('VAdvancedDateInput', () => {
       await wrapper.vm.$nextTick()
 
       const picker = wrapper.findComponent({ name: 'VAdvancedDatePicker' })
-      const onEscapeKey = picker.props('onEscapeKey') as (() => void) | undefined
+      const onEscapeKey = picker.props('onEscapeKey') as
+        | (() => void)
+        | undefined
 
       onEscapeKey?.()
       picker.vm.$emit('cancel')
@@ -3160,7 +3314,9 @@ describe('VAdvancedDateInput', () => {
       await wrapper.vm.$nextTick()
 
       const picker = wrapper.findComponent({ name: 'VAdvancedDatePicker' })
-      const onEscapeKey = picker.props('onEscapeKey') as (() => void) | undefined
+      const onEscapeKey = picker.props('onEscapeKey') as
+        | (() => void)
+        | undefined
 
       onEscapeKey?.()
       picker.vm.$emit('cancel')
@@ -3213,7 +3369,9 @@ describe('VAdvancedDateInput', () => {
       await wrapper.vm.$nextTick()
 
       const picker = wrapper.findComponent({ name: 'VAdvancedDatePicker' })
-      const onEscapeKey = picker.props('onEscapeKey') as (() => void) | undefined
+      const onEscapeKey = picker.props('onEscapeKey') as
+        | (() => void)
+        | undefined
 
       onEscapeKey?.()
       picker.vm.$emit('cancel')
@@ -3242,9 +3400,7 @@ describe('VAdvancedDateInput', () => {
       expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe(
         '2026-01-20',
       )
-      expect(toLocalYmd(commitPayload?.draft.selection.end)).toBe(
-        '2026-01-23',
-      )
+      expect(toLocalYmd(commitPayload?.draft.selection.end)).toBe('2026-01-23')
       expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
 
       wrapper.unmount()
@@ -3275,10 +3431,9 @@ describe('VAdvancedDateInput', () => {
       await wrapper.find('[data-date="2026-01-20"]').trigger('click')
       await wrapper.find('[data-date="2026-01-23"]').trigger('click')
       await wrapper.vm.$nextTick()
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit(
-        'update:modelValue',
-        false,
-      )
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
@@ -3302,9 +3457,7 @@ describe('VAdvancedDateInput', () => {
       expect(toLocalYmd(commitPayload?.draft.selection.start)).toBe(
         '2026-01-20',
       )
-      expect(toLocalYmd(commitPayload?.draft.selection.end)).toBe(
-        '2026-01-23',
-      )
+      expect(toLocalYmd(commitPayload?.draft.selection.end)).toBe('2026-01-23')
       expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
 
       wrapper.unmount()
@@ -3332,10 +3485,9 @@ describe('VAdvancedDateInput', () => {
         },
       })
 
-      wrapper.findComponent({ name: 'VMenu' }).vm.$emit(
-        'update:modelValue',
-        false,
-      )
+      wrapper
+        .findComponent({ name: 'VMenu' })
+        .vm.$emit('update:modelValue', false)
       await wrapper.vm.$nextTick()
       await flushPromises()
 
