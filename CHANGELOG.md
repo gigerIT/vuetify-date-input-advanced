@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.3.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.3.0...v3.3.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* enhance advanced date picker interaction and styling ([0763389](https://github.com/gigerIT/vuetify-date-input-advanced/commit/0763389f1dee25a4e7588a0ddf626015f9744e46))
+* **range:** respect end constraints after start replacement ([da87b17](https://github.com/gigerIT/vuetify-date-input-advanced/commit/da87b17c2a384d0f67016f93d729a21efc6445f7))
+
 ## [3.3.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.2.0...v3.3.0) (2026-04-21)
 
 
