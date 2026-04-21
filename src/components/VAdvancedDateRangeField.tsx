@@ -70,6 +70,7 @@ export const VAdvancedDateRangeField = defineComponent({
     },
     disabled: Boolean,
     readonly: Boolean,
+    suppressFocus: Boolean,
     startValue: {
       type: String,
       default: '',
@@ -104,6 +105,10 @@ export const VAdvancedDateRangeField = defineComponent({
     'update:activeField': (_value: AdvancedDateInputField) => true,
     focus: (_event: FocusEvent) => true,
     blur: (_event: FocusEvent) => true,
+    'mousedown:control': (_payload: {
+      event: MouseEvent
+      field: AdvancedDateInputField
+    }) => true,
     keydown: (_payload: {
       event: KeyboardEvent
       field: AdvancedDateInputField
@@ -150,6 +155,8 @@ export const VAdvancedDateRangeField = defineComponent({
     }
 
     function focusField(field: AdvancedDateInputField) {
+      if (props.suppressFocus) return
+
       const input = resolveInput(field)
       if (!input) return
 
@@ -263,6 +270,9 @@ export const VAdvancedDateRangeField = defineComponent({
           onMouseup={(event: MouseEvent) => handleMouseUp(field, event)}
           onKeydown={(event: KeyboardEvent) =>
             emit('keydown', { event, field })
+          }
+          onMousedown:control={(event: MouseEvent) =>
+            emit('mousedown:control', { event, field })
           }
           onClick:control={(event: MouseEvent) => {
             focusField(field)

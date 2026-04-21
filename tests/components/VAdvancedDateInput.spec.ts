@@ -449,6 +449,111 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
+  it('opens the mobile fullscreen picker on activator press before the single-date input can focus', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          range: false,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      try {
+        const input = wrapper.get('input')
+        const field = wrapper.findComponent({ name: 'VTextField' })
+        const event = new MouseEvent('mousedown', { cancelable: true })
+
+        expect(input.attributes('readonly')).toBeUndefined()
+
+        field.vm.$emit('mousedown:control', event)
+        await wrapper.vm.$nextTick()
+
+        expect(event.defaultPrevented).toBe(true)
+        expect(input.attributes('readonly')).toBeDefined()
+        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+
+        field.vm.$emit('click:control', new MouseEvent('click'))
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+      } finally {
+        wrapper.unmount()
+      }
+    }, 375)
+  })
+
+  it('keeps the built-in single-date desktop activator editable', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          range: false,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      try {
+        const input = wrapper.get('input')
+
+        expect(input.attributes('readonly')).toBeUndefined()
+
+        await input.setValue('Feb 10, 2026')
+
+        expect(wrapper.emitted('update:text')?.at(-1)).toEqual([
+          'Feb 10, 2026',
+        ])
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
+  it('opens the mobile fullscreen overlay from Enter on the readonly single-date activator without validating text', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          range: false,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      try {
+        const input = wrapper.get('input')
+
+        expect(input.attributes('readonly')).toBeDefined()
+
+        await input.setValue('not a date')
+        await input.trigger('keydown', { key: 'Enter' })
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+        expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+        expect(wrapper.text()).not.toContain('Enter a valid date')
+      } finally {
+        wrapper.unmount()
+      }
+    }, 375)
+  })
+
   it('forwards the optional title to the mobile fullscreen picker', () => {
     const originalWidth = window.innerWidth
 
@@ -715,7 +820,7 @@ describe('VAdvancedDateInput', () => {
     }, 375)
   })
 
-  it('keeps the mobile fullscreen picker anchored when typed input resolves to a later month', async () => {
+  it('keeps the mobile fullscreen picker anchored because the activator input is readonly', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
@@ -738,6 +843,7 @@ describe('VAdvancedDateInput', () => {
         const input = wrapper.get('input')
         const initialLabels = monthLabels(wrapper)
 
+        expect(input.attributes('readonly')).toBeDefined()
         expect(pickerLiveText(wrapper)).toBe('January 2026')
 
         await input.setValue('Feb 10, 2026')
@@ -880,6 +986,80 @@ describe('VAdvancedDateInput', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('opens the mobile fullscreen picker on activator press before range inputs can focus', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      try {
+        const start = rangeInput(wrapper, 'start')
+        const end = rangeInput(wrapper, 'end')
+        const startField = rangeFieldComponent(wrapper, 'start')
+        const event = new MouseEvent('mousedown', { cancelable: true })
+
+        expect(start.attributes('readonly')).toBeUndefined()
+        expect(end.attributes('readonly')).toBeUndefined()
+
+        startField.vm.$emit('mousedown:control', event)
+        await wrapper.vm.$nextTick()
+
+        expect(event.defaultPrevented).toBe(true)
+        expect(start.attributes('readonly')).toBeDefined()
+        expect(end.attributes('readonly')).toBeDefined()
+        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+
+        startField.vm.$emit('click:control', new MouseEvent('click'))
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+      } finally {
+        wrapper.unmount()
+      }
+    }, 375)
+  })
+
+  it('opens the mobile fullscreen overlay from Enter on readonly range activators without validating text', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-19T00:00:00.000Z'),
+          ],
+          menu: true,
+          text: 'not a date',
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VDialog: dialogStub,
+          },
+        },
+      })
+
+      try {
+        await rangeInput(wrapper, 'start').trigger('keydown', { key: 'Enter' })
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+        expect(wrapper.emitted('inputInvalid')).toBeUndefined()
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+        expect(wrapper.text()).not.toContain('Enter a valid range')
+      } finally {
+        wrapper.unmount()
+      }
+    }, 375)
   })
 
   it('forwards side-specific field props to the split range inputs', () => {

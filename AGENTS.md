@@ -147,6 +147,10 @@ flowchart LR
 The public API is exported from `src/index.ts` and registered globally through
 `src/plugin.ts`. `VAdvancedDateInput` wraps `VTextField` plus `VMenu` or
 `VDialog` behavior and delegates calendar rendering to `VAdvancedDatePicker`.
+`VAdvancedDateInput` should keep overlay, activator/focus, and render wiring
+local; text/picker draft synchronization, controlled text echoes, committed
+selection mirroring, and commit/revert transitions live in
+`useAdvancedDateInputDraft`.
 The picker coordinates the real state through composables for model
 normalization, navigation, date-grid generation, presets, roving focus,
 mobile month windowing, and typed-input parsing. The input passes an internal
@@ -243,6 +247,10 @@ npm run build
 - Mobile month-window logic must rebuild whenever `monthHasSelectableDate()`
   inputs change, including internal partial/completed range picks; preserving
   the current anchor must not leave stale non-selectable months rendered.
+- Built-in `VAdvancedDateInput` activators must suppress control-focus on
+  mobile fullscreen presses and become readonly while the dialog is opening or
+  open so touch devices do not show the virtual keyboard; custom activator
+  slots remain consumer-managed.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and

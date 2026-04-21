@@ -272,6 +272,11 @@ const presets: PresetRange<Date>[] = [
 `VAdvancedDateInput` parses text on blur and on `Enter`. In single-date mode,
 `inputReadonly` makes the text field a picker opener only.
 
+On mobile non-inline layouts, built-in activator presses are intercepted before
+the text input can focus, and the activator becomes readonly while the
+fullscreen dialog is opening or open. This prevents the virtual keyboard from
+flashing during the transition.
+
 Parsing order:
 
 - `parseInput(value)` if provided
@@ -424,7 +429,8 @@ If you provide the `activator` slot, the slot content owns its own attrs and lis
 `inputReadonly` only affects the built-in single-date text field, so it has no
 effect in range mode, when `inline` is enabled, or when you provide a custom
 `activator` slot. Use `readonly`, `startFieldProps.readonly`, or
-`endFieldProps.readonly` for range-mode readonly fields.
+`endFieldProps.readonly` for range-mode readonly fields. The mobile fullscreen
+keyboard-suppression behavior still applies to built-in range fields.
 
 ### Overlay and Mobile Behavior
 
@@ -435,6 +441,10 @@ effect in range mode, when `inline` is enabled, or when you provide a custom
 - `inline`: picker rendered directly with no overlay
 
 On mobile, the picker switches to a vertically scrollable, windowed month list instead of desktop-style prev/next nav buttons.
+The built-in mobile fullscreen activator fields suppress control focus on press
+and become readonly while the dialog is opening or open to avoid showing the
+touchscreen keyboard. Custom `activator` slots own their own mobile focus and
+keyboard behavior.
 
 ### Apply / Cancel
 

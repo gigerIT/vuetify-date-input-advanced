@@ -174,7 +174,30 @@ export const VAdvancedDateInput = defineComponent({
     const mobilePresentation = computed<AdvancedDateMobilePresentation | null>(
       () => (display.mobile.value && !props.inline ? 'fullscreen' : 'inline'),
     )
-    const fieldReadonly = computed(() => props.readonly || props.inputReadonly)
+    const isMobileFullscreenActivator = computed(
+      () => display.mobile.value && !props.inline,
+    )
+    const mobileActivatorOpening = ref(false)
+
+    const overlay = useAdvancedDateOverlay({
+      menu: toRef(props, 'menu'),
+      pickerRef,
+      onMenuUpdate: (value) => emit('update:menu', value),
+      onExternalCloseRequest: () =>
+        requestOverlayClose('dismiss', { closeOverlay: false }),
+    })
+
+    const mobileFullscreenActivatorReadonly = computed(
+      () =>
+        isMobileFullscreenActivator.value &&
+        (overlay.menu.value || mobileActivatorOpening.value),
+    )
+    const fieldReadonly = computed(
+      () =>
+        props.readonly ||
+        props.inputReadonly ||
+        mobileFullscreenActivatorReadonly.value,
+    )
     const rangeTextEditable = computed(
       () =>
         !props.disabled &&
@@ -192,12 +215,10 @@ export const VAdvancedDateInput = defineComponent({
     )
     const endPlaceholder = computed(() => tDateInputAdvanced('fields.endDate'))
 
-    const overlay = useAdvancedDateOverlay({
-      menu: toRef(props, 'menu'),
-      pickerRef,
-      onMenuUpdate: (value) => emit('update:menu', value),
-      onExternalCloseRequest: () =>
-        requestOverlayClose('dismiss', { closeOverlay: false }),
+    watch([overlay.menu, isMobileFullscreenActivator], ([menu, mobile]) => {
+      if (menu && mobile) return
+
+      mobileActivatorOpening.value = false
     })
 
     const input = useAdvancedDateInput({
@@ -1158,8 +1179,35 @@ export const VAdvancedDateInput = defineComponent({
       void requestOverlayClose('dismiss')
     }
 
+    function handleMobileFullscreenActivatorPress(event: Event) {
+      if (!isMobileFullscreenActivator.value) return
+
+      event.preventDefault()
+      mobileActivatorOpening.value = true
+      overlay.openMenu()
+    }
+
+    function openOverlayFromActivator(hasActivatorProps: boolean) {
+      if (hasActivatorProps) return
+      if (
+        isMobileFullscreenActivator.value &&
+        mobileActivatorOpening.value &&
+        overlay.menu.value
+      ) {
+        return
+      }
+
+      overlay.openMenu()
+    }
+
     function isRangeFieldReadonly(field: AdvancedDateInputField) {
-      if (props.disabled || props.readonly) return true
+      if (
+        props.disabled ||
+        props.readonly ||
+        mobileFullscreenActivatorReadonly.value
+      ) {
+        return true
+      }
 
       const fieldProps =
         field === 'start' ? props.startFieldProps : props.endFieldProps
@@ -1225,6 +1273,7 @@ export const VAdvancedDateInput = defineComponent({
         onFocus: userOnFocus,
         onBlur: userOnBlur,
         onKeydown: userOnKeydown,
+        ['onMousedown:control']: userOnMousedownControl,
         ['onClick:control']: userOnClickControl,
         ['onClick:appendInner']: userOnClickAppendInner,
         ['onClick:clear']: userOnClickClear,
@@ -1269,7 +1318,8 @@ export const VAdvancedDateInput = defineComponent({
             clearable={props.clearable}
             density={props.density}
             disabled={props.disabled}
-            readonly={props.readonly}
+            readonly={props.readonly || mobileFullscreenActivatorReadonly.value}
+            suppressFocus={isMobileFullscreenActivator.value}
             startFieldProps={props.startFieldProps}
             endFieldProps={props.endFieldProps}
             onUpdate:startValue={(value) =>
@@ -1304,6 +1354,21 @@ export const VAdvancedDateInput = defineComponent({
                 event,
               )
             }}
+            onMousedown:control={({
+              event,
+              field,
+            }: {
+              event: MouseEvent
+              field: AdvancedDateInputField
+            }) => {
+              setActiveField(field)
+              pickerBoundaryField.value = field
+              handleMobileFullscreenActivatorPress(event)
+              callForwardedHandler(
+                userOnMousedownControl as ForwardedEventHandler | undefined,
+                event,
+              )
+            }}
             onClick:control={({
               event,
               field,
@@ -1313,7 +1378,7 @@ export const VAdvancedDateInput = defineComponent({
             }) => {
               pickerBoundaryField.value = field
 
-              if (!hasActivatorProps) overlay.openMenu()
+              openOverlayFromActivator(hasActivatorProps)
               callForwardedHandler(
                 userOnClickControl as ForwardedEventHandler | undefined,
                 event,
@@ -1329,7 +1394,7 @@ export const VAdvancedDateInput = defineComponent({
               setActiveField(field)
               pickerBoundaryField.value = field
 
-              if (!hasActivatorProps) overlay.openMenu()
+              openOverlayFromActivator(hasActivatorProps)
 
               callForwardedHandler(
                 userOnClickAppendInner as ForwardedEventHandler | undefined,
@@ -1391,21 +1456,28 @@ export const VAdvancedDateInput = defineComponent({
           input.onBlur()
         },
         onKeydown: (event: KeyboardEvent) => {
-          handleKeydown(event)
+          handleKeydown(event, { readonly: fieldReadonly.value })
           callForwardedHandler(
             userOnKeydown as ForwardedEventHandler | undefined,
             event,
           )
         },
+        'onMousedown:control': (event: MouseEvent) => {
+          handleMobileFullscreenActivatorPress(event)
+          callForwardedHandler(
+            userOnMousedownControl as ForwardedEventHandler | undefined,
+            event,
+          )
+        },
         'onClick:control': (event: MouseEvent) => {
-          if (!hasActivatorProps) overlay.openMenu()
+          openOverlayFromActivator(hasActivatorProps)
           callForwardedHandler(
             userOnClickControl as ForwardedEventHandler | undefined,
             event,
           )
         },
         'onClick:appendInner': (event: MouseEvent) => {
-          if (!hasActivatorProps) overlay.openMenu()
+          openOverlayFromActivator(hasActivatorProps)
           callForwardedHandler(
             userOnClickAppendInner as ForwardedEventHandler | undefined,
             event,
