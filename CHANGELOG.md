@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.1.0...v3.2.0) (2026-04-21)
+
+
+### Features
+
+* enhance mobile activator behavior for VAdvancedDateInput ([5af7585](https://github.com/gigerIT/vuetify-date-input-advanced/commit/5af75858c23daad2032f382aec61c69c42f1f131))
+
 ## [3.1.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.0.0...v3.1.0) (2026-04-20)
 
 
