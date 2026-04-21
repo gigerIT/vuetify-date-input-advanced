@@ -22,6 +22,8 @@ describe('Sass variables', () => {
   it('emits default picker variables from the styles entry', () => {
     const css = compileStyles("@use 'styles';")
     const dayRule = extractRule(css, '.v-advanced-date-picker__day')
+    const weekdayRule = extractRule(css, '.v-advanced-date-picker__weekday')
+    const weekNumberRule = extractRule(css, '.v-advanced-date-picker__week-number')
 
     expect(css).toContain('--v-advanced-date-cell-size: 40px;')
     expect(css).toContain('--v-advanced-date-month-slide-duration: 0.36s;')
@@ -31,6 +33,14 @@ describe('Sass variables', () => {
     expect(css).toContain('--v-advanced-date-preset-width: 220px;')
     expect(dayRule).toContain('font-size: 0.875rem;')
     expect(dayRule).toContain('font-weight: 500;')
+    expect(weekdayRule).toContain(
+      'color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) 30%, rgb(var(--v-theme-on-surface-variant)) 40%);',
+    )
+    expect(weekdayRule).not.toContain('opacity:')
+    expect(weekNumberRule).toContain(
+      'color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) 30%, rgb(var(--v-theme-on-surface-variant)) 40%);',
+    )
+    expect(weekNumberRule).not.toContain('opacity:')
   })
 
   it('allows package variable overrides through the styles entry', () => {
@@ -40,16 +50,23 @@ describe('Sass variables', () => {
         $advanced-date-picker-month-slide-duration: 0.32s,
         $advanced-date-picker-month-slide-easing: linear,
         $advanced-date-picker-preset-width: 260px,
-        $advanced-date-picker-day-font-weight: 600
+        $advanced-date-picker-day-font-weight: 600,
+        $advanced-date-picker-week-label-color: rgb(10, 20, 30)
       );
     `)
     const dayRule = extractRule(css, '.v-advanced-date-picker__day')
+    const weekdayRule = extractRule(css, '.v-advanced-date-picker__weekday')
+    const weekNumberRule = extractRule(css, '.v-advanced-date-picker__week-number')
 
     expect(css).toContain('--v-advanced-date-cell-size: 44px;')
     expect(css).toContain('--v-advanced-date-month-slide-duration: 0.32s;')
     expect(css).toContain('--v-advanced-date-month-slide-easing: linear;')
     expect(css).toContain('--v-advanced-date-preset-width: 260px;')
     expect(dayRule).toContain('font-weight: 600;')
+    expect(weekdayRule).toContain('color: rgb(10, 20, 30);')
+    expect(weekdayRule).not.toContain('opacity:')
+    expect(weekNumberRule).toContain('color: rgb(10, 20, 30);')
+    expect(weekNumberRule).not.toContain('opacity:')
   })
 
   it('inherits defaults from configured Vuetify Sass variables', () => {

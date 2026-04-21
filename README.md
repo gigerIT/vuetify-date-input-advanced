@@ -98,13 +98,15 @@ of importing `style.css`:
   $advanced-date-picker-month-slide-duration: 0.36s,
   $advanced-date-picker-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1),
   $advanced-date-picker-preset-width: 260px,
-  $advanced-date-picker-day-font-weight: 600
+  $advanced-date-picker-day-font-weight: 600,
+  $advanced-date-picker-week-label-color: rgb(90, 90, 90)
 );
 ```
 
 Desktop month navigation can be tuned with
 `$advanced-date-picker-month-slide-duration` and
 `$advanced-date-picker-month-slide-easing`.
+Weekday headers and week numbers use `$advanced-date-picker-week-label-color`.
 
 Package Sass variables default to Vuetify's native date-picker and button
 variables where equivalent values exist. To let customized Vuetify Sass
