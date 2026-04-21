@@ -261,8 +261,9 @@ npm run build
   draft currently has an end date; start-side replacements can preserve the old
   end while the next picker click still needs end-date constraints.
 - Mobile month-window logic must rebuild whenever `monthHasSelectableDate()`
-  inputs change, including internal partial/completed range picks; preserving
-  the current anchor must not leave stale non-selectable months rendered.
+  inputs change, including internal partial/completed range picks and
+  start/end target-field phase changes; preserving the current anchor must not
+  leave stale non-selectable months rendered.
 - Built-in `VAdvancedDateInput` activators must suppress control-focus on
   mobile fullscreen presses and become readonly while the dialog is opening or
   open so touch devices do not show the virtual keyboard; custom activator

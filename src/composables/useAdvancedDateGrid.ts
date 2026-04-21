@@ -156,9 +156,11 @@ export function useAdvancedDateGrid<TDate>(options: {
             rangeStart,
             rangeEnd,
             inRange: intersectsRange(options.adapter, day.date, selection),
-            preview:
-              !selection.end &&
-              intersectsRange(options.adapter, day.date, hoveredPreview),
+            preview: intersectsRange(
+              options.adapter,
+              day.date,
+              hoveredPreview,
+            ),
           }
         }),
       })),

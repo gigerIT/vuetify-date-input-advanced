@@ -165,6 +165,25 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     pendingMobileScrollMonthKey.value = dateKey(options.adapter, targetMonth)
   }
 
+  function rebuildWindowFromAvailabilityChange(anchor: TDate) {
+    if (!mobileWindowStart.value || !mobileWindowCount.value) {
+      resetWindow(anchor)
+      return
+    }
+
+    // Rebuild cached months without recentering when only availability inputs
+    // change, so the current mobile anchor stays stable when possible.
+    syncMobileVisibleMonths(latestPreservedMonth())
+
+    const displayedMonthStillVisible = mobileVisibleMonths.value.some((month) =>
+      options.adapter.isSameMonth(month, options.displayedMonth.value),
+    )
+
+    if (!mobileVisibleMonths.value.length || !displayedMonthStillVisible) {
+      resetWindow(anchor)
+    }
+  }
+
   const visibleMonths = computed(() =>
     options.isMobileScroll.value
       ? mobileVisibleMonths.value
@@ -455,23 +474,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
         options.selection.value.start ?? options.displayedMonth.value
 
       if (options.selectionChangeOrigin.value === 'internal') {
-        if (!mobileWindowStart.value || !mobileWindowCount.value) {
-          resetWindow(anchorMonth)
-          return
-        }
-
-        // Internal picks still need to prune stale months without recentering
-        // the mobile viewport away from the current anchor or selected month.
-        syncMobileVisibleMonths(latestPreservedMonth())
-
-        const displayedMonthStillVisible = mobileVisibleMonths.value.some(
-          (month) => options.adapter.isSameMonth(month, options.displayedMonth.value),
-        )
-
-        if (!mobileVisibleMonths.value.length || !displayedMonthStillVisible) {
-          resetWindow(anchorMonth)
-        }
-
+        rebuildWindowFromAvailabilityChange(anchorMonth)
         return
       }
 
@@ -494,6 +497,14 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       resetWindow(options.displayedMonth.value)
     },
   )
+
+  watch(options.selectionTargetField, () => {
+    if (!options.isMobileScroll.value) return
+
+    rebuildWindowFromAvailabilityChange(
+      options.selection.value.start ?? options.displayedMonth.value,
+    )
+  })
 
   onBeforeUnmount(() => {
     if (!scrollFrame) return

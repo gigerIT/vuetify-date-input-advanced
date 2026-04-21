@@ -449,6 +449,43 @@ describe('VAdvancedDatePicker', () => {
     })
   })
 
+  it('rebuilds standalone mobile fullscreen months when end-target constraints expand later months', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: [
+            new Date('2026-01-19T00:00:00.000Z'),
+            new Date('2026-01-30T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+          months: 1,
+          autoApply: false,
+          allowedStartDates: allowOnly('2026-01-19'),
+          allowedEndDates: allowOnly('2026-01-23', '2026-02-10'),
+          mobilePresentation: 'fullscreen',
+        },
+        attachTo: document.body,
+      })
+
+      try {
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026'])
+        expect(pickerLiveText(wrapper).endsWith('January 2026')).toBe(true)
+
+        await wrapper.setProps({ selectionTargetField: 'end' })
+        await wrapper.vm.$nextTick()
+        await wrapper.vm.$nextTick()
+
+        expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+        expect(pickerLiveText(wrapper).endsWith('January 2026')).toBe(true)
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
   it('keeps the mobile fullscreen anchor month when selecting a later rendered month', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
@@ -1471,6 +1508,36 @@ describe('VAdvancedDatePicker', () => {
     expect(
       wrapper.findAll('.v-advanced-date-picker__day-cell--preview').length,
     ).toBeGreaterThan(0)
+  })
+
+  it('renders the range preview while replacing an existing end date', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: [
+          new Date('2026-01-19T00:00:00.000Z'),
+          new Date('2026-01-30T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+        selectionTargetField: 'end',
+        allowedStartDates: allowOnly('2026-01-19'),
+        allowedEndDates: allowOnly('2026-01-23', '2026-01-30'),
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-23"]').trigger('mouseenter')
+
+    expect(
+      wrapper
+        .findAll('.v-advanced-date-picker__day-cell--preview button[data-date]')
+        .map((node) => node.attributes('data-date')),
+    ).toEqual([
+      '2026-01-19',
+      '2026-01-20',
+      '2026-01-21',
+      '2026-01-22',
+      '2026-01-23',
+    ])
   })
 
   it('shows a Vuetify ripple when pressing a date', async () => {
