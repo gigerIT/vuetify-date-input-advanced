@@ -2,6 +2,7 @@ import { computed, nextTick, ref, type Ref } from 'vue'
 
 import type {
   AdvancedDateAdapter,
+  AdvancedDateInputField,
   AdvancedDateMonthData,
   NormalizedRange,
 } from '@/types'
@@ -13,6 +14,7 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   months: Ref<AdvancedDateMonthData<TDate>[]>
   selection: Ref<NormalizedRange<TDate>>
+  selectionTargetField: Ref<AdvancedDateInputField | null>
   firstDayOfWeek: Ref<number | string | undefined>
   containerRef: Ref<HTMLElement | null>
   monthsTrackRef: Ref<HTMLElement | null>
@@ -99,10 +101,21 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     if (resolved) focus.setActiveDate(resolved)
   }
 
+  function selectionFocusDate() {
+    if (
+      options.selectionTargetField.value === 'end' &&
+      options.selection.value.end
+    ) {
+      return options.selection.value.end
+    }
+
+    return options.selection.value.start
+  }
+
   function focusActiveDate() {
     const fallback =
+      selectionFocusDate() ??
       focus.activeDate.value ??
-      options.selection.value.start ??
       firstAvailableDay.value?.date
 
     if (!fallback) return
@@ -119,10 +132,11 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
   })
 
   const activeDateKey = computed(() => {
+    const selectedDate = selectionFocusDate()
     const preferredKey = focus.activeDate.value
       ? dateKey(options.adapter, focus.activeDate.value)
-      : options.selection.value.start
-        ? dateKey(options.adapter, options.selection.value.start)
+      : selectedDate
+        ? dateKey(options.adapter, selectedDate)
         : ''
 
     if (preferredKey) {

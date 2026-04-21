@@ -142,6 +142,43 @@ export function useAdvancedDateNavigation<TDate>(options: {
     syncMonth(options.adapter.addMonths(displayedMonth.value, 1))
   }
 
+  function selectionViewportAnchor() {
+    const selection = options.selection.value
+
+    if (
+      options.range.value &&
+      options.selectionTargetField.value === 'end' &&
+      selection.end
+    ) {
+      return {
+        anchor: selection.end,
+        displayedMonth: options.adapter.addMonths(
+          selection.end,
+          -(options.months.value - 1),
+        ),
+      }
+    }
+
+    if (!selection.start) return null
+
+    return {
+      anchor: selection.start,
+      displayedMonth: selection.start,
+    }
+  }
+
+  function syncSelectionViewport() {
+    if (options.selectionChangeOrigin.value === 'internal') return
+
+    const viewport = selectionViewportAnchor()
+    if (!viewport) return
+
+    const isVisible = visibleMonths.value.some((month) =>
+      options.adapter.isSameMonth(month, viewport.anchor),
+    )
+    if (!isVisible) syncMonth(viewport.displayedMonth, false)
+  }
+
   watch(
     () => [options.month.value, options.year.value],
     ([month, year]) => {
@@ -150,18 +187,14 @@ export function useAdvancedDateNavigation<TDate>(options: {
   )
 
   watch(
-    [() => options.selection.value.start, () => options.range.value],
-    () => {
-      const selection = options.selection.value
-
-      if (!selection.start) return
-      if (options.selectionChangeOrigin.value === 'internal') return
-
-      const isVisible = visibleMonths.value.some((month) =>
-        options.adapter.isSameMonth(month, selection.start as TDate),
-      )
-      if (!isVisible) syncMonth(selection.start, false)
-    },
+    [
+      () => options.selection.value.start,
+      () => options.selection.value.end,
+      () => options.range.value,
+      () => options.selectionTargetField.value,
+      () => options.months.value,
+    ],
+    syncSelectionViewport,
     { immediate: true },
   )
 

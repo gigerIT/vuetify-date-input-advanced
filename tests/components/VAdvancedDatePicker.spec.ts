@@ -1112,6 +1112,51 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.emitted('update:year')).toBeUndefined()
   })
 
+  it('keeps the current end month visible while targeting end-date replacement', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: [
+          new Date('2026-01-12T00:00:00.000Z'),
+          new Date('2026-03-19T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+        months: 2,
+        selectionTargetField: 'start',
+      },
+      attachTo: document.body,
+    })
+
+    expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+
+    await wrapper.setProps({ selectionTargetField: 'end' })
+
+    expect(monthLabels(wrapper).slice(-2)).toEqual([
+      'February 2026',
+      'March 2026',
+    ])
+
+    await wrapper.vm.focusActiveDate()
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    expect(monthLabels(wrapper).slice(-2)).toEqual([
+      'February 2026',
+      'March 2026',
+    ])
+
+    await wrapper.setProps({ selectionTargetField: 'start' })
+
+    expect(monthLabels(wrapper).slice(-2)).toEqual([
+      'January 2026',
+      'February 2026',
+    ])
+    expect(wrapper.emitted('update:month')).toBeUndefined()
+    expect(wrapper.emitted('update:year')).toBeUndefined()
+
+    wrapper.unmount()
+  })
+
   it('disables both month buttons when a multi-month viewport cannot reveal another allowed month', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {

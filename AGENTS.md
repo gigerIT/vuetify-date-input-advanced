@@ -256,6 +256,9 @@ npm run build
   not depend only on selection inequality; parent echoes or controlled draft
   sync can make the selection already match `pickerSelection` before
   `VAdvancedDateInput` focuses the end field.
+- Desktop end-side range replacement must keep the current end month visible
+  when the overlay opens, including after delayed `focusActiveDate()` calls;
+  start-side replacement should continue to anchor to the current start month.
 - Constrained desktop range selection must derive the active start/end
   interaction phase from the focused range field, not just from whether the
   draft currently has an end date; start-side replacements can preserve the old

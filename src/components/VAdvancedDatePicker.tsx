@@ -292,6 +292,7 @@ export const VAdvancedDatePicker = defineComponent({
       adapter,
       months: grid.months,
       selection: model.normalized,
+      selectionTargetField: toRef(props, 'selectionTargetField'),
       firstDayOfWeek: toRef(props, 'firstDayOfWeek'),
       containerRef: mobileWindow.containerRef,
       monthsTrackRef: mobileWindow.monthsTrackRef,

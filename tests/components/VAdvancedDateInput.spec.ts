@@ -1622,6 +1622,56 @@ describe('VAdvancedDateInput', () => {
     })
   })
 
+  it('keeps the current end month visible when opening from the end input', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-03-19T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+          months: 2,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      expect(monthLabels(wrapper)).toEqual(['January 2026', 'February 2026'])
+
+      rangeFieldComponent(wrapper, 'end').vm.$emit(
+        'click:control',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+      await wrapper.vm.$nextTick()
+
+      expect(
+        pickerLiveText(wrapper).endsWith('February 2026, March 2026'),
+      ).toBe(true)
+
+      rangeFieldComponent(wrapper, 'start').vm.$emit(
+        'click:control',
+        new MouseEvent('click'),
+      )
+      await wrapper.vm.$nextTick()
+
+      expect(
+        pickerLiveText(wrapper).endsWith('January 2026, February 2026'),
+      ).toBe(true)
+      expect(wrapper.emitted('update:month')).toBeUndefined()
+      expect(wrapper.emitted('update:year')).toBeUndefined()
+
+      wrapper.unmount()
+    })
+  })
+
   it('prefers an explicit split-field click over a different activeField fallback', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
