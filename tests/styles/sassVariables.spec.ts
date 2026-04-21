@@ -22,6 +22,10 @@ describe('Sass variables', () => {
   it('emits default picker variables from the styles entry', () => {
     const css = compileStyles("@use 'styles';")
     const dayRule = extractRule(css, '.v-advanced-date-picker__day')
+    const selectedDisabledRule = extractRule(
+      css,
+      '.v-advanced-date-picker__day--selected-disabled',
+    )
     const weekdayRule = extractRule(css, '.v-advanced-date-picker__weekday')
     const weekNumberRule = extractRule(css, '.v-advanced-date-picker__week-number')
 
@@ -39,6 +43,7 @@ describe('Sass variables', () => {
     expect(css).toContain('--v-advanced-date-preset-width: 220px;')
     expect(dayRule).toContain('font-size: 0.875rem;')
     expect(dayRule).toContain('font-weight: 500;')
+    expect(selectedDisabledRule).toContain('opacity: 1;')
     expect(weekdayRule).toContain(
       'color: color-mix(in srgb, rgb(var(--v-theme-on-surface)) 30%, rgb(var(--v-theme-on-surface-variant)) 40%);',
     )

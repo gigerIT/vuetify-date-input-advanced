@@ -681,6 +681,49 @@ describe('VAdvancedDatePicker', () => {
     ).toBeUndefined()
   })
 
+  it('keeps constrained selected range endpoints visually active while disabled', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        allowedStartDates: allowOnly('2026-01-05'),
+        allowedEndDates: allowOnly('2026-01-09'),
+      },
+    })
+
+    await wrapper.find('[data-date="2026-01-05"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const startButton = wrapper.get('[data-date="2026-01-05"]')
+    const blockedEndButton = wrapper.get('[data-date="2026-01-08"]')
+
+    expect(startButton.attributes('disabled')).toBeDefined()
+    expect(startButton.classes()).toContain(
+      'v-advanced-date-picker__day--selected',
+    )
+    expect(startButton.classes()).toContain(
+      'v-advanced-date-picker__day--selected-disabled',
+    )
+    expect(blockedEndButton.attributes('disabled')).toBeDefined()
+    expect(blockedEndButton.classes()).not.toContain(
+      'v-advanced-date-picker__day--selected-disabled',
+    )
+
+    await wrapper.find('[data-date="2026-01-09"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const endButton = wrapper.get('[data-date="2026-01-09"]')
+
+    expect(endButton.attributes('disabled')).toBeDefined()
+    expect(endButton.classes()).toContain(
+      'v-advanced-date-picker__day--selected',
+    )
+    expect(endButton.classes()).toContain(
+      'v-advanced-date-picker__day--selected-disabled',
+    )
+  })
+
   it('validates the second click against the ordered range endpoints', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {

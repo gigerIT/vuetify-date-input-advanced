@@ -85,6 +85,8 @@ export const VAdvancedDateMonth = defineComponent({
 
               {week.days.map((day) => {
                 const disabled = props.disabled || day.disabled
+                const selectedDisabled =
+                  !props.disabled && day.disabled && day.selected
                 const dayProps = {
                   type: 'button' as const,
                   class: [
@@ -94,6 +96,8 @@ export const VAdvancedDateMonth = defineComponent({
                       'v-advanced-date-picker__day--disabled': disabled,
                       'v-advanced-date-picker__day--today': day.today,
                       'v-advanced-date-picker__day--selected': day.selected,
+                      'v-advanced-date-picker__day--selected-disabled':
+                        selectedDisabled,
                       'v-advanced-date-picker__day--range-start':
                         day.rangeStart,
                       'v-advanced-date-picker__day--range-end': day.rangeEnd,

@@ -50,6 +50,7 @@ import '@/styles/VAdvancedDateInput.sass'
 import {
   advancedDateInputProps,
   buildAdvancedDatePickerBindings,
+  type AdvancedDatePickerDraftChangeContext,
   type AdvancedDateMobilePresentation,
 } from './advancedDateProps'
 import { VAdvancedDateRangeField } from './VAdvancedDateRangeField'
@@ -718,11 +719,36 @@ export const VAdvancedDateInput = defineComponent({
       return resolveActiveFieldFromSelection(selection)
     }
 
-    function handlePickerDraftChange(value: NormalizedRange<unknown>) {
+    function shouldFocusEndRangeField(
+      selection: NormalizedRange<unknown>,
+      replacementField: AdvancedDateInputField | null,
+      context: AdvancedDatePickerDraftChangeContext,
+    ) {
+      return (
+        context.origin === 'internal' &&
+        props.range &&
+        !!selection.start &&
+        (!selection.end || replacementField === 'start')
+      )
+    }
+
+    function handlePickerDraftChange(
+      value: NormalizedRange<unknown>,
+      context: AdvancedDatePickerDraftChangeContext,
+    ) {
       const resolvedSelection = resolvePickerSelectionFromActiveField(value)
       const nextSelection = cloneSelection(resolvedSelection.selection)
+      const focusEndRangeField = shouldFocusEndRangeField(
+        nextSelection,
+        resolvedSelection.replacementField,
+        context,
+      )
 
       if (isSameSelection(adapter, pickerSelection.value, nextSelection)) {
+        if (focusEndRangeField) {
+          void focusRangeField('end')
+        }
+
         return
       }
 
@@ -758,7 +784,7 @@ export const VAdvancedDateInput = defineComponent({
         ),
       )
 
-      if (props.range && nextSelection.start && !nextSelection.end) {
+      if (focusEndRangeField) {
         void focusRangeField('end')
       }
     }

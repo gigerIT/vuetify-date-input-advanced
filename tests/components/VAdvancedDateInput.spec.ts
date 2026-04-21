@@ -15,6 +15,7 @@ import type {
   AdvancedDateInputDraft,
   AdvancedDateInputInvalidPayload,
   AdvancedDateInputPublicInstance,
+  NormalizedRange,
 } from '@/types'
 
 import { render, renderWithVuetify } from '../render'
@@ -30,6 +31,11 @@ const menuStub = {
   props: ['modelValue', 'closeOnContentClick', 'offset', 'minWidth'],
   template: '<div><slot name="activator" :props="{}" /><slot /></div>',
 }
+
+type PickerDraftChangeHandler = (
+  value: NormalizedRange<Date>,
+  context: { origin: 'external' | 'internal' },
+) => void
 
 const inputIconCases = [
   {
@@ -1456,6 +1462,39 @@ describe('VAdvancedDateInput', () => {
     })
   })
 
+  it('moves focus to the end input when an internal partial range draft is already mirrored', async () => {
+    await runWithDesktopWidth(async () => {
+      const start = new Date('2026-01-12T00:00:00.000Z')
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [start, null],
+          activeField: 'start',
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+      const onDraftChange = wrapper
+        .getComponent({ name: 'VAdvancedDatePicker' })
+        .props('onDraftChange') as PickerDraftChangeHandler
+
+      onDraftChange({ start, end: null }, { origin: 'internal' })
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      expect(document.activeElement).toBe(rangeInput(wrapper, 'end').element)
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+
+      wrapper.unmount()
+    })
+  })
+
   it('uses the controlled end active field when the picker opens without a field click', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
@@ -1692,10 +1731,12 @@ describe('VAdvancedDateInput', () => {
 
       await wrapper.find('[data-date="2026-01-15"]').trigger('click')
       await wrapper.vm.$nextTick()
+      await waitForInputSelection()
 
       expect(wrapper.emitted('update:modelValue')).toBeUndefined()
       expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([true])
       expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+      expect(document.activeElement).toBe(rangeInput(wrapper, 'end').element)
       expect(rangeInputValues(wrapper)).toEqual({
         start: 'Jan 15, 2026',
         end: 'Jan 19, 2026',

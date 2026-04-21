@@ -245,10 +245,17 @@ npm run build
 - `VAdvancedDateInput.color` follows Vuetify field semantics for the built-in
   text control(s) only; do not implicitly bridge it into picker accent tokens
   such as `--v-advanced-date-picker-color`.
+- Constrained range endpoints can be disabled for the current interaction phase
+  while still being the active selection; keep their selected highlight at full
+  strength instead of applying disabled-date opacity.
 - Internal picker selections are not uniformly “stay put” events: preset
   selections that land outside the current viewport must explicitly realign the
   rendered months and live-region labels even when the selection change is
   marked internal.
+- Desktop range focus handoff after an internal start-side picker selection must
+  not depend only on selection inequality; parent echoes or controlled draft
+  sync can make the selection already match `pickerSelection` before
+  `VAdvancedDateInput` focuses the end field.
 - Mobile month-window logic must rebuild whenever `monthHasSelectableDate()`
   inputs change, including internal partial/completed range picks; preserving
   the current anchor must not leave stale non-selectable months rendered.

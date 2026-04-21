@@ -12,7 +12,11 @@ import type {
 
 export type AdvancedDateDensity = 'default' | 'comfortable' | 'compact'
 export type AdvancedDateMobilePresentation = 'fullscreen' | 'inline'
-type AdvancedDateSelectionChangeOrigin = 'external' | 'internal'
+export type AdvancedDateSelectionChangeOrigin = 'external' | 'internal'
+
+export interface AdvancedDatePickerDraftChangeContext {
+  origin: AdvancedDateSelectionChangeOrigin
+}
 
 const advancedDateIconPropType = [
   String,
@@ -109,7 +113,10 @@ export const advancedDatePickerInternalProps = {
     validator: (value: string) => value === 'external' || value === 'internal',
   },
   onDraftChange: Function as PropType<
-    ((value: NormalizedRange<unknown>) => void) | undefined
+    ((
+      value: NormalizedRange<unknown>,
+      context: AdvancedDatePickerDraftChangeContext,
+    ) => void) | undefined
   >,
   onEscapeKey: Function as PropType<(() => void) | undefined>,
 }

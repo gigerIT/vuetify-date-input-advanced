@@ -329,7 +329,9 @@ export const VAdvancedDatePicker = defineComponent({
     watch(
       model.normalized,
       (value) => {
-        props.onDraftChange?.(value as NormalizedRange<unknown>)
+        const origin = selectionChangeOrigin.value
+
+        props.onDraftChange?.(value as NormalizedRange<unknown>, { origin })
 
         if (localSelectionChangeOrigin.value !== 'internal') return
 
