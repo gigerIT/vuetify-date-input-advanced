@@ -35,6 +35,46 @@ function createLocalDate(year: number, month: number, day: number) {
   return new Date(year, month, day)
 }
 
+function toLocalYmd(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function getFormValidation(wrapper: ReturnType<typeof render>) {
+  return wrapper.get('[data-testid="playground-form-validation"]')
+}
+
+function parseFormValidationOutput(wrapper: ReturnType<typeof render>) {
+  return JSON.parse(
+    getFormValidation(wrapper).get('.form-validation-output').text(),
+  ) as {
+    touched: {
+      paymentDate: boolean
+      travelDates: boolean
+    }
+    submitCount: number
+    menus: {
+      paymentDate: boolean
+      travelDates: boolean
+    }
+    errors: {
+      paymentDate: string[]
+      travelDates: string[]
+    }
+    text: {
+      paymentDate: string
+      travelDates: string
+    }
+    model: {
+      paymentDate: string | null
+      travelDates: [string | null, string | null]
+    }
+  }
+}
+
 function createShowcaseProps() {
   const start = createLocalDate(2026, 0, 12)
   const end = createLocalDate(2026, 0, 19)
@@ -87,6 +127,96 @@ describe('PlaygroundShowcase', () => {
     expect(wrapper.text()).toContain('Pending range end locks future navigation')
     expect(wrapper.text()).toContain('Gap months are not skipped')
     expect(wrapper.text()).toContain('Mobile fullscreen constrained scroll limit')
+  })
+
+  it('shows parent-driven validation errors in the form validation demo', async () => {
+    const wrapper = render(PlaygroundShowcase, {
+      attachTo: document.body,
+      props: createShowcaseProps(),
+      global: {
+        plugins: [AdvancedDatePlugin],
+      },
+    })
+
+    const formValidation = getFormValidation(wrapper)
+    expect(parseFormValidationOutput(wrapper)).toMatchObject({
+      touched: {
+        paymentDate: false,
+        travelDates: false,
+      },
+      submitCount: 0,
+    })
+
+    expect(formValidation.text()).toContain(
+      'This example keeps validation in the parent',
+    )
+
+    await formValidation
+      .get('[data-testid="playground-form-validation-form"]')
+      .trigger('submit')
+    await wrapper.vm.$nextTick()
+
+    expect(parseFormValidationOutput(wrapper)).toMatchObject({
+      touched: {
+        paymentDate: true,
+        travelDates: true,
+      },
+      submitCount: 1,
+      errors: {
+        paymentDate: ['Choose a payment date before submitting.'],
+        travelDates: ['Choose both a start and end travel date.'],
+      },
+    })
+    expect(formValidation.text()).toContain(
+      'Fix the highlighted date fields before submitting the form.',
+    )
+
+    wrapper.unmount()
+  })
+
+  it('keeps the range field untouched while the picker is still completing a range', async () => {
+    const wrapper = render(PlaygroundShowcase, {
+      attachTo: document.body,
+      props: createShowcaseProps(),
+      global: {
+        plugins: [AdvancedDatePlugin],
+      },
+    })
+
+    const formValidation = getFormValidation(wrapper)
+    const targetDate = new Date()
+    targetDate.setDate(targetDate.getDate() + 7)
+    const targetIso = toLocalYmd(targetDate)
+
+    await formValidation.get('input[aria-label="Travel start date"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const targetButton = document.body.querySelector(
+      `.v-overlay-container [data-date="${targetIso}"]`,
+    ) as HTMLButtonElement | null
+
+    expect(targetButton).not.toBeNull()
+
+    targetButton?.click()
+    await wrapper.vm.$nextTick()
+
+    expect(parseFormValidationOutput(wrapper)).toMatchObject({
+      touched: {
+        travelDates: false,
+      },
+      menus: {
+        travelDates: true,
+      },
+      text: {
+        travelDates: expect.any(String),
+      },
+    })
+    expect(parseFormValidationOutput(wrapper).text.travelDates).not.toBe('')
+    expect(formValidation.text()).not.toContain(
+      'Fix the highlighted date fields before submitting the form.',
+    )
+
+    wrapper.unmount()
   })
 
   it('shows the expected disabled arrow states for each constrained demo', () => {

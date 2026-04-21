@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import type {
   AdvancedDateInputClosePayload,
@@ -10,6 +10,8 @@ import type {
   AdvancedDateInputInvalidPayload,
   AdvancedDateInputPublicInstance,
   AdvancedDateModel,
+  AdvancedDateRangeObject,
+  AdvancedDateRangeTuple,
   PresetRange,
 } from '@gigerit/vuetify-date-input-advanced'
 
@@ -79,6 +81,19 @@ const pasteEndFieldProps = {
   placeholder: 'Paste or type end',
 } satisfies AdvancedDateInputFieldProps
 
+// Range validation still flows through the shared input wrapper.
+const formValidationStartFieldProps = {
+  placeholder: 'Start date',
+  name: 'travelStartDate',
+  ariaLabel: 'Travel start date',
+} satisfies AdvancedDateInputFieldProps
+
+const formValidationEndFieldProps = {
+  placeholder: 'End date',
+  name: 'travelEndDate',
+  ariaLabel: 'Travel end date',
+} satisfies AdvancedDateInputFieldProps
+
 function cloneDate(date: Date) {
   return new Date(date)
 }
@@ -103,6 +118,43 @@ function toLocalYmd(date: Date | null | undefined) {
 
 function createLocalDate(year: number, month: number, day: number) {
   return new Date(year, month, day)
+}
+
+function normalizeRangeModel(
+  value: AdvancedDateModel<Date>,
+): AdvancedDateRangeObject<Date> {
+  if (Array.isArray(value)) {
+    return {
+      start: value[0],
+      end: value[1],
+    }
+  }
+
+  if (value && typeof value === 'object' && 'start' in value && 'end' in value) {
+    return value
+  }
+
+  if (value instanceof Date) {
+    return {
+      start: value,
+      end: value,
+    }
+  }
+
+  return {
+    start: null,
+    end: null,
+  }
+}
+
+function toUtcCalendarDay(date: Date) {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function countCalendarNights(start: Date, end: Date) {
+  return Math.round(
+    (toUtcCalendarDay(end) - toUtcCalendarDay(start)) / 86_400_000,
+  )
 }
 
 function allowOnly(...allowedDates: string[]) {
@@ -133,6 +185,148 @@ function serializeDraft(draft: AdvancedDateInputDraft<Date>) {
       end: toLocalYmd(draft.selection.end),
     },
   }
+}
+
+type FormValidationField = 'paymentDate' | 'travelDates'
+type FormValidationErrors = Record<FormValidationField, string[]>
+
+const formValidationPaymentDate = ref<AdvancedDateModel<Date>>(null)
+const formValidationPaymentMenu = ref(false)
+const formValidationPaymentText = ref('')
+const formValidationTravelDates = ref<AdvancedDateRangeTuple<Date>>([
+  null,
+  null,
+])
+const formValidationTravelMenu = ref(false)
+const formValidationTravelText = ref('')
+const formValidationTouched = reactive<Record<FormValidationField, boolean>>({
+  paymentDate: false,
+  travelDates: false,
+})
+const formValidationSubmitCount = ref(0)
+const formValidationLastSubmission = ref<{
+  paymentDate: string | null
+  travelDates: {
+    start: string | null
+    end: string | null
+  }
+} | null>(null)
+
+const formValidationErrors = computed<FormValidationErrors>(() => {
+  const errors: FormValidationErrors = {
+    paymentDate: [],
+    travelDates: [],
+  }
+  const paymentDate =
+    formValidationPaymentDate.value instanceof Date
+      ? formValidationPaymentDate.value
+      : null
+  const travelDates = normalizeRangeModel(formValidationTravelDates.value)
+
+  if (!paymentDate) {
+    errors.paymentDate.push('Choose a payment date before submitting.')
+  }
+
+  if (!travelDates.start || !travelDates.end) {
+    errors.travelDates.push('Choose both a start and end travel date.')
+  } else if (countCalendarNights(travelDates.start, travelDates.end) < 3) {
+    errors.travelDates.push('Travel dates must cover at least 3 nights.')
+  }
+
+  return errors
+})
+
+const formValidationVisibleErrors = computed<FormValidationErrors>(() => ({
+  paymentDate:
+    formValidationTouched.paymentDate || formValidationSubmitCount.value > 0
+    ? formValidationErrors.value.paymentDate
+    : [],
+  travelDates:
+    formValidationTouched.travelDates || formValidationSubmitCount.value > 0
+    ? formValidationErrors.value.travelDates
+    : [],
+}))
+
+const formValidationIsValid = computed(
+  () =>
+    !formValidationErrors.value.paymentDate.length &&
+    !formValidationErrors.value.travelDates.length,
+)
+
+const formValidationOutput = computed(() => ({
+  touched: { ...formValidationTouched },
+  submitCount: formValidationSubmitCount.value,
+  menus: {
+    paymentDate: formValidationPaymentMenu.value,
+    travelDates: formValidationTravelMenu.value,
+  },
+  errors: formValidationErrors.value,
+  text: {
+    paymentDate: formValidationPaymentText.value,
+    travelDates: formValidationTravelText.value,
+  },
+  model: {
+    paymentDate: serializePreviewModel(formValidationPaymentDate.value),
+    travelDates: serializePreviewModel(formValidationTravelDates.value),
+  },
+  lastSubmission: formValidationLastSubmission.value,
+}))
+
+watch([formValidationPaymentDate, formValidationTravelDates], () => {
+  formValidationLastSubmission.value = null
+})
+
+function touchFormValidationField(field: FormValidationField) {
+  formValidationTouched[field] = true
+}
+
+function formValidationMenu(field: FormValidationField) {
+  return field === 'paymentDate'
+    ? formValidationPaymentMenu.value
+    : formValidationTravelMenu.value
+}
+
+function handleFormValidationBlur(field: FormValidationField) {
+  if (formValidationMenu(field)) return
+
+  touchFormValidationField(field)
+}
+
+function submitFormValidationExample() {
+  formValidationSubmitCount.value += 1
+  touchFormValidationField('paymentDate')
+  touchFormValidationField('travelDates')
+
+  if (!formValidationIsValid.value) {
+    formValidationLastSubmission.value = null
+    return
+  }
+
+  const travelDates = normalizeRangeModel(formValidationTravelDates.value)
+
+  formValidationLastSubmission.value = {
+    paymentDate:
+      formValidationPaymentDate.value instanceof Date
+        ? toLocalYmd(formValidationPaymentDate.value)
+        : null,
+    travelDates: {
+      start: toLocalYmd(travelDates.start),
+      end: toLocalYmd(travelDates.end),
+    },
+  }
+}
+
+function resetFormValidationExample() {
+  formValidationPaymentDate.value = null
+  formValidationPaymentMenu.value = false
+  formValidationPaymentText.value = ''
+  formValidationTravelDates.value = [null, null]
+  formValidationTravelMenu.value = false
+  formValidationTravelText.value = ''
+  formValidationTouched.paymentDate = false
+  formValidationTouched.travelDates = false
+  formValidationSubmitCount.value = 0
+  formValidationLastSubmission.value = null
 }
 
 const draftApiStart = new Date()
@@ -463,6 +657,97 @@ const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
   </v-card>
 
   <v-card variant="flat">
+    <v-card-title>Form Validation with Error Props</v-card-title>
+    <v-card-subtitle>
+      Mirrors a parent form that validates on blur or submit and maps external
+      errors into the date inputs.
+    </v-card-subtitle>
+    <v-card-text
+      class="d-flex flex-column ga-4"
+      data-testid="playground-form-validation"
+    >
+      <v-form
+        class="d-flex flex-column ga-4"
+        data-testid="playground-form-validation-form"
+        @submit.prevent="submitFormValidationExample"
+      >
+        <v-advanced-date-input
+          v-model="formValidationPaymentDate"
+          v-model:menu="formValidationPaymentMenu"
+          v-model:text="formValidationPaymentText"
+          label="Payment date"
+          name="paymentDate"
+          :range="false"
+          :show-presets="false"
+          :error="formValidationVisibleErrors.paymentDate.length > 0"
+          :error-messages="formValidationVisibleErrors.paymentDate"
+          @blur="handleFormValidationBlur('paymentDate')"
+          @draft-close="touchFormValidationField('paymentDate')"
+        />
+
+        <v-advanced-date-input
+          v-model="formValidationTravelDates"
+          v-model:menu="formValidationTravelMenu"
+          v-model:text="formValidationTravelText"
+          label="Travel dates"
+          title="Travel dates"
+          title-start-date="Departure"
+          title-end-date="Return"
+          :months="2"
+          :show-presets="false"
+          :start-field-props="formValidationStartFieldProps"
+          :end-field-props="formValidationEndFieldProps"
+          :error="formValidationVisibleErrors.travelDates.length > 0"
+          :error-messages="formValidationVisibleErrors.travelDates"
+          @blur="handleFormValidationBlur('travelDates')"
+          @draft-close="touchFormValidationField('travelDates')"
+        />
+
+        <div class="d-flex flex-wrap ga-3">
+          <v-btn
+            color="primary"
+            type="submit"
+            data-testid="playground-form-validation-submit"
+          >
+            Validate booking form
+          </v-btn>
+          <v-btn variant="text" @click="resetFormValidationExample">
+            Reset
+          </v-btn>
+        </div>
+      </v-form>
+
+      <v-alert
+        v-if="formValidationSubmitCount && !formValidationIsValid"
+        type="warning"
+        variant="tonal"
+      >
+        Fix the highlighted date fields before submitting the form.
+      </v-alert>
+
+      <v-alert
+        v-else-if="formValidationLastSubmission"
+        type="success"
+        variant="tonal"
+      >
+        Form payload is valid and ready to submit.
+      </v-alert>
+
+      <div class="text-caption text-medium-emphasis">
+        This example keeps validation in the parent and forwards the resulting
+        <code>error</code> and <code>error-messages</code> props, which is the
+        same pattern a schema-driven form would use.
+      </div>
+
+      <v-sheet border rounded="lg" class="pa-4">
+        <pre class="form-validation-output text-body-2">{{
+          JSON.stringify(formValidationOutput, null, 2)
+        }}</pre>
+      </v-sheet>
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
     <v-card-title>Draft API + External Submit</v-card-title>
     <v-card-subtitle>
       Binds <code>v-model:text</code>, surfaces <code>update:draft</code>, and
@@ -694,6 +979,12 @@ const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
   margin: 0;
   max-height: 320px;
   overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.form-validation-output {
+  margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
