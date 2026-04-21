@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.2.0...v3.3.0) (2026-04-21)
+
+
+### Features
+
+* add Vuetify-style input color prop ([3c4ae8a](https://github.com/gigerIT/vuetify-date-input-advanced/commit/3c4ae8aab744c8f7d8bad311ad661b540ff1bfc5))
+* add week label color customization to advanced date picker ([9d89615](https://github.com/gigerIT/vuetify-date-input-advanced/commit/9d896150954cc9c55bf2e40e888d08bee288f9cf))
+* enlarge default advanced date picker day buttons ([f8f3dd4](https://github.com/gigerIT/vuetify-date-input-advanced/commit/f8f3dd4c3c540b28b6d9b5114adc18e74fdc79d8))
+
 ## [3.2.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.1.0...v3.2.0) (2026-04-21)
 
 
