@@ -6,10 +6,14 @@ $advanced-date-picker-range-preview-bg: color-mix(in srgb, var(--v-advanced-date
 $advanced-date-picker-selected-bg: var(--v-advanced-date-picker-color) !default
 $advanced-date-picker-selected-color: rgb(var(--v-theme-on-primary)) !default
 $advanced-date-picker-preset-width: 220px !default
+// Ship a slightly larger default grid than stock Vuetify while preserving
+// customized Vuetify day sizes when consumers set them explicitly.
 $advanced-date-picker-cell-size: vuetify.$date-picker-month-day-size !default
-$advanced-date-picker-day-diff: 4px !default
-$advanced-date-picker-day-size: calc(#{$advanced-date-picker-cell-size} - #{$advanced-date-picker-day-diff}) !default
-$advanced-date-picker-day-inset: calc((#{$advanced-date-picker-cell-size} - #{$advanced-date-picker-day-size}) / 2) !default
+@if $advanced-date-picker-cell-size == 40px
+  $advanced-date-picker-cell-size: 44px
+$advanced-date-picker-day-diff: 2px !default
+$advanced-date-picker-day-size: calc(var(--v-advanced-date-cell-size) - #{$advanced-date-picker-day-diff}) !default
+$advanced-date-picker-day-inset: calc((var(--v-advanced-date-cell-size) - var(--v-advanced-date-day-size)) / 2) !default
 $advanced-date-picker-gap: 24px !default
 $advanced-date-picker-month-slide-duration: 0.36s !default
 $advanced-date-picker-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1) !default

@@ -239,7 +239,9 @@ npm run build
   hardcode icon-set-specific names such as `mdi-*` in component defaults.
 - Picker visual tokens in `src/styles/variables.sass` are public Sass API via
   the package `./styles` exports; keep changes synchronized with README,
-  `package.json`, and Sass variable tests.
+  `package.json`, and Sass variable tests, and preserve the linked CSS custom
+  properties so runtime `--v-advanced-date-cell-size` overrides continue to
+  realign the day button and range inset geometry.
 - Internal picker selections are not uniformly “stay put” events: preset
   selections that land outside the current viewport must explicitly realign the
   rendered months and live-region labels even when the selection change is

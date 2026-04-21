@@ -94,7 +94,7 @@ of importing `style.css`:
 
 ```scss
 @use '@gigerit/vuetify-date-input-advanced/styles' with (
-  $advanced-date-picker-cell-size: 44px,
+  $advanced-date-picker-cell-size: 48px,
   $advanced-date-picker-month-slide-duration: 0.36s,
   $advanced-date-picker-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1),
   $advanced-date-picker-preset-width: 260px,
@@ -108,14 +108,15 @@ Desktop month navigation can be tuned with
 `$advanced-date-picker-month-slide-easing`.
 Weekday headers and week numbers use `$advanced-date-picker-week-label-color`.
 
-Package Sass variables default to Vuetify's native date-picker and button
-variables where equivalent values exist. To let customized Vuetify Sass
-settings flow into these defaults, configure `vuetify/settings` before loading
+The package ships with a slightly larger default day geometry than stock
+Vuetify (`44px` cells and `42px` day buttons) while keeping the existing
+typography defaults. If you customize Vuetify's day size, that value still
+flows into the package defaults. Configure `vuetify/settings` before loading
 the package styles in the same Sass graph:
 
 ```scss
 @use 'vuetify/settings' with (
-  $date-picker-month-day-size: 44px,
+  $date-picker-month-day-size: 48px,
   $button-font-weight: 600
 );
 
@@ -616,17 +617,22 @@ Key CSS custom properties:
 | `--v-advanced-date-selected-bg`      | `var(--v-advanced-date-picker-color)`          | Selected day background    |
 | `--v-advanced-date-selected-color`   | `rgb(var(--v-theme-on-primary))`               | Selected day text color    |
 | `--v-advanced-date-preset-width`     | `220px`                                        | Preset column width        |
-| `--v-advanced-date-cell-size`        | `40px`                                         | Calendar cell size         |
-| `--v-advanced-date-day-size`         | `calc(var(--v-advanced-date-cell-size) - 4px)` | Day button size            |
-| `--v-advanced-date-day-inset`        | computed                                       | Range background inset     |
+| `--v-advanced-date-cell-size`        | `44px`                                         | Calendar cell size         |
+| `--v-advanced-date-day-size`         | `calc(var(--v-advanced-date-cell-size) - 2px)` | Day button size            |
+| `--v-advanced-date-day-inset`        | `calc((var(--v-advanced-date-cell-size) - var(--v-advanced-date-day-size)) / 2)` | Range background inset     |
 | `--v-advanced-date-gap`              | `24px`                                         | Gap between visible months |
+
+By default, `--v-advanced-date-day-size` and
+`--v-advanced-date-day-inset` stay derived from
+`--v-advanced-date-cell-size`, so a runtime cell-size override keeps the grid
+and range highlights aligned unless you also override the inner variables.
 
 Example:
 
 ```css
 .booking-picker {
   --v-advanced-date-preset-width: 18rem;
-  --v-advanced-date-cell-size: 44px;
+  --v-advanced-date-cell-size: 48px;
   --v-advanced-date-picker-color: rgb(var(--v-theme-secondary));
 }
 ```

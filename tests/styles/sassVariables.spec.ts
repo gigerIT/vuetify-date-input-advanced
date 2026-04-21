@@ -25,7 +25,13 @@ describe('Sass variables', () => {
     const weekdayRule = extractRule(css, '.v-advanced-date-picker__weekday')
     const weekNumberRule = extractRule(css, '.v-advanced-date-picker__week-number')
 
-    expect(css).toContain('--v-advanced-date-cell-size: 40px;')
+    expect(css).toContain('--v-advanced-date-cell-size: 44px;')
+    expect(css).toContain(
+      '--v-advanced-date-day-size: calc(var(--v-advanced-date-cell-size) - 2px);',
+    )
+    expect(css).toContain(
+      '--v-advanced-date-day-inset: calc((var(--v-advanced-date-cell-size) - var(--v-advanced-date-day-size)) / 2);',
+    )
     expect(css).toContain('--v-advanced-date-month-slide-duration: 0.36s;')
     expect(css).toContain(
       '--v-advanced-date-month-slide-easing: cubic-bezier(0.4, 0, 0.2, 1);',
@@ -46,7 +52,7 @@ describe('Sass variables', () => {
   it('allows package variable overrides through the styles entry', () => {
     const css = compileStyles(`
       @use 'styles' with (
-        $advanced-date-picker-cell-size: 44px,
+        $advanced-date-picker-cell-size: 48px,
         $advanced-date-picker-month-slide-duration: 0.32s,
         $advanced-date-picker-month-slide-easing: linear,
         $advanced-date-picker-preset-width: 260px,
@@ -58,7 +64,7 @@ describe('Sass variables', () => {
     const weekdayRule = extractRule(css, '.v-advanced-date-picker__weekday')
     const weekNumberRule = extractRule(css, '.v-advanced-date-picker__week-number')
 
-    expect(css).toContain('--v-advanced-date-cell-size: 44px;')
+    expect(css).toContain('--v-advanced-date-cell-size: 48px;')
     expect(css).toContain('--v-advanced-date-month-slide-duration: 0.32s;')
     expect(css).toContain('--v-advanced-date-month-slide-easing: linear;')
     expect(css).toContain('--v-advanced-date-preset-width: 260px;')
@@ -72,7 +78,7 @@ describe('Sass variables', () => {
   it('inherits defaults from configured Vuetify Sass variables', () => {
     const css = compileStyles(`
       @use 'vuetify/settings' with (
-        $date-picker-month-day-size: 48px,
+        $date-picker-month-day-size: 50px,
         $button-font-weight: 700
       );
 
@@ -80,7 +86,7 @@ describe('Sass variables', () => {
     `)
     const dayRule = extractRule(css, '.v-advanced-date-picker__day')
 
-    expect(css).toContain('--v-advanced-date-cell-size: 48px;')
+    expect(css).toContain('--v-advanced-date-cell-size: 50px;')
     expect(dayRule).toContain('font-weight: 700;')
   })
 })
