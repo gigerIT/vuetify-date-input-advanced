@@ -28,8 +28,40 @@ const dialogStub = {
 
 const menuStub = {
   name: 'VMenu',
-  props: ['modelValue', 'closeOnContentClick', 'offset', 'minWidth'],
+  props: [
+    'modelValue',
+    'closeOnContentClick',
+    'offset',
+    'minWidth',
+    'openOnClick',
+  ],
   template: '<div><slot name="activator" :props="{}" /><slot /></div>',
+}
+
+const activatorClickMenuStub = {
+  name: 'VMenu',
+  props: [
+    'modelValue',
+    'closeOnContentClick',
+    'offset',
+    'minWidth',
+    'openOnClick',
+  ],
+  emits: ['update:modelValue'],
+  setup(props: { openOnClick?: boolean }, { emit, slots }: any) {
+    return () =>
+      h('div', [
+        slots.activator?.({
+          props:
+            props.openOnClick === false
+              ? {}
+              : {
+                  onClick: () => emit('update:modelValue', true),
+                },
+        }),
+        slots.default?.(),
+      ])
+  },
 }
 
 type PickerDraftChangeHandler = (
@@ -2294,6 +2326,37 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
+  it('does not open the desktop menu from activator props when disabled', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          range: false,
+          disabled: true,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: activatorClickMenuStub,
+          },
+        },
+      })
+
+      try {
+        const field = wrapper.findComponent({ name: 'VTextField' })
+
+        expect(wrapper.find('input').attributes('disabled')).toBeDefined()
+
+        await field.trigger('click')
+        await wrapper.vm.$nextTick()
+
+        expect(wrapper.emitted('update:menu')).toBeUndefined()
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
   it('opens the overlay from readonly split range inputs', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
@@ -3041,6 +3104,45 @@ describe('VAdvancedDateInput', () => {
       })
       window.dispatchEvent(new Event('resize'))
     }
+  })
+
+  it('does not open a disabled custom activator slot', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          disabled: true,
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+        slots: {
+          activator: ({ props, isOpen }: any) =>
+            h(
+              'button',
+              {
+                ...props,
+                type: 'button',
+                'data-open': String(isOpen),
+              },
+              'Open picker',
+            ),
+        },
+      })
+
+      try {
+        const button = wrapper.get('button')
+
+        await button.trigger('click')
+
+        expect(button.attributes('data-open')).toBe('false')
+        expect(wrapper.emitted('update:menu')).toBeUndefined()
+      } finally {
+        wrapper.unmount()
+      }
+    })
   })
 
   it('forwards firstDayOfWeek to the inline picker', () => {

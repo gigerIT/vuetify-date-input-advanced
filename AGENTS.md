@@ -271,6 +271,9 @@ npm run build
   mobile fullscreen presses and become readonly while the dialog is opening or
   open so touch devices do not show the virtual keyboard; custom activator
   slots remain consumer-managed.
+- Desktop `VAdvancedDateInput` overlays must keep `VMenu` activator opening
+  under the wrapper's own guards instead of relying on Vuetify's default
+  activator click path; otherwise disabled inputs can still reopen the menu.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and

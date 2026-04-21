@@ -868,9 +868,17 @@ export const VAdvancedDateInput = defineComponent({
       void requestOverlayClose(reason)
     }
 
+    function openOverlayFromUserInteraction() {
+      if (props.disabled) return false
+
+      overlay.openMenu()
+
+      return true
+    }
+
     function handleOverlayModelUpdate(value: boolean) {
       if (value) {
-        overlay.openMenu()
+        openOverlayFromUserInteraction()
         return
       }
 
@@ -878,24 +886,23 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     function handleMobileFullscreenActivatorPress(event: Event) {
-      if (!isMobileFullscreenActivator.value) return
+      if (!isMobileFullscreenActivator.value || props.disabled) return
 
       event.preventDefault()
       mobileActivatorOpening.value = true
-      overlay.openMenu()
+      openOverlayFromUserInteraction()
     }
 
-    function openOverlayFromActivator(hasActivatorProps: boolean) {
-      if (hasActivatorProps) return
+    function openOverlayFromActivator() {
       if (
         isMobileFullscreenActivator.value &&
         mobileActivatorOpening.value &&
         overlay.menu.value
       ) {
-        return
+        return false
       }
 
-      overlay.openMenu()
+      return openOverlayFromUserInteraction()
     }
 
     function isRangeFieldReadonly(field: AdvancedDateInputField) {
@@ -924,8 +931,10 @@ export const VAdvancedDateInput = defineComponent({
 
       if (event.key === 'Enter') {
         if (inputReadonly) {
+          if (props.disabled) return
+
           pickerBoundaryField.value = options.field ?? null
-          overlay.openMenu()
+          openOverlayFromUserInteraction()
           return
         }
 
@@ -967,7 +976,6 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     function renderField(activatorProps: OverlayActivatorProps = {}) {
-      const hasActivatorProps = Object.keys(activatorProps).length > 0
       const {
         onFocus: userOnFocus,
         onBlur: userOnBlur,
@@ -983,7 +991,9 @@ export const VAdvancedDateInput = defineComponent({
         return slots.activator({
           props: {
             ...activatorProps,
-            onClick: () => overlay.openMenu(),
+            onClick: () => {
+              openOverlayFromUserInteraction()
+            },
           },
           isOpen: overlay.menu.value,
         })
@@ -1061,6 +1071,14 @@ export const VAdvancedDateInput = defineComponent({
               event: MouseEvent
               field: AdvancedDateInputField
             }) => {
+              if (props.disabled) {
+                callForwardedHandler(
+                  userOnMousedownControl as ForwardedEventHandler | undefined,
+                  event,
+                )
+                return
+              }
+
               setActiveField(field)
               pickerBoundaryField.value = field
               handleMobileFullscreenActivatorPress(event)
@@ -1076,9 +1094,17 @@ export const VAdvancedDateInput = defineComponent({
               event: MouseEvent
               field: AdvancedDateInputField
             }) => {
+              if (props.disabled) {
+                callForwardedHandler(
+                  userOnClickControl as ForwardedEventHandler | undefined,
+                  event,
+                )
+                return
+              }
+
               pickerBoundaryField.value = field
 
-              openOverlayFromActivator(hasActivatorProps)
+              openOverlayFromActivator()
               callForwardedHandler(
                 userOnClickControl as ForwardedEventHandler | undefined,
                 event,
@@ -1091,10 +1117,18 @@ export const VAdvancedDateInput = defineComponent({
               event: MouseEvent
               field: AdvancedDateInputField
             }) => {
+              if (props.disabled) {
+                callForwardedHandler(
+                  userOnClickAppendInner as ForwardedEventHandler | undefined,
+                  event,
+                )
+                return
+              }
+
               setActiveField(field)
               pickerBoundaryField.value = field
 
-              openOverlayFromActivator(hasActivatorProps)
+              openOverlayFromActivator()
 
               callForwardedHandler(
                 userOnClickAppendInner as ForwardedEventHandler | undefined,
@@ -1171,14 +1205,14 @@ export const VAdvancedDateInput = defineComponent({
           )
         },
         'onClick:control': (event: MouseEvent) => {
-          openOverlayFromActivator(hasActivatorProps)
+          openOverlayFromActivator()
           callForwardedHandler(
             userOnClickControl as ForwardedEventHandler | undefined,
             event,
           )
         },
         'onClick:appendInner': (event: MouseEvent) => {
-          openOverlayFromActivator(hasActivatorProps)
+          openOverlayFromActivator()
           callForwardedHandler(
             userOnClickAppendInner as ForwardedEventHandler | undefined,
             event,
@@ -1255,6 +1289,7 @@ export const VAdvancedDateInput = defineComponent({
           modelValue={overlay.menu.value}
           onUpdate:modelValue={handleOverlayModelUpdate}
           closeOnContentClick={false}
+          openOnClick={false}
           offset={8}
           minWidth={props.minWidth ?? 0}
         >
