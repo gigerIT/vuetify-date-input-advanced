@@ -37,7 +37,7 @@ const {
 <template>
   <v-app>
     <v-main>
-      <v-container max-width="1400">
+      <v-container max-width="1500">
         <v-row>
           <v-col cols="12" lg="8">
             <h1 class="text-h4 font-weight-bold mb-2">
