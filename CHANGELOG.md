@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.4.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.3.1...v3.4.0) (2026-04-21)
+
+
+### Features
+
+* **playground:** implement form validation for date inputs with error handling ([4a7e5d7](https://github.com/gigerIT/vuetify-date-input-advanced/commit/4a7e5d75bb6138d1b134ea0a9b83acd6d9522019))
+
+
+### Bug Fixes
+
+* **date-picker:** enhance mobile date picker behavior and add tests for availability changes ([e03d1af](https://github.com/gigerIT/vuetify-date-input-advanced/commit/e03d1afcae8ea31ab2e6a4d1585cb80a2bfc33d1))
+* **picker:** keep end date month visible on open ([cdc49e4](https://github.com/gigerIT/vuetify-date-input-advanced/commit/cdc49e49028f45becdecc1df0c9e6d9237ee9ebf))
+
 ## [3.3.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.3.0...v3.3.1) (2026-04-21)
 
 
