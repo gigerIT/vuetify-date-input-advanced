@@ -256,6 +256,10 @@ npm run build
   not depend only on selection inequality; parent echoes or controlled draft
   sync can make the selection already match `pickerSelection` before
   `VAdvancedDateInput` focuses the end field.
+- Constrained desktop range selection must derive the active start/end
+  interaction phase from the focused range field, not just from whether the
+  draft currently has an end date; start-side replacements can preserve the old
+  end while the next picker click still needs end-date constraints.
 - Mobile month-window logic must rebuild whenever `monthHasSelectableDate()`
   inputs change, including internal partial/completed range picks; preserving
   the current anchor must not leave stale non-selectable months rendered.

@@ -681,6 +681,37 @@ describe('VAdvancedDatePicker', () => {
     ).toBeUndefined()
   })
 
+  it('uses end constraints when a complete range targets end selection', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: [
+          new Date('2026-01-19T00:00:00.000Z'),
+          new Date('2026-01-30T00:00:00.000Z'),
+        ],
+        month: 0,
+        year: 2026,
+        selectionTargetField: 'end',
+        allowedStartDates: allowOnly('2026-01-19'),
+        allowedEndDates: allowOnly('2026-01-23', '2026-01-30'),
+      },
+    })
+
+    expect(
+      wrapper.find('[data-date="2026-01-23"]').attributes('disabled'),
+    ).toBeUndefined()
+
+    await wrapper.find('[data-date="2026-01-23"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+      wrapper,
+      'update:modelValue',
+    )
+
+    expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-19')
+    expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-23')
+  })
+
   it('keeps constrained selected range endpoints visually active while disabled', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {

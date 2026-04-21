@@ -2,6 +2,7 @@ import { computed, type Ref } from 'vue'
 
 import type {
   AdvancedDateAdapter,
+  AdvancedDateInputField,
   AdvancedDateMonthData,
   DateBounds,
   NormalizedRange,
@@ -47,6 +48,7 @@ export function useAdvancedDateGrid<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   visibleMonths: Ref<TDate[]>
   selection: Ref<NormalizedRange<TDate>>
+  selectionTargetField: Ref<AdvancedDateInputField | null>
   hoveredDate: Ref<TDate | null>
   range: Ref<boolean>
   showWeekNumbers: Ref<boolean>
@@ -70,9 +72,11 @@ export function useAdvancedDateGrid<TDate>(options: {
   const previewRange = computed(() => {
     const selection = options.selection.value
     const hoveredDate = options.hoveredDate.value
+    const isSelectingEnd = options.selectionTargetField.value === 'end'
 
     if (!options.range.value) return null
-    if (!selection.start || selection.end || !hoveredDate) return null
+    if (!selection.start || (!isSelectingEnd && selection.end) || !hoveredDate)
+      return null
 
     const preview = orderRange(options.adapter, {
       start: selection.start,
@@ -136,6 +140,7 @@ export function useAdvancedDateGrid<TDate>(options: {
             selection,
             isRangeSelection,
             bounds.value,
+            options.selectionTargetField.value,
           )
           const rangeStart = isSameDay(
             options.adapter,

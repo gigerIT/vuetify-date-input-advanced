@@ -1762,6 +1762,61 @@ describe('VAdvancedDateInput', () => {
     })
   })
 
+  it('uses end constraints after replacing the start date from the start input', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: [
+            new Date('2026-01-12T00:00:00.000Z'),
+            new Date('2026-01-30T00:00:00.000Z'),
+          ],
+          month: 0,
+          year: 2026,
+          allowedStartDates: allowOnly('2026-01-12', '2026-01-19'),
+          allowedEndDates: allowOnly('2026-01-23', '2026-01-30'),
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('[data-date="2026-01-19"]').trigger('click')
+      await wrapper.vm.$nextTick()
+      await waitForInputSelection()
+
+      const endButton = wrapper.find('[data-date="2026-01-23"]')
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.emitted('update:activeField')?.at(-1)).toEqual(['end'])
+      expect(document.activeElement).toBe(rangeInput(wrapper, 'end').element)
+      expect(endButton.attributes('disabled')).toBeUndefined()
+      expect(rangeInputValues(wrapper)).toEqual({
+        start: 'Jan 19, 2026',
+        end: 'Jan 30, 2026',
+      })
+
+      await endButton.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(wrapper.emitted('update:menu')?.at(-1)).toEqual([false])
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-19')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-01-23')
+
+      wrapper.unmount()
+    })
+  })
+
   it('clears the end date when the start picker selects after the current end', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {

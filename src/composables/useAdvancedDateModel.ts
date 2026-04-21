@@ -2,6 +2,7 @@ import { computed, ref, watch, type Ref } from 'vue'
 
 import type {
   AdvancedDateAdapter,
+  AdvancedDateInputField,
   AdvancedDateModel,
   NormalizedRange,
   PresetRange,
@@ -13,6 +14,7 @@ export function useAdvancedDateModel<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   modelValue: Ref<AdvancedDateModel<TDate>>
   range: Ref<boolean>
+  selectionTargetField: Ref<AdvancedDateInputField | null>
   returnObject: Ref<boolean>
   autoApply: Ref<boolean>
   min: Ref<TDate | null | undefined>
@@ -83,7 +85,13 @@ export function useAdvancedDateModel<TDate>(options: {
   }
 
   function setHoverDate(date: TDate | null) {
-    if (!options.range.value || !draft.value.start || draft.value.end) {
+    const isSelectingEnd = options.selectionTargetField.value === 'end'
+
+    if (
+      !options.range.value ||
+      !draft.value.start ||
+      (draft.value.end && !isSelectingEnd)
+    ) {
       hoveredDate.value = null
       return
     }
@@ -108,6 +116,21 @@ export function useAdvancedDateModel<TDate>(options: {
       if (isStartDateDisabled(options.adapter, date, constraints())) return
 
       const next: NormalizedRange<TDate> = { start: date, end: null }
+      if (options.autoApply.value) commit(next)
+      else draft.value = next
+      return
+    }
+
+    if (options.selectionTargetField.value === 'end' && draft.value.start) {
+      const next = orderRange(options.adapter, {
+        start: draft.value.start,
+        end: date,
+      }) as NormalizedRange<TDate>
+
+      if (isRangeDisabled(options.adapter, next, constraints())) return
+
+      hoveredDate.value = null
+
       if (options.autoApply.value) commit(next)
       else draft.value = next
       return

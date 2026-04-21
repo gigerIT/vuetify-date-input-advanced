@@ -1,6 +1,11 @@
 import { computed, ref, watch, type Ref } from 'vue'
 
-import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
+import type {
+  AdvancedDateAdapter,
+  AdvancedDateInputField,
+  DateBounds,
+  NormalizedRange,
+} from '@/types'
 import { monthHasSelectableDate } from '@/util/dates'
 
 function currentDate<TDate>(adapter: AdvancedDateAdapter<TDate>): TDate {
@@ -22,6 +27,7 @@ export function useAdvancedDateNavigation<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   selection: Ref<NormalizedRange<TDate>>
   selectionChangeOrigin: Ref<'external' | 'internal'>
+  selectionTargetField: Ref<AdvancedDateInputField | null>
   range: Ref<boolean>
   months: Ref<number>
   month: Ref<number>
@@ -106,6 +112,7 @@ export function useAdvancedDateNavigation<TDate>(options: {
       options.selection.value,
       options.range.value,
       constraints.value,
+      options.selectionTargetField.value,
     )
   }
 

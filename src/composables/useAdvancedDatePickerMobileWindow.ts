@@ -8,7 +8,12 @@ import {
   type Ref,
 } from 'vue'
 
-import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
+import type {
+  AdvancedDateAdapter,
+  AdvancedDateInputField,
+  DateBounds,
+  NormalizedRange,
+} from '@/types'
 import { dateKey, monthHasSelectableDate } from '@/util/dates'
 
 const MOBILE_INITIAL_PREVIOUS_MONTHS = 1
@@ -26,6 +31,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   isMobileFullscreen: Ref<boolean>
   months: Ref<number>
   selection: Ref<NormalizedRange<TDate>>
+  selectionTargetField: Ref<AdvancedDateInputField | null>
   range: Ref<boolean>
   min: Ref<TDate | null | undefined>
   max: Ref<TDate | null | undefined>
@@ -62,6 +68,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       options.selection.value,
       options.range.value,
       constraints.value,
+      options.selectionTargetField.value,
     )
   }
 

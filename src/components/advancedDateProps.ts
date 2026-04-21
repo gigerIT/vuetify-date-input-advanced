@@ -112,6 +112,12 @@ export const advancedDatePickerInternalProps = {
     default: 'external',
     validator: (value: string) => value === 'external' || value === 'internal',
   },
+  selectionTargetField: {
+    type: String as PropType<AdvancedDateInputField | null>,
+    default: null,
+    validator: (value: string | null) =>
+      value === null || value === 'start' || value === 'end',
+  },
   onDraftChange: Function as PropType<
     ((
       value: NormalizedRange<unknown>,

@@ -288,6 +288,13 @@ export const VAdvancedDateInput = defineComponent({
       updateFieldText,
       applyPickerDraft,
     } = draftState
+    const pickerSelectionTargetField = computed<AdvancedDateInputField | null>(
+      () => {
+        if (!props.range || props.inline || display.mobile.value) return null
+
+        return pickerBoundaryField.value ?? activeField.value
+      },
+    )
     const fieldRules = computed(() =>
       input.inputError.value ? [] : props.rules,
     )
@@ -707,7 +714,17 @@ export const VAdvancedDateInput = defineComponent({
     function resolveNextPickerActiveField(
       selection: NormalizedRange<unknown>,
       replacementField: AdvancedDateInputField | null,
+      context: AdvancedDatePickerDraftChangeContext,
     ): AdvancedDateInputField {
+      if (
+        context.origin === 'internal' &&
+        props.range &&
+        pickerSelectionTargetField.value === 'end' &&
+        isSelectionComplete(selection, props.range)
+      ) {
+        return 'end'
+      }
+
       if (
         props.range &&
         replacementField &&
@@ -781,6 +798,7 @@ export const VAdvancedDateInput = defineComponent({
         resolveNextPickerActiveField(
           nextSelection,
           resolvedSelection.replacementField,
+          context,
         ),
       )
 
@@ -934,6 +952,7 @@ export const VAdvancedDateInput = defineComponent({
           {...pickerBindings.value}
           modelValue={serializeSelection(pickerSelection.value)}
           selectionChangeOrigin={pickerSelectionChangeOrigin.value}
+          selectionTargetField={pickerSelectionTargetField.value}
           onDraftChange={handlePickerDraftChange}
           onEscapeKey={handlePickerEscape}
           onUpdate:modelValue={handlePickerModelValue}

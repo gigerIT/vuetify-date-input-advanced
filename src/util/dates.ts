@@ -1,4 +1,9 @@
-import type { AdvancedDateAdapter, DateBounds, NormalizedRange } from '@/types'
+import type {
+  AdvancedDateAdapter,
+  AdvancedDateInputField,
+  DateBounds,
+  NormalizedRange,
+} from '@/types'
 import { orderRange } from '@/util/model'
 
 export interface RangeInputTextParts {
@@ -85,8 +90,18 @@ export function isSelectionDateDisabled<TDate>(
   selection: NormalizedRange<TDate>,
   range: boolean,
   bounds: DateBounds<TDate>,
+  selectionTargetField: AdvancedDateInputField | null = null,
 ): boolean {
   if (!range) return isStartDateDisabled(adapter, date, bounds)
+  if (selectionTargetField === 'end' && selection.start) {
+    const next = orderRange(adapter, {
+      start: selection.start,
+      end: date,
+    }) as NormalizedRange<TDate>
+
+    return isRangeDisabled(adapter, next, bounds)
+  }
+
   if (!selection.start || selection.end) {
     return isStartDateDisabled(adapter, date, bounds)
   }
@@ -133,12 +148,22 @@ export function monthHasSelectableDate<TDate>(
   selection: NormalizedRange<TDate>,
   range: boolean,
   bounds: DateBounds<TDate>,
+  selectionTargetField: AdvancedDateInputField | null = null,
 ): boolean {
   let day = adapter.startOfMonth(month)
   const end = adapter.endOfMonth(month)
 
   while (!adapter.isAfter(day, end)) {
-    if (!isSelectionDateDisabled(adapter, day, selection, range, bounds)) {
+    if (
+      !isSelectionDateDisabled(
+        adapter,
+        day,
+        selection,
+        range,
+        bounds,
+        selectionTargetField,
+      )
+    ) {
       return true
     }
 
