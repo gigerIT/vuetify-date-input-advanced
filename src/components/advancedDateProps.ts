@@ -149,6 +149,7 @@ export const advancedDateInputProps = {
     default: () => [],
   },
   clearable: Boolean,
+  color: String,
   focused: Boolean,
   activeField: {
     type: String as PropType<AdvancedDateInputField | undefined>,

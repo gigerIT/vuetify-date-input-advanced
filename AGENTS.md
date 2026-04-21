@@ -242,6 +242,9 @@ npm run build
   `package.json`, and Sass variable tests, and preserve the linked CSS custom
   properties so runtime `--v-advanced-date-cell-size` overrides continue to
   realign the day button and range inset geometry.
+- `VAdvancedDateInput.color` follows Vuetify field semantics for the built-in
+  text control(s) only; do not implicitly bridge it into picker accent tokens
+  such as `--v-advanced-date-picker-color`.
 - Internal picker selections are not uniformly “stay put” events: preset
   selections that land outside the current viewport must explicitly realign the
   rendered months and live-region labels even when the selection change is

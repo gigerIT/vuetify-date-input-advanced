@@ -893,6 +893,49 @@ describe('VAdvancedDateInput', () => {
     wrapper.unmount()
   })
 
+  it.each(['success', 'text-purple', '#033', 'rgba(255, 0, 0, 0.5)'])(
+    'forwards the Vuetify field color prop in single-date mode: %s',
+    (color) => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          range: false,
+          color,
+        },
+      })
+
+      expect(wrapper.findComponent({ name: 'VTextField' }).props('color')).toBe(
+        color,
+      )
+
+      wrapper.unmount()
+    },
+  )
+
+  it('forwards the Vuetify field color prop to both split range inputs', async () => {
+    await runWithDesktopWidth(() => {
+      const color = 'rgba(255, 0, 0, 0.5)'
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          color,
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      try {
+        expect(rangeFieldComponent(wrapper, 'start').props('color')).toBe(color)
+        expect(rangeFieldComponent(wrapper, 'end').props('color')).toBe(color)
+      } finally {
+        wrapper.unmount()
+      }
+    })
+  })
+
   it('forwards attrs to the desktop range field shell', () => {
     const originalWidth = window.innerWidth
 
@@ -2777,6 +2820,7 @@ describe('VAdvancedDateInput', () => {
       props: {
         modelValue: null,
         inline: true,
+        color: 'success',
       },
       attrs: {
         id: 'inline-picker',
@@ -2789,6 +2833,7 @@ describe('VAdvancedDateInput', () => {
     expect(wrapper.find('input').exists()).toBe(false)
     expect(picker.attributes('id')).toBe('inline-picker')
     expect(picker.attributes('data-testid')).toBe('inline-picker')
+    expect(picker.attributes('color')).toBeUndefined()
 
     wrapper.unmount()
   })

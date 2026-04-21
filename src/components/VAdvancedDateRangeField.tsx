@@ -64,6 +64,7 @@ export const VAdvancedDateRangeField = defineComponent({
       default: () => [],
     },
     clearable: Boolean,
+    color: String,
     density: {
       type: String as PropType<AdvancedDateDensity>,
       default: 'default',
@@ -253,6 +254,7 @@ export const VAdvancedDateRangeField = defineComponent({
           density={props.density}
           disabled={props.disabled}
           readonly={inputReadonly}
+          color={props.color}
           error={props.error}
           clearable={fieldClearable}
           autocomplete="off"

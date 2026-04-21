@@ -342,6 +342,30 @@ const constrainedMobileFullscreenValue = ref<AdvancedDateModel<Date>>(null)
   </v-card>
 
   <v-card variant="flat">
+    <v-card-title>Input Color Prop</v-card-title>
+    <v-card-subtitle>
+      Focus the fields to inspect Vuetify utility and CSS color values on the
+      built-in text controls.
+    </v-card-subtitle>
+    <v-card-text class="d-flex flex-column ga-4">
+      <v-advanced-date-input
+        v-model="singleValue"
+        color="success"
+        label="Utility color"
+        :range="false"
+        :show-presets="false"
+      />
+
+      <v-advanced-date-input
+        v-model="rangeValue"
+        color="rgba(0, 128, 128, 0.85)"
+        label="CSS color"
+        :show-presets="false"
+      />
+    </v-card-text>
+  </v-card>
+
+  <v-card variant="flat">
     <v-card-title>Forwarded Input Attrs</v-card-title>
     <v-card-subtitle>
       Shows form attrs reaching the default text input when no custom activator

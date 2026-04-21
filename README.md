@@ -297,7 +297,7 @@ Range text uses `rangeSeparator`, which defaults to `–`. The current implement
 
 In range mode, the default activator renders two Vuetify text fields: one for
 the start date and one for the end date. Shared Vuetify field props such as
-`label`, `variant`, `hideDetails`, `messages`, `rules`, `clearable`, and
+`label`, `variant`, `color`, `hideDetails`, `messages`, `rules`, `clearable`, and
 validation state apply to the grouped control. Side-specific input details use
 `startFieldProps` and `endFieldProps`.
 
@@ -485,7 +485,6 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 | `nextIcon`          | `AdvancedDateIconValue`                    | `$next`                   | Next-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components         |
 | `disabled`          | `boolean`                                  | `false`                   | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints          |
 | `readonly`          | `boolean`                                  | `false`                   | Full picker read-only mode: blocks calendar and preset interaction, and hides the manual action footer            |
-| `color`             | `string`                                   | `primary`                 | Accent color for selected days and range previews                                                                 |
 | `theme`             | `string \| undefined`                      | inherited                 | Passed to the picker `VSheet`                                                                                     |
 | `rounded`           | `string \| number \| boolean \| undefined` | `undefined`               | Passed to the picker `VSheet`                                                                                     |
 | `border`            | `string \| number \| boolean`              | `true`                    | Passed to the picker `VSheet`                                                                                     |
@@ -510,6 +509,7 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 | `errorMessages`      | `string \| string[] \| undefined`          | `undefined` | Merged with internal parse and validation errors                                                                |
 | `rules`              | `readonly unknown[]`                       | `[]`        | Validates the single-date field or combined range text                                                          |
 | `clearable`          | `boolean`                                  | `false`     | Clears both text and model                                                                                      |
+| `color`              | `string \| undefined`                      | `undefined` | Applies the Vuetify field color to the built-in text control(s); supports utility names with or without `text-` and raw CSS colors |
 | `focused`            | `boolean`                                  | `false`     | Single-date `VTextField` focus state. In range mode, use `activeField`                                          |
 | `activeField`        | `'start' \| 'end' \| undefined`            | `undefined` | Range-mode active side. When set on desktop, the side input is focused and its text selected, and programmatic picker opens use it as the default boundary |
 | `prependInnerIcon`   | `AdvancedDateIconValue \| undefined`       | `undefined` | Single-date `VTextField` prepend icon. In range mode, use side-specific field props                             |
@@ -637,7 +637,9 @@ Example:
 }
 ```
 
-The `color` prop updates the emphasis color by setting `--v-advanced-date-picker-color` from the active Vuetify theme.
+Picker accent color is controlled through the CSS custom properties above.
+`VAdvancedDateInput.color` only forwards to the built-in text field control(s);
+it does not remap picker accent styling.
 
 ## Accessibility and Keyboard
 

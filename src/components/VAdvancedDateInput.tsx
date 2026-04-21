@@ -970,6 +970,7 @@ export const VAdvancedDateInput = defineComponent({
             errorMessages={mergedErrorMessages.value}
             rules={fieldRules.value}
             clearable={props.clearable}
+            color={props.color}
             density={props.density}
             disabled={props.disabled}
             readonly={props.readonly || mobileFullscreenActivatorReadonly.value}
@@ -1080,6 +1081,7 @@ export const VAdvancedDateInput = defineComponent({
         errorMessages: mergedErrorMessages.value,
         rules: fieldRules.value,
         clearable: props.clearable,
+        color: props.color,
         focused: props.focused,
         'aria-expanded': overlay.menu.value,
         disabled: props.disabled,
