@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { AdvancedDatePlugin } from '@/plugin'
-import type { AdvancedDateModel } from '@/types'
-import PlaygroundShowcase from '../../playground/src/components/PlaygroundShowcase.vue'
+import App from '../../playground/src/App.vue'
+import PlaygroundAdvancedTab from '../../playground/src/components/PlaygroundAdvancedTab.vue'
+import PlaygroundExamplesTab from '../../playground/src/components/PlaygroundExamplesTab.vue'
+import PlaygroundLabTab from '../../playground/src/components/PlaygroundLabTab.vue'
 
 import { render } from '../render'
 
@@ -29,10 +31,6 @@ async function runWithWindowWidth(
     })
     window.dispatchEvent(new Event('resize'))
   }
-}
-
-function createLocalDate(year: number, month: number, day: number) {
-  return new Date(year, month, day)
 }
 
 function toLocalYmd(date: Date) {
@@ -75,64 +73,133 @@ function parseFormValidationOutput(wrapper: ReturnType<typeof render>) {
   }
 }
 
-function createShowcaseProps() {
-  const start = createLocalDate(2026, 0, 12)
-  const end = createLocalDate(2026, 0, 19)
-
-  return {
-    inlineInputProps: {
-      inline: true,
-      range: true,
-      months: 2,
-      autoApply: false,
-      returnObject: false,
-      showPresets: true,
-      presets: undefined,
-      showWeekNumbers: false,
-      firstDayOfWeek: 0,
-      density: 'default',
-      disabled: false,
-      readonly: false,
-    },
-    customPresets: [],
-    minDate: createLocalDate(2026, 0, 1),
-    maxDate: createLocalDate(2026, 4, 1),
-    disableWeekends: (date: Date) => ![0, 6].includes(date.getDay()),
-    allowMondays: (date: Date) => date.getDay() === 1,
-    allowFridays: (date: Date) => date.getDay() === 5,
-    inlineValue: [start, end] satisfies AdvancedDateModel<Date>,
-    rangeValue: [start, end] satisfies AdvancedDateModel<Date>,
-    singleValue: start satisfies AdvancedDateModel<Date>,
-    constrainedValue: null as AdvancedDateModel<Date>,
-    typedValue: null as AdvancedDateModel<Date>,
-    pickerOnlyValue: start satisfies AdvancedDateModel<Date>,
-    rangeMenu: false,
-    presetMenu: false,
-    customPresetMenu: false,
-  }
+function getPreviewModeButton(
+  wrapper: ReturnType<typeof render>,
+  label: string,
+) {
+  return wrapper
+    .get('[data-testid="playground-lab-preview-mode"]')
+    .findAll('.v-btn')
+    .find((node) => node.text().includes(label))
 }
 
-describe('PlaygroundShowcase', () => {
-  it('renders constrained navigation edge case demos', () => {
-    const wrapper = render(PlaygroundShowcase, {
-      props: createShowcaseProps(),
+describe('Playground showcase', () => {
+  it('defaults to the examples tab and switches between tabs', async () => {
+    const wrapper = render(App, {
       global: {
         plugins: [AdvancedDatePlugin],
       },
     })
 
-    expect(wrapper.text()).toContain('Constrained Navigation Edge Cases')
-    expect(wrapper.text()).toContain('Hard min/max bounds')
-    expect(wrapper.text()).toContain('Revealed month has no selectable dates')
-    expect(wrapper.text()).toContain('Pending range end locks future navigation')
-    expect(wrapper.text()).toContain('Gap months are not skipped')
-    expect(wrapper.text()).toContain('Mobile fullscreen constrained scroll limit')
+    expect(wrapper.find('[data-testid="playground-tab-examples"]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('[data-testid="playground-tab-lab"]').exists()).toBe(
+      false,
+    )
+
+    const playgroundTab = wrapper
+      .findAll('.v-tab')
+      .find((node) => node.text().includes('Playground'))
+    expect(playgroundTab).toBeDefined()
+
+    await playgroundTab?.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="playground-tab-lab"]').exists()).toBe(
+      true,
+    )
+
+    const advancedTab = wrapper
+      .findAll('.v-tab')
+      .find((node) => node.text().includes('Advanced'))
+    expect(advancedTab).toBeDefined()
+
+    await advancedTab?.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="playground-tab-advanced"]').exists()).toBe(
+      true,
+    )
+
+    wrapper.unmount()
   })
 
-  it('shows parent-driven validation errors in the form validation demo', async () => {
-    const wrapper = render(PlaygroundShowcase, {
+  it('renders the clean examples tab without advanced debug sections', () => {
+    const wrapper = render(PlaygroundExamplesTab, {
+      global: {
+        plugins: [AdvancedDatePlugin],
+      },
+    })
+
+    expect(wrapper.text()).toContain('Single date input')
+    expect(wrapper.text()).toContain('Range input')
+    expect(wrapper.text()).toContain('Range input with built-in presets')
+    expect(wrapper.text()).not.toContain('Bare picker')
+    expect(wrapper.text()).not.toContain('Constrained navigation edge cases')
+    expect(wrapper.text()).not.toContain('Live output')
+
+    wrapper.unmount()
+  })
+
+  it('renders both playground previews by default and reacts to representative controls', async () => {
+    const wrapper = render(PlaygroundLabTab, {
+      global: {
+        plugins: [AdvancedDatePlugin],
+      },
+    })
+
+    expect(wrapper.find('[data-testid="playground-lab-input-preview"]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('[data-testid="playground-lab-picker-preview"]').exists()).toBe(
+      true,
+    )
+
+    await getPreviewModeButton(wrapper, 'Picker only')?.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="playground-lab-input-preview"]').exists()).toBe(
+      false,
+    )
+    expect(wrapper.find('[data-testid="playground-lab-picker-preview"]').exists()).toBe(
+      true,
+    )
+
+    await getPreviewModeButton(wrapper, 'Both previews')?.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    await wrapper
+      .get('[data-testid="playground-lab-range-switch"] input')
+      .setValue(false)
+    await wrapper.vm.$nextTick()
+
+    const output = JSON.parse(
+      wrapper.get('[data-testid="playground-lab-output"] pre').text(),
+    ) as {
+      controls: {
+        inline: boolean
+        range: boolean
+        fieldPropsMode: string
+      }
+      input: {
+        props: {
+          range: boolean
+        }
+      }
+    }
+
+    expect(output.controls.inline).toBe(false)
+    expect(output.controls.range).toBe(false)
+    expect(output.controls.fieldPropsMode).toBe('single')
+    expect(output.input.props.range).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('shows parent-driven validation errors in the advanced tab form demo', async () => {
+    const wrapper = render(PlaygroundAdvancedTab, {
       attachTo: document.body,
-      props: createShowcaseProps(),
       global: {
         plugins: [AdvancedDatePlugin],
       },
@@ -175,9 +242,8 @@ describe('PlaygroundShowcase', () => {
   })
 
   it('keeps the range field untouched while the picker is still completing a range', async () => {
-    const wrapper = render(PlaygroundShowcase, {
+    const wrapper = render(PlaygroundAdvancedTab, {
       attachTo: document.body,
-      props: createShowcaseProps(),
       global: {
         plugins: [AdvancedDatePlugin],
       },
@@ -188,7 +254,9 @@ describe('PlaygroundShowcase', () => {
     targetDate.setDate(targetDate.getDate() + 7)
     const targetIso = toLocalYmd(targetDate)
 
-    await formValidation.get('input[aria-label="Travel start date"]').trigger('click')
+    await formValidation
+      .get('input[aria-label="Travel start date"]')
+      .trigger('click')
     await wrapper.vm.$nextTick()
 
     const targetButton = document.body.querySelector(
@@ -220,8 +288,7 @@ describe('PlaygroundShowcase', () => {
   })
 
   it('shows the expected disabled arrow states for each constrained demo', () => {
-    const wrapper = render(PlaygroundShowcase, {
-      props: createShowcaseProps(),
+    const wrapper = render(PlaygroundAdvancedTab, {
       global: {
         plugins: [AdvancedDatePlugin],
       },
@@ -260,12 +327,13 @@ describe('PlaygroundShowcase', () => {
     expect(
       gapMonth.find('button[aria-label="Next month"]').attributes('disabled'),
     ).toBeDefined()
+
+    wrapper.unmount()
   })
 
-  it('shows the constrained mobile fullscreen month limit in the showcase', async () => {
+  it('shows the constrained mobile fullscreen month limit in the advanced tab', async () => {
     await runWithWindowWidth(async () => {
-      const wrapper = render(PlaygroundShowcase, {
-        props: createShowcaseProps(),
+      const wrapper = render(PlaygroundAdvancedTab, {
         global: {
           plugins: [AdvancedDatePlugin],
         },

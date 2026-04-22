@@ -166,6 +166,11 @@ messages at runtime for the active and fallback locales. Consumer-provided
 `dateInputAdvanced` messages should override those defaults, while
 consumer-provided labels, placeholders, titles, and custom preset labels
 remain consumer-managed.
+The playground shell in `playground/src/App.vue` is split into three tabs:
+`Examples`, `Playground`, and `Advanced`. Keep the first tab curated and
+low-noise, keep exhaustive prop and debug coverage in the playground lab tab,
+and keep validation or regression-focused demos in the advanced tab instead of
+mixing those concerns back into one screen.
 
 ## Testing Strategy
 
