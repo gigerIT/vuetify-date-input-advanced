@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.4.0...v3.4.1) (2026-04-22)
+
+
+### Bug Fixes
+
+* **VAdvancedDateInput:** prevent menu opening when disabled ([7127b7c](https://github.com/gigerIT/vuetify-date-input-advanced/commit/7127b7c048d6ced424d4edc8fc7a285103b6f856))
+
 ## [3.4.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.3.1...v3.4.0) (2026-04-21)
 
 
