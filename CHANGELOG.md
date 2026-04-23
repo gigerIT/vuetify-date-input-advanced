@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.5.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.4.1...v3.5.0) (2026-04-23)
+
+
+### Features
+
+* **presets:** implement built-in rolling presets ending on yesterday ([b1ec505](https://github.com/gigerIT/vuetify-date-input-advanced/commit/b1ec5059241663ff04b2b9f0930196c439bec40a))
+* **VAdvancedDateInput, VAdvancedDatePicker:** variant prop for inline mode ([32d5b88](https://github.com/gigerIT/vuetify-date-input-advanced/commit/32d5b881a0cdedb4fcf6ee760eea2417e78ab86b))
+
 ## [3.4.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.4.0...v3.4.1) (2026-04-22)
 
 
