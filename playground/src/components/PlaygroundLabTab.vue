@@ -13,6 +13,7 @@ const {
   firstDayOfWeekOptions,
   hideDetailsOptions,
   iconOptions,
+  inputVariantOptions,
   inputProps,
   inputValue,
   monthNameOptions,
@@ -20,6 +21,7 @@ const {
   options,
   output,
   parseModeOptions,
+  pickerVariantOptions,
   pickerValue,
   presetModeOptions,
   previewModeOptions,
@@ -29,7 +31,6 @@ const {
   ruleModeOptions,
   sharedPickerProps,
   themeOverrideOptions,
-  variantOptions,
   yearOptions,
 } = usePlaygroundLabState()
 </script>
@@ -49,15 +50,16 @@ const {
           :first-day-of-week-options="firstDayOfWeekOptions"
           :hide-details-options="hideDetailsOptions"
           :icon-options="iconOptions"
+          :input-variant-options="inputVariantOptions"
           :month-name-options="monthNameOptions"
           :months-options="monthsOptions"
           :parse-mode-options="parseModeOptions"
+          :picker-variant-options="pickerVariantOptions"
           :preset-mode-options="presetModeOptions"
           :preview-mode-options="previewModeOptions"
           :rounded-options="roundedOptions"
           :rule-mode-options="ruleModeOptions"
           :theme-override-options="themeOverrideOptions"
-          :variant-options="variantOptions"
           :year-options="yearOptions"
           @reset-controls="resetControls"
           @reset-values="resetValues"
@@ -88,7 +90,9 @@ const {
                     v-if="customPresets.length"
                     #preset-highlight="{ preset }"
                   >
-                    <div class="d-flex align-center justify-space-between w-100">
+                    <div
+                      class="d-flex align-center justify-space-between w-100"
+                    >
                       <span>{{ preset.label }}</span>
                       <v-chip size="x-small" color="primary" variant="tonal">
                         Custom
@@ -117,7 +121,9 @@ const {
                     v-if="customPresets.length"
                     #preset-highlight="{ preset }"
                   >
-                    <div class="d-flex align-center justify-space-between w-100">
+                    <div
+                      class="d-flex align-center justify-space-between w-100"
+                    >
                       <span>{{ preset.label }}</span>
                       <v-chip size="x-small" color="secondary" variant="tonal">
                         Slot
@@ -135,7 +141,9 @@ const {
               Current values, active modes, and the resolved playground props.
             </v-card-subtitle>
             <v-card-text>
-              <pre class="lab-output text-body-2">{{ JSON.stringify(output, null, 2) }}</pre>
+              <pre class="lab-output text-body-2">{{
+                JSON.stringify(output, null, 2)
+              }}</pre>
             </v-card-text>
           </v-card>
         </div>

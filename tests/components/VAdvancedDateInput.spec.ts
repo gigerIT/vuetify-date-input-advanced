@@ -548,9 +548,7 @@ describe('VAdvancedDateInput', () => {
 
         await input.setValue('Feb 10, 2026')
 
-        expect(wrapper.emitted('update:text')?.at(-1)).toEqual([
-          'Feb 10, 2026',
-        ])
+        expect(wrapper.emitted('update:text')?.at(-1)).toEqual(['Feb 10, 2026'])
       } finally {
         wrapper.unmount()
       }
@@ -949,6 +947,22 @@ describe('VAdvancedDateInput', () => {
       wrapper.unmount()
     },
   )
+
+  it('keeps the configured field variant outside inline mode', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        range: false,
+        variant: 'underlined',
+      },
+    })
+
+    expect(wrapper.findComponent({ name: 'VTextField' }).props('variant')).toBe(
+      'underlined',
+    )
+
+    wrapper.unmount()
+  })
 
   it('forwards the Vuetify field color prop to both split range inputs', async () => {
     await runWithDesktopWidth(() => {
@@ -3045,6 +3059,74 @@ describe('VAdvancedDateInput', () => {
     expect(picker.attributes('color')).toBeUndefined()
 
     wrapper.unmount()
+  })
+
+  it('keeps the inline picker elevated by default when no variant is provided', () => {
+    const wrapper = render(VAdvancedDateInput, {
+      props: {
+        modelValue: null,
+        inline: true,
+      },
+    })
+
+    const picker = wrapper.get('.v-advanced-date-picker')
+
+    expect(picker.classes()).toContain('v-card--variant-elevated')
+    expect(picker.classes()).toContain('elevation-2')
+
+    wrapper.unmount()
+  })
+
+  it.each(['outlined', 'text'])(
+    'forwards inline variant %s to the picker card',
+    (variant) => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          inline: true,
+          variant,
+        },
+      })
+
+      expect(wrapper.get('.v-advanced-date-picker').classes()).toContain(
+        `v-card--variant-${variant}`,
+      )
+
+      wrapper.unmount()
+    },
+  )
+
+  it('does not leak a field-only variant into the overlay picker container', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          variant: 'filled',
+        },
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      try {
+        expect(
+          wrapper
+            .findComponent({ name: 'VAdvancedDatePicker' })
+            .props('variant'),
+        ).toBe('elevated')
+        expect(rangeFieldComponent(wrapper, 'start').props('variant')).toBe(
+          'filled',
+        )
+        expect(rangeFieldComponent(wrapper, 'end').props('variant')).toBe(
+          'filled',
+        )
+      } finally {
+        wrapper.unmount()
+      }
+    })
   })
 
   it('leaves custom activator slots responsible for their own attrs', async () => {

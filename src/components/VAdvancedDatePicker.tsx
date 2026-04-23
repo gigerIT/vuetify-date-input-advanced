@@ -8,7 +8,7 @@ import {
   watch,
 } from 'vue'
 
-import { VBtn, VDivider, VSheet } from 'vuetify/components'
+import { VBtn, VCard, VDivider } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateGrid } from '@/composables/useAdvancedDateGrid'
@@ -32,6 +32,7 @@ import { serializeModel } from '@/util/model'
 import '@/styles/VAdvancedDatePicker.sass'
 
 import {
+  advancedDatePickerCardProps,
   advancedDatePickerInternalProps,
   advancedDatePickerProps,
 } from './advancedDateProps'
@@ -65,6 +66,7 @@ export const VAdvancedDatePicker = defineComponent({
 
   props: {
     ...advancedDatePickerProps,
+    ...advancedDatePickerCardProps,
     ...advancedDatePickerInternalProps,
   },
 
@@ -415,7 +417,7 @@ export const VAdvancedDatePicker = defineComponent({
     })
 
     return () => (
-      <VSheet
+      <VCard
         class={[
           'v-advanced-date-picker',
           `v-advanced-date-picker--density-${props.density}`,
@@ -426,10 +428,10 @@ export const VAdvancedDatePicker = defineComponent({
             'v-advanced-date-picker--mobile-scroll': isMobileScroll.value,
           },
         ]}
-        color="surface"
         theme={props.theme}
         rounded={props.rounded}
         border={props.border}
+        variant={props.variant}
         elevation={props.elevation}
         width={props.width}
         minWidth={props.minWidth}
@@ -571,7 +573,7 @@ export const VAdvancedDatePicker = defineComponent({
             />
           </>
         ) : null}
-      </VSheet>
+      </VCard>
     )
   },
 })

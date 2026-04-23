@@ -93,11 +93,32 @@ const activeFieldOptions = [
   { title: 'End field', value: 'end' },
 ] satisfies SelectOption<'auto' | 'start' | 'end'>[]
 
-const variantOptions = [
+const inputFieldVariantOptions = [
+  { title: 'Default', value: 'default' },
   { title: 'Outlined', value: 'outlined' },
+  { title: 'Plain', value: 'plain' },
   { title: 'Underlined', value: 'underlined' },
   { title: 'Filled', value: 'filled' },
   { title: 'Solo', value: 'solo' },
+] satisfies SelectOption<string>[]
+
+const inputInlineVariantOptions = [
+  { title: 'Default', value: 'default' },
+  { title: 'Elevated', value: 'elevated' },
+  { title: 'Flat', value: 'flat' },
+  { title: 'Tonal', value: 'tonal' },
+  { title: 'Outlined', value: 'outlined' },
+  { title: 'Text', value: 'text' },
+  { title: 'Plain', value: 'plain' },
+] satisfies SelectOption<string>[]
+
+const pickerVariantOptions = [
+  { title: 'Default', value: 'default' },
+  { title: 'Elevated', value: 'elevated' },
+  { title: 'Flat', value: 'flat' },
+  { title: 'Tonal', value: 'tonal' },
+  { title: 'Outlined', value: 'outlined' },
+  { title: 'Text', value: 'text' },
   { title: 'Plain', value: 'plain' },
 ] satisfies SelectOption<string>[]
 
@@ -213,6 +234,10 @@ function iconOrUndefined(value: string) {
   return trimToUndefined(value)
 }
 
+function variantOrUndefined(value: string) {
+  return value === 'default' ? undefined : value
+}
+
 function roundedValue(mode: PlaygroundRoundedMode) {
   if (mode === 'default') return undefined
   if (mode === 'none') return false
@@ -290,9 +315,7 @@ function createCustomPresets(): PresetRange<Date>[] {
   ]
 }
 
-function splitFieldProps(
-  mode: PlaygroundFieldPropsMode,
-): {
+function splitFieldProps(mode: PlaygroundFieldPropsMode): {
   startFieldProps?: AdvancedDateInputFieldProps
   endFieldProps?: AdvancedDateInputFieldProps
 } {
@@ -345,7 +368,8 @@ function createDefaultOptions(baseDate: Date): PlaygroundLabOptions {
     titleEndDate: 'Return',
     displayFormat: 'fullDate',
     rangeSeparator: ' – ',
-    variant: 'outlined',
+    inputVariant: 'default',
+    pickerVariant: 'default',
     hideDetails: 'auto',
     messagesText:
       'Use the controls to compare the text-input wrapper and the bare picker.',
@@ -376,12 +400,14 @@ function createDefaultOptions(baseDate: Date): PlaygroundLabOptions {
 export function usePlaygroundLabState() {
   const today = new Date()
   const customPresets = createCustomPresets()
-  const yearOptions = [today.getFullYear() - 1, today.getFullYear(), today.getFullYear() + 1].map(
-    (value) => ({
-      title: String(value),
-      value,
-    }),
-  ) satisfies SelectOption<number>[]
+  const yearOptions = [
+    today.getFullYear() - 1,
+    today.getFullYear(),
+    today.getFullYear() + 1,
+  ].map((value) => ({
+    title: String(value),
+    value,
+  })) satisfies SelectOption<number>[]
 
   const options = reactive(createDefaultOptions(today))
   const inputValue = ref<AdvancedDateModel<Date>>(
@@ -423,6 +449,18 @@ export function usePlaygroundLabState() {
     (inline) => {
       if (inline) {
         options.menu = false
+      }
+
+      const availableVariants = inline
+        ? inputInlineVariantOptions
+        : inputFieldVariantOptions
+
+      if (
+        !availableVariants.some(
+          (option) => option.value === options.inputVariant,
+        )
+      ) {
+        options.inputVariant = 'default'
       }
     },
   )
@@ -481,14 +519,16 @@ export function usePlaygroundLabState() {
     if (options.ruleMode === 'required') {
       return [
         (value: unknown) =>
-          String(value ?? '').trim().length > 0 || 'Enter a date before applying.',
+          String(value ?? '').trim().length > 0 ||
+          'Enter a date before applying.',
       ]
     }
 
     if (options.ruleMode === 'min-nights') {
       return [
         () => {
-          if (!options.range) return 'Enable range mode to validate minimum nights.'
+          if (!options.range)
+            return 'Enable range mode to validate minimum nights.'
 
           const range = normalizeRangeModel(inputValue.value)
           if (!range.start || !range.end) {
@@ -523,6 +563,9 @@ export function usePlaygroundLabState() {
   const activeField = computed(() =>
     options.activeField === 'auto' ? undefined : options.activeField,
   )
+  const inputVariantOptions = computed(() =>
+    options.inline ? inputInlineVariantOptions : inputFieldVariantOptions,
+  )
   const themeName = computed(() =>
     options.themeName === 'inherit' ? undefined : options.themeName,
   )
@@ -554,6 +597,7 @@ export function usePlaygroundLabState() {
     rounded: roundedValue(options.rounded),
     border: borderValue(options.border),
     elevation: options.elevation,
+    variant: variantOrUndefined(options.pickerVariant),
     width: trimToUndefined(options.width),
     minWidth: trimToUndefined(options.minWidth),
     maxWidth: trimToUndefined(options.maxWidth),
@@ -567,13 +611,11 @@ export function usePlaygroundLabState() {
     closeDraftStrategy: options.closeDraftStrategy,
     label: trimToUndefined(options.label),
     placeholder: trimToUndefined(options.placeholder),
-    variant: options.variant,
+    variant: variantOrUndefined(options.inputVariant),
     hideDetails: hideDetailsValue(options.hideDetails),
     messages: trimToUndefined(options.messagesText),
     error: options.forceError,
-    errorMessages: options.forceError
-      ? [options.errorMessageText]
-      : undefined,
+    errorMessages: options.forceError ? [options.errorMessageText] : undefined,
     rules: rules.value,
     clearable: options.clearable,
     color: trimToUndefined(options.color),
@@ -654,6 +696,7 @@ export function usePlaygroundLabState() {
     firstDayOfWeekOptions,
     hideDetailsOptions,
     iconOptions,
+    inputVariantOptions,
     inputProps,
     inputValue,
     monthNameOptions,
@@ -661,6 +704,7 @@ export function usePlaygroundLabState() {
     options,
     output,
     parseModeOptions,
+    pickerVariantOptions,
     pickerValue,
     presetModeOptions,
     previewModeOptions,
@@ -670,7 +714,6 @@ export function usePlaygroundLabState() {
     ruleModeOptions,
     sharedPickerProps,
     themeOverrideOptions,
-    variantOptions,
     yearOptions,
     customPresets,
   }

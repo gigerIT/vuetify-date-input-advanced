@@ -27,15 +27,16 @@ const props = defineProps<{
   firstDayOfWeekOptions: SelectOption<number>[]
   hideDetailsOptions: SelectOption<PlaygroundHideDetailsMode>[]
   iconOptions: SelectOption<string>[]
+  inputVariantOptions: SelectOption<string>[]
   monthNameOptions: SelectOption<number>[]
   monthsOptions: SelectOption<number>[]
   parseModeOptions: SelectOption<PlaygroundParseMode>[]
+  pickerVariantOptions: SelectOption<string>[]
   presetModeOptions: SelectOption<PlaygroundPresetMode>[]
   previewModeOptions: SelectOption<PlaygroundPreviewMode>[]
   roundedOptions: SelectOption<PlaygroundRoundedMode>[]
   ruleModeOptions: SelectOption<PlaygroundRuleMode>[]
   themeOverrideOptions: SelectOption<PlaygroundThemeOverride>[]
-  variantOptions: SelectOption<string>[]
   yearOptions: SelectOption<number>[]
 }>()
 
@@ -102,7 +103,11 @@ const usesLockedViewport = computed(() => options.value.lockViewport)
       </v-card-text>
     </v-card>
 
-    <v-expansion-panels multiple variant="accordion" :model-value="[0, 1, 2, 3]">
+    <v-expansion-panels
+      multiple
+      variant="accordion"
+      :model-value="[0, 1, 2, 3]"
+    >
       <v-expansion-panel>
         <v-expansion-panel-title>Selection and flow</v-expansion-panel-title>
         <v-expansion-panel-text>
@@ -394,9 +399,17 @@ const usesLockedViewport = computed(() => options.value.lockViewport)
         <v-expansion-panel-text>
           <div class="controls-grid">
             <v-select
-              v-model="options.variant"
-              label="Variant"
-              :items="props.variantOptions"
+              v-model="options.inputVariant"
+              :label="options.inline ? 'Inline card variant' : 'Input variant'"
+              :items="props.inputVariantOptions"
+              density="comfortable"
+              hide-details
+            />
+
+            <v-select
+              v-model="options.pickerVariant"
+              label="Picker variant"
+              :items="props.pickerVariantOptions"
               density="comfortable"
               hide-details
             />

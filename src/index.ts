@@ -16,6 +16,7 @@ export type {
   AdvancedDateInputFieldProps,
   AdvancedDateIconSvgPath,
   AdvancedDateIconValue,
+  AdvancedDatePickerVariant,
   AdvancedDateInputAvailabilityStatus,
   AdvancedDateInputCloseOutcome,
   AdvancedDateInputClosePayload,

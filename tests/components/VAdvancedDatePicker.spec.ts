@@ -127,6 +127,48 @@ function lastEmitted<T>(
 }
 
 describe('VAdvancedDatePicker', () => {
+  it('renders the picker root as an elevated card by default', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+      },
+    })
+
+    const picker = wrapper.get('.v-advanced-date-picker')
+
+    expect(picker.classes()).toContain('v-card')
+    expect(picker.classes()).toContain('v-card--variant-elevated')
+    expect(picker.classes()).toContain('elevation-2')
+  })
+
+  it('applies outlined variant and explicit elevation on the picker root', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        variant: 'outlined',
+        elevation: 4,
+      },
+    })
+
+    const picker = wrapper.get('.v-advanced-date-picker')
+
+    expect(picker.classes()).toContain('v-card--variant-outlined')
+    expect(picker.classes()).toContain('elevation-4')
+  })
+
+  it('applies text variant on the picker root', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        variant: 'text',
+      },
+    })
+
+    expect(wrapper.get('.v-advanced-date-picker').classes()).toContain(
+      'v-card--variant-text',
+    )
+  })
+
   it('hides the optional picker title by default', () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
@@ -1084,9 +1126,7 @@ describe('VAdvancedDatePicker', () => {
     })
 
     expect(
-      wrapper
-        .find('.v-advanced-date-picker__months')
-        .attributes('style'),
+      wrapper.find('.v-advanced-date-picker__months').attributes('style'),
     ).toContain('--v-advanced-date-visible-month-count: 3;')
   })
 
@@ -1231,7 +1271,9 @@ describe('VAdvancedDatePicker', () => {
     })
 
     expect(
-      wrapper.find('button[aria-label="Previous month"]').attributes('disabled'),
+      wrapper
+        .find('button[aria-label="Previous month"]')
+        .attributes('disabled'),
     ).toBeUndefined()
     expect(
       wrapper.find('button[aria-label="Next month"]').attributes('disabled'),

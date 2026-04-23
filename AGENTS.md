@@ -250,6 +250,13 @@ npm run build
 - `VAdvancedDateInput.color` follows Vuetify field semantics for the built-in
   text control(s) only; do not implicitly bridge it into picker accent tokens
   such as `--v-advanced-date-picker-color`.
+- The picker root uses `VCard`, not `VSheet`; keep `variant`, `border`,
+  `rounded`, and `elevation` aligned with Vuetify card semantics, and do not
+  hardcode a root `color` that would unintentionally tint outlined/text card
+  variants.
+- `VAdvancedDateInput.variant` is mode-dependent: outside inline mode it styles
+  the built-in field(s), while `inline` mode uses it for the internal picker
+  card and should preserve the default elevated card when the prop is omitted.
 - Constrained range endpoints can be disabled for the current interaction phase
   while still being the active selection; keep their selected highlight at full
   strength instead of applying disabled-date opacity.

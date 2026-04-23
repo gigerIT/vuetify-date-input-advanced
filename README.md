@@ -185,6 +185,7 @@ const year = ref(2026)
     :months="2"
     :first-day-of-week="1"
     :auto-apply="false"
+    variant="outlined"
   />
 </template>
 ```
@@ -468,66 +469,67 @@ keyboard behavior.
 
 These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 
-| Prop                | Type                                       | Default                   | Notes                                                                                                             |
-| ------------------- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `modelValue`        | `AdvancedDateModel<TDate>`                 | `null`                    | Current value                                                                                                     |
-| `range`             | `boolean`                                  | `true`                    | Set `false` for single-date mode                                                                                  |
-| `returnObject`      | `boolean`                                  | `false`                   | Range mode only; emits `{ start, end }` instead of a tuple                                                        |
-| `months`            | `number`                                   | `2`                       | Visible month count, clamped to at least `1`                                                                      |
-| `month`             | `number \| undefined`                      | current month             | Leading visible month                                                                                             |
-| `year`              | `number \| undefined`                      | current year              | Leading visible year                                                                                              |
-| `presets`           | `PresetRange<TDate>[] \| undefined`        | built-in range presets    | Ignored when `range=false`                                                                                        |
-| `showPresets`       | `boolean`                                  | `true`                    | Shows or hides the preset list in range mode                                                                      |
-| `swipeable`         | `boolean`                                  | `true`                    | Public prop; the current source does not attach swipe handlers                                                    |
-| `autoApply`         | `boolean`                                  | `true`                    | `false` enables draft selection and footer actions                                                                |
-| `min`               | `TDate \| null`                            | `null`                    | Minimum selectable date                                                                                           |
-| `max`               | `TDate \| null`                            | `null`                    | Maximum selectable date                                                                                           |
-| `allowedDates`      | `(date: TDate) => boolean`                 | `undefined`               | Shared per-day availability check applied to both endpoints                                                       |
-| `allowedStartDates` | `(date: TDate) => boolean`                 | `undefined`               | Additional availability check for single dates and ordered range starts                                           |
-| `allowedEndDates`   | `(date: TDate) => boolean`                 | `undefined`               | Additional availability check for ordered range ends                                                              |
-| `showWeekNumbers`   | `boolean`                                  | `false`                   | Displays week numbers; uses adapter week calculations when available and otherwise falls back to ISO week numbers |
-| `firstDayOfWeek`    | `string \| number \| undefined`            | adapter or locale default | Mirrors Vuetify `VDatePicker`; `0` starts weeks on Sunday, `1` on Monday, and so on                               |
-| `prevIcon`          | `AdvancedDateIconValue`                    | `$prev`                   | Previous-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components     |
-| `nextIcon`          | `AdvancedDateIconValue`                    | `$next`                   | Next-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components         |
-| `disabled`          | `boolean`                                  | `false`                   | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints          |
-| `readonly`          | `boolean`                                  | `false`                   | Full picker read-only mode: blocks calendar and preset interaction, and hides the manual action footer            |
-| `theme`             | `string \| undefined`                      | inherited                 | Passed to the picker `VSheet`                                                                                     |
-| `rounded`           | `string \| number \| boolean \| undefined` | `undefined`               | Passed to the picker `VSheet`                                                                                     |
-| `border`            | `string \| number \| boolean`              | `true`                    | Passed to the picker `VSheet`                                                                                     |
-| `elevation`         | `string \| number`                         | `2`                       | Passed to the picker `VSheet`                                                                                     |
-| `width`             | `string \| number \| undefined`            | `undefined`               | Picker width                                                                                                      |
-| `minWidth`          | `string \| number \| undefined`            | `undefined`               | Picker min width; also used for the desktop menu wrapper                                                          |
-| `maxWidth`          | `string \| number \| undefined`            | `undefined`               | Picker max width                                                                                                  |
-| `density`           | `'default' \| 'comfortable' \| 'compact'`  | `default`                 | Picker density and input density                                                                                  |
+| Prop                | Type                                                                 | Default                   | Notes                                                                                                             |
+| ------------------- | -------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `modelValue`        | `AdvancedDateModel<TDate>`                                           | `null`                    | Current value                                                                                                     |
+| `range`             | `boolean`                                                            | `true`                    | Set `false` for single-date mode                                                                                  |
+| `returnObject`      | `boolean`                                                            | `false`                   | Range mode only; emits `{ start, end }` instead of a tuple                                                        |
+| `months`            | `number`                                                             | `2`                       | Visible month count, clamped to at least `1`                                                                      |
+| `month`             | `number \| undefined`                                                | current month             | Leading visible month                                                                                             |
+| `year`              | `number \| undefined`                                                | current year              | Leading visible year                                                                                              |
+| `presets`           | `PresetRange<TDate>[] \| undefined`                                  | built-in range presets    | Ignored when `range=false`                                                                                        |
+| `showPresets`       | `boolean`                                                            | `true`                    | Shows or hides the preset list in range mode                                                                      |
+| `swipeable`         | `boolean`                                                            | `true`                    | Public prop; the current source does not attach swipe handlers                                                    |
+| `autoApply`         | `boolean`                                                            | `true`                    | `false` enables draft selection and footer actions                                                                |
+| `min`               | `TDate \| null`                                                      | `null`                    | Minimum selectable date                                                                                           |
+| `max`               | `TDate \| null`                                                      | `null`                    | Maximum selectable date                                                                                           |
+| `allowedDates`      | `(date: TDate) => boolean`                                           | `undefined`               | Shared per-day availability check applied to both endpoints                                                       |
+| `allowedStartDates` | `(date: TDate) => boolean`                                           | `undefined`               | Additional availability check for single dates and ordered range starts                                           |
+| `allowedEndDates`   | `(date: TDate) => boolean`                                           | `undefined`               | Additional availability check for ordered range ends                                                              |
+| `showWeekNumbers`   | `boolean`                                                            | `false`                   | Displays week numbers; uses adapter week calculations when available and otherwise falls back to ISO week numbers |
+| `firstDayOfWeek`    | `string \| number \| undefined`                                      | adapter or locale default | Mirrors Vuetify `VDatePicker`; `0` starts weeks on Sunday, `1` on Monday, and so on                               |
+| `prevIcon`          | `AdvancedDateIconValue`                                              | `$prev`                   | Previous-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components     |
+| `nextIcon`          | `AdvancedDateIconValue`                                              | `$next`                   | Next-month navigation icon; accepts Vuetify aliases, prefixed set strings, SVG path arrays, or components         |
+| `disabled`          | `boolean`                                                            | `false`                   | Applies disabled state to wrapper controls; day availability still comes primarily from date constraints          |
+| `readonly`          | `boolean`                                                            | `false`                   | Full picker read-only mode: blocks calendar and preset interaction, and hides the manual action footer            |
+| `theme`             | `string \| undefined`                                                | inherited                 | Passed to the picker `VCard`                                                                                      |
+| `rounded`           | `string \| number \| boolean \| undefined`                           | `undefined`               | Passed to the picker `VCard`                                                                                      |
+| `border`            | `string \| number \| boolean`                                        | `true`                    | Passed to the picker `VCard`                                                                                      |
+| `elevation`         | `string \| number`                                                   | `2`                       | Passed to the picker `VCard`                                                                                      |
+| `variant`           | `'elevated' \| 'flat' \| 'tonal' \| 'outlined' \| 'text' \| 'plain'` | `elevated`                | Picker surface variant. When passed through `VAdvancedDateInput`, it affects the inline picker only               |
+| `width`             | `string \| number \| undefined`                                      | `undefined`               | Picker width                                                                                                      |
+| `minWidth`          | `string \| number \| undefined`                                      | `undefined`               | Picker min width; also used for the desktop menu wrapper                                                          |
+| `maxWidth`          | `string \| number \| undefined`                                      | `undefined`               | Picker max width                                                                                                  |
+| `density`           | `'default' \| 'comfortable' \| 'compact'`                            | `default`                 | Picker density and input density                                                                                  |
 
 ### `VAdvancedDateInput`-Only Props
 
-| Prop                 | Type                                       | Default     | Notes                                                                                                           |
-| -------------------- | ------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `menu`               | `boolean`                                  | `false`     | Controlled open state for the menu or dialog                                                                    |
-| `inline`             | `boolean`                                  | `false`     | Renders the picker directly instead of using an overlay                                                         |
-| `label`              | `string \| undefined`                      | `undefined` | Shared field label for either the single-date field or range field group                                        |
-| `placeholder`        | `string \| undefined`                      | `undefined` | Single-date input placeholder. In range mode, use `startFieldProps.placeholder` and `endFieldProps.placeholder` |
-| `variant`            | `string`                                   | `outlined`  | Shared field variant                                                                                            |
-| `hideDetails`        | `boolean \| 'auto'`                        | `auto`      | Shared field details behavior                                                                                   |
-| `messages`           | `string \| string[] \| undefined`          | `undefined` | Shared field messages                                                                                           |
-| `error`              | `boolean`                                  | `false`     | Combines with internal parse and validation errors                                                              |
-| `errorMessages`      | `string \| string[] \| undefined`          | `undefined` | Merged with internal parse and validation errors                                                                |
-| `rules`              | `readonly unknown[]`                       | `[]`        | Validates the single-date field or combined range text                                                          |
-| `clearable`          | `boolean`                                  | `false`     | Clears both text and model                                                                                      |
-| `color`              | `string \| undefined`                      | `undefined` | Applies the Vuetify field color to the built-in text control(s); supports utility names with or without `text-` and raw CSS colors |
-| `focused`            | `boolean`                                  | `false`     | Single-date `VTextField` focus state. In range mode, use `activeField`                                          |
-| `activeField`        | `'start' \| 'end' \| undefined`            | `undefined` | Range-mode active side. When set on desktop, the side input is focused and its text selected, and programmatic picker opens use it as the default boundary |
-| `prependInnerIcon`   | `AdvancedDateIconValue \| undefined`       | `undefined` | Single-date `VTextField` prepend icon. In range mode, use side-specific field props                             |
-| `appendInnerIcon`    | `AdvancedDateIconValue`                    | `$calendar` | Single-date `VTextField` append icon. In range mode, use side-specific field props                              |
-| `startFieldProps`    | `AdvancedDateInputFieldProps \| undefined` | `undefined` | Range-mode start input props                                                                                    |
-| `endFieldProps`      | `AdvancedDateInputFieldProps \| undefined` | `undefined` | Range-mode end input props                                                                                      |
-| `inputReadonly`      | `boolean`                                  | `false`     | Makes the single-date field readonly while keeping the picker, icon, and footer actions interactive             |
-| `text`               | `string \| undefined`                      | `undefined` | Controlled combined text value for parent-owned draft flows                                                     |
-| `closeDraftStrategy` | `'revert' \| 'preserve' \| 'commit'`       | `revert`    | Controls how pending drafts behave when the overlay closes                                                      |
-| `displayFormat`      | `string`                                   | `fullDate`  | Passed to `adapter.format(...)` for text display                                                                |
-| `rangeSeparator`     | `string`                                   | `–`         | Separator used for formatted range text                                                                         |
-| `parseInput`         | `(value: string) => TDate \| null`         | `undefined` | Custom parser used before adapter and native parsing                                                            |
+| Prop                 | Type                                       | Default        | Notes                                                                                                                                                                |
+| -------------------- | ------------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `menu`               | `boolean`                                  | `false`        | Controlled open state for the menu or dialog                                                                                                                         |
+| `inline`             | `boolean`                                  | `false`        | Renders the picker directly instead of using an overlay                                                                                                              |
+| `label`              | `string \| undefined`                      | `undefined`    | Shared field label for either the single-date field or range field group                                                                                             |
+| `placeholder`        | `string \| undefined`                      | `undefined`    | Single-date input placeholder. In range mode, use `startFieldProps.placeholder` and `endFieldProps.placeholder`                                                      |
+| `variant`            | `string \| undefined`                      | mode-dependent | Outside inline mode, styles the built-in field(s). In `inline` mode, styles the picker `VCard`. Omit it to keep the default outlined field or elevated inline picker |
+| `hideDetails`        | `boolean \| 'auto'`                        | `auto`         | Shared field details behavior                                                                                                                                        |
+| `messages`           | `string \| string[] \| undefined`          | `undefined`    | Shared field messages                                                                                                                                                |
+| `error`              | `boolean`                                  | `false`        | Combines with internal parse and validation errors                                                                                                                   |
+| `errorMessages`      | `string \| string[] \| undefined`          | `undefined`    | Merged with internal parse and validation errors                                                                                                                     |
+| `rules`              | `readonly unknown[]`                       | `[]`           | Validates the single-date field or combined range text                                                                                                               |
+| `clearable`          | `boolean`                                  | `false`        | Clears both text and model                                                                                                                                           |
+| `color`              | `string \| undefined`                      | `undefined`    | Applies the Vuetify field color to the built-in text control(s); supports utility names with or without `text-` and raw CSS colors                                   |
+| `focused`            | `boolean`                                  | `false`        | Single-date `VTextField` focus state. In range mode, use `activeField`                                                                                               |
+| `activeField`        | `'start' \| 'end' \| undefined`            | `undefined`    | Range-mode active side. When set on desktop, the side input is focused and its text selected, and programmatic picker opens use it as the default boundary           |
+| `prependInnerIcon`   | `AdvancedDateIconValue \| undefined`       | `undefined`    | Single-date `VTextField` prepend icon. In range mode, use side-specific field props                                                                                  |
+| `appendInnerIcon`    | `AdvancedDateIconValue`                    | `$calendar`    | Single-date `VTextField` append icon. In range mode, use side-specific field props                                                                                   |
+| `startFieldProps`    | `AdvancedDateInputFieldProps \| undefined` | `undefined`    | Range-mode start input props                                                                                                                                         |
+| `endFieldProps`      | `AdvancedDateInputFieldProps \| undefined` | `undefined`    | Range-mode end input props                                                                                                                                           |
+| `inputReadonly`      | `boolean`                                  | `false`        | Makes the single-date field readonly while keeping the picker, icon, and footer actions interactive                                                                  |
+| `text`               | `string \| undefined`                      | `undefined`    | Controlled combined text value for parent-owned draft flows                                                                                                          |
+| `closeDraftStrategy` | `'revert' \| 'preserve' \| 'commit'`       | `revert`       | Controls how pending drafts behave when the overlay closes                                                                                                           |
+| `displayFormat`      | `string`                                   | `fullDate`     | Passed to `adapter.format(...)` for text display                                                                                                                     |
+| `rangeSeparator`     | `string`                                   | `–`            | Separator used for formatted range text                                                                                                                              |
+| `parseInput`         | `(value: string) => TDate \| null`         | `undefined`    | Custom parser used before adapter and native parsing                                                                                                                 |
 
 `AdvancedDateInputFieldProps` supports the side-specific range input details
 that should not apply to the whole grouped field:
@@ -615,18 +617,18 @@ Import `@gigerit/vuetify-date-input-advanced/style.css` once. The picker uses `.
 
 Key CSS custom properties:
 
-| Variable                             | Default                                        | Purpose                    |
-| ------------------------------------ | ---------------------------------------------- | -------------------------- |
-| `--v-advanced-date-picker-color`     | `rgb(var(--v-theme-primary))`                  | Accent color               |
-| `--v-advanced-date-range-bg`         | computed                                       | Confirmed range background |
-| `--v-advanced-date-range-preview-bg` | computed                                       | Hover-preview background   |
-| `--v-advanced-date-selected-bg`      | `var(--v-advanced-date-picker-color)`          | Selected day background    |
-| `--v-advanced-date-selected-color`   | `rgb(var(--v-theme-on-primary))`               | Selected day text color    |
-| `--v-advanced-date-preset-width`     | `220px`                                        | Preset column width        |
-| `--v-advanced-date-cell-size`        | `44px`                                         | Calendar cell size         |
-| `--v-advanced-date-day-size`         | `calc(var(--v-advanced-date-cell-size) - 2px)` | Day button size            |
+| Variable                             | Default                                                                          | Purpose                    |
+| ------------------------------------ | -------------------------------------------------------------------------------- | -------------------------- |
+| `--v-advanced-date-picker-color`     | `rgb(var(--v-theme-primary))`                                                    | Accent color               |
+| `--v-advanced-date-range-bg`         | computed                                                                         | Confirmed range background |
+| `--v-advanced-date-range-preview-bg` | computed                                                                         | Hover-preview background   |
+| `--v-advanced-date-selected-bg`      | `var(--v-advanced-date-picker-color)`                                            | Selected day background    |
+| `--v-advanced-date-selected-color`   | `rgb(var(--v-theme-on-primary))`                                                 | Selected day text color    |
+| `--v-advanced-date-preset-width`     | `220px`                                                                          | Preset column width        |
+| `--v-advanced-date-cell-size`        | `44px`                                                                           | Calendar cell size         |
+| `--v-advanced-date-day-size`         | `calc(var(--v-advanced-date-cell-size) - 2px)`                                   | Day button size            |
 | `--v-advanced-date-day-inset`        | `calc((var(--v-advanced-date-cell-size) - var(--v-advanced-date-day-size)) / 2)` | Range background inset     |
-| `--v-advanced-date-gap`              | `24px`                                         | Gap between visible months |
+| `--v-advanced-date-gap`              | `24px`                                                                           | Gap between visible months |
 
 By default, `--v-advanced-date-day-size` and
 `--v-advanced-date-day-inset` stay derived from

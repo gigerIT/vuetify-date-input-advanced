@@ -69,7 +69,8 @@ export interface PlaygroundLabOptions {
   titleEndDate: string
   displayFormat: string
   rangeSeparator: string
-  variant: string
+  inputVariant: string
+  pickerVariant: string
   hideDetails: PlaygroundHideDetailsMode
   messagesText: string
   forceError: boolean

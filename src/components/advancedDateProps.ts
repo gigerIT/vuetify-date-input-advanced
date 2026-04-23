@@ -6,6 +6,7 @@ import type {
   AdvancedDateInputCloseStrategy,
   AdvancedDateIconValue,
   AdvancedDateModel,
+  AdvancedDatePickerVariant,
   NormalizedRange,
   PresetRange,
 } from '@/types'
@@ -13,6 +14,17 @@ import type {
 export type AdvancedDateDensity = 'default' | 'comfortable' | 'compact'
 export type AdvancedDateMobilePresentation = 'fullscreen' | 'inline'
 export type AdvancedDateSelectionChangeOrigin = 'external' | 'internal'
+export type AdvancedDateFieldVariant =
+  | 'outlined'
+  | 'plain'
+  | 'underlined'
+  | 'filled'
+  | 'solo'
+  | 'solo-inverted'
+  | 'solo-filled'
+export type AdvancedDateInputVariant =
+  | AdvancedDateFieldVariant
+  | AdvancedDatePickerVariant
 
 export interface AdvancedDatePickerDraftChangeContext {
   origin: AdvancedDateSelectionChangeOrigin
@@ -24,6 +36,59 @@ const advancedDateIconPropType = [
   Object,
   Function,
 ] as PropType<AdvancedDateIconValue>
+
+export const advancedDatePickerVariants = [
+  'elevated',
+  'flat',
+  'tonal',
+  'outlined',
+  'text',
+  'plain',
+] as const satisfies readonly AdvancedDatePickerVariant[]
+
+export const advancedDateFieldVariants = [
+  'outlined',
+  'plain',
+  'underlined',
+  'filled',
+  'solo',
+  'solo-inverted',
+  'solo-filled',
+] as const satisfies readonly AdvancedDateFieldVariant[]
+
+const advancedDateInputVariants = [
+  ...new Set([...advancedDateFieldVariants, ...advancedDatePickerVariants]),
+] as readonly AdvancedDateInputVariant[]
+
+export function isAdvancedDatePickerVariant(
+  value: unknown,
+): value is AdvancedDatePickerVariant {
+  return (
+    typeof value === 'string' &&
+    advancedDatePickerVariants.includes(value as AdvancedDatePickerVariant)
+  )
+}
+
+export function isAdvancedDateFieldVariant(
+  value: unknown,
+): value is AdvancedDateFieldVariant {
+  return (
+    typeof value === 'string' &&
+    advancedDateFieldVariants.includes(value as AdvancedDateFieldVariant)
+  )
+}
+
+export function resolveAdvancedDatePickerVariant(
+  value: unknown,
+): AdvancedDatePickerVariant | undefined {
+  return isAdvancedDatePickerVariant(value) ? value : undefined
+}
+
+export function resolveAdvancedDateFieldVariant(
+  value: unknown,
+): AdvancedDateFieldVariant {
+  return isAdvancedDateFieldVariant(value) ? value : 'outlined'
+}
 
 export const advancedDatePickerProps = {
   modelValue: {
@@ -100,6 +165,14 @@ export const advancedDatePickerProps = {
   },
 }
 
+export const advancedDatePickerCardProps = {
+  variant: {
+    type: String as PropType<AdvancedDatePickerVariant>,
+    default: 'elevated',
+    validator: (value: string) => isAdvancedDatePickerVariant(value),
+  },
+}
+
 export const advancedDatePickerInternalProps = {
   mobilePresentation: {
     type: String as PropType<AdvancedDateMobilePresentation | null>,
@@ -119,10 +192,11 @@ export const advancedDatePickerInternalProps = {
       value === null || value === 'start' || value === 'end',
   },
   onDraftChange: Function as PropType<
-    ((
-      value: NormalizedRange<unknown>,
-      context: AdvancedDatePickerDraftChangeContext,
-    ) => void) | undefined
+    | ((
+        value: NormalizedRange<unknown>,
+        context: AdvancedDatePickerDraftChangeContext,
+      ) => void)
+    | undefined
   >,
   onEscapeKey: Function as PropType<(() => void) | undefined>,
 }
@@ -141,8 +215,11 @@ export const advancedDateInputProps = {
   label: String,
   placeholder: String,
   variant: {
-    type: String,
-    default: 'outlined',
+    type: String as PropType<AdvancedDateInputVariant | undefined>,
+    default: undefined,
+    validator: (value: string | undefined) =>
+      value === undefined ||
+      advancedDateInputVariants.includes(value as AdvancedDateInputVariant),
   },
   hideDetails: {
     type: [Boolean, String] as PropType<boolean | 'auto'>,

@@ -91,9 +91,9 @@ describe('Playground showcase', () => {
       },
     })
 
-    expect(wrapper.find('[data-testid="playground-tab-examples"]').exists()).toBe(
-      true,
-    )
+    expect(
+      wrapper.find('[data-testid="playground-tab-examples"]').exists(),
+    ).toBe(true)
     expect(wrapper.find('[data-testid="playground-tab-lab"]').exists()).toBe(
       false,
     )
@@ -118,9 +118,9 @@ describe('Playground showcase', () => {
     await advancedTab?.trigger('click')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('[data-testid="playground-tab-advanced"]').exists()).toBe(
-      true,
-    )
+    expect(
+      wrapper.find('[data-testid="playground-tab-advanced"]').exists(),
+    ).toBe(true)
 
     wrapper.unmount()
   })
@@ -149,22 +149,22 @@ describe('Playground showcase', () => {
       },
     })
 
-    expect(wrapper.find('[data-testid="playground-lab-input-preview"]').exists()).toBe(
-      true,
-    )
-    expect(wrapper.find('[data-testid="playground-lab-picker-preview"]').exists()).toBe(
-      true,
-    )
+    expect(
+      wrapper.find('[data-testid="playground-lab-input-preview"]').exists(),
+    ).toBe(true)
+    expect(
+      wrapper.find('[data-testid="playground-lab-picker-preview"]').exists(),
+    ).toBe(true)
 
     await getPreviewModeButton(wrapper, 'Picker only')?.trigger('click')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('[data-testid="playground-lab-input-preview"]').exists()).toBe(
-      false,
-    )
-    expect(wrapper.find('[data-testid="playground-lab-picker-preview"]').exists()).toBe(
-      true,
-    )
+    expect(
+      wrapper.find('[data-testid="playground-lab-input-preview"]').exists(),
+    ).toBe(false)
+    expect(
+      wrapper.find('[data-testid="playground-lab-picker-preview"]').exists(),
+    ).toBe(true)
 
     await getPreviewModeButton(wrapper, 'Both previews')?.trigger('click')
     await wrapper.vm.$nextTick()
@@ -294,11 +294,13 @@ describe('Playground showcase', () => {
       },
     })
 
-    const hardBounds = wrapper.get('[data-testid="playground-edge-hard-bounds"]')
+    const hardBounds = wrapper.get(
+      '[data-testid="playground-edge-hard-bounds"]',
+    )
     expect(
-      hardBounds.find('button[aria-label="Previous month"]').attributes(
-        'disabled',
-      ),
+      hardBounds
+        .find('button[aria-label="Previous month"]')
+        .attributes('disabled'),
     ).toBeDefined()
     expect(
       hardBounds.find('button[aria-label="Next month"]').attributes('disabled'),
@@ -308,17 +310,19 @@ describe('Playground showcase', () => {
       '[data-testid="playground-edge-revealed-month"]',
     )
     expect(
-      revealedMonth.find('button[aria-label="Previous month"]').attributes(
-        'disabled',
-      ),
+      revealedMonth
+        .find('button[aria-label="Previous month"]')
+        .attributes('disabled'),
     ).toBeUndefined()
     expect(
-      revealedMonth.find('button[aria-label="Next month"]').attributes(
-        'disabled',
-      ),
+      revealedMonth
+        .find('button[aria-label="Next month"]')
+        .attributes('disabled'),
     ).toBeDefined()
 
-    const draftRange = wrapper.get('[data-testid="playground-edge-draft-range"]')
+    const draftRange = wrapper.get(
+      '[data-testid="playground-edge-draft-range"]',
+    )
     expect(
       draftRange.find('button[aria-label="Next month"]').attributes('disabled'),
     ).toBeDefined()

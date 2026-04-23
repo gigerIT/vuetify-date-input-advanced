@@ -51,6 +51,14 @@ export type AdvancedDateIconValue =
   | AdvancedDateIconSvgPath[]
   | Component
 
+export type AdvancedDatePickerVariant =
+  | 'elevated'
+  | 'flat'
+  | 'tonal'
+  | 'outlined'
+  | 'text'
+  | 'plain'
+
 export type AdvancedDateInputField = 'start' | 'end'
 
 export interface AdvancedDateInputFieldProps {

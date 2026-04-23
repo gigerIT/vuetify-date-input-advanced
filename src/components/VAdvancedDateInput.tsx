@@ -48,6 +48,8 @@ import '@/styles/VAdvancedDateInput.sass'
 import {
   advancedDateInputProps,
   buildAdvancedDatePickerBindings,
+  resolveAdvancedDateFieldVariant,
+  resolveAdvancedDatePickerVariant,
   type AdvancedDatePickerDraftChangeContext,
   type AdvancedDateMobilePresentation,
 } from './advancedDateProps'
@@ -157,6 +159,12 @@ export const VAdvancedDateInput = defineComponent({
       props.range
         ? rangeTextEditable.value
         : !props.disabled && !props.readonly && !props.inputReadonly,
+    )
+    const fieldVariant = computed(() =>
+      resolveAdvancedDateFieldVariant(props.variant),
+    )
+    const inlinePickerVariant = computed(() =>
+      resolveAdvancedDatePickerVariant(props.variant),
     )
     const startPlaceholder = computed(() =>
       tDateInputAdvanced('fields.startDate'),
@@ -372,8 +380,7 @@ export const VAdvancedDateInput = defineComponent({
         ? value
         : joinRangeInputValue(
             {
-              start:
-                field === 'start' ? value : currentRangeTextParts.start,
+              start: field === 'start' ? value : currentRangeTextParts.start,
               end: field === 'end' ? value : currentRangeTextParts.end,
             },
             props.rangeSeparator,
@@ -694,10 +701,16 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     function renderPicker(extraProps: Record<string, unknown> = {}) {
+      const pickerVariant =
+        props.inline && inlinePickerVariant.value
+          ? { variant: inlinePickerVariant.value }
+          : {}
+
       return (
         <VAdvancedDatePicker
           ref={pickerRef}
           {...(extraProps as any)}
+          {...pickerVariant}
           {...pickerBindings.value}
           modelValue={serializeSelection(pickerSelection.value)}
           selectionChangeOrigin={pickerSelectionChangeOrigin.value}
@@ -758,7 +771,7 @@ export const VAdvancedDateInput = defineComponent({
             startPlaceholder={startPlaceholder.value}
             endPlaceholder={endPlaceholder.value}
             label={props.label}
-            variant={props.variant}
+            variant={fieldVariant.value}
             hideDetails={props.hideDetails}
             messages={props.messages}
             error={props.error || input.isValid.value === false}
@@ -893,7 +906,7 @@ export const VAdvancedDateInput = defineComponent({
         label: props.label,
         placeholder: props.placeholder,
         autocomplete: 'off',
-        variant: props.variant,
+        variant: fieldVariant.value,
         hideDetails: props.hideDetails,
         messages: props.messages,
         error: props.error || input.isValid.value === false,
