@@ -50,6 +50,18 @@ describe('playground preferences', () => {
     expect(readThemeModePreference()).toBe('dark')
   })
 
+  it('tolerates incomplete localStorage implementations', () => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {},
+    })
+
+    expect(readPlaygroundLocalePreference()).toBe('en')
+    expect(readThemeModePreference()).toBe('system')
+    expect(() => writePlaygroundLocalePreference('fr')).not.toThrow()
+    expect(() => writeThemeModePreference('dark')).not.toThrow()
+  })
+
   it('normalizes unknown values', () => {
     expect(normalizePlaygroundLocale('xx')).toBe('en')
     expect(normalizeThemeMode('sepia')).toBe('system')

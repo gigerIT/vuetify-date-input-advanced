@@ -13,6 +13,7 @@ import { VDialog, VMenu, VTextField } from 'vuetify/components'
 import { useDate, useDisplay } from 'vuetify'
 
 import { useAdvancedDateInput } from '@/composables/useAdvancedDateInput'
+import { useAdvancedDateInputCommitFlow } from '@/composables/useAdvancedDateInputCommitFlow'
 import {
   cloneDraft,
   cloneSelection,
@@ -27,14 +28,11 @@ import type {
   AdvancedDateInputField,
   AdvancedDateInputClosePayload,
   AdvancedDateInputCloseReason,
-  AdvancedDateInputCloseStrategy,
-  AdvancedDateInputCommitFailureReason,
   AdvancedDateInputCommitPayload,
   AdvancedDateInputDraft,
   AdvancedDateInputInvalidPayload,
   AdvancedDateInputPublicInstance,
   AdvancedDateModel,
-  DateInputAdvancedLocaleMessages,
   NormalizedRange,
   PresetRange,
 } from '@/types'
@@ -73,21 +71,9 @@ interface DefaultFieldHandle {
   focusField?: (field: AdvancedDateInputField) => Promise<void> | void
 }
 
-interface DraftValidationResult {
-  ok: boolean
-  reason: AdvancedDateInputCommitFailureReason | null
-  draft: AdvancedDateInputDraft<unknown>
-  messages: string[]
-}
-
 type ForwardedEventHandler =
   | ((...args: unknown[]) => void)
   | Array<(...args: unknown[]) => void>
-
-type InputErrorKey =
-  keyof DateInputAdvancedLocaleMessages['dateInputAdvanced']['errors']
-
-type OptimisticMenuAction = 'open' | 'close'
 
 function callForwardedHandler(
   handler: ForwardedEventHandler | undefined,
@@ -146,7 +132,7 @@ export const VAdvancedDateInput = defineComponent({
       pickerRef,
       onMenuUpdate: (value) => emit('update:menu', value),
       onExternalCloseRequest: () =>
-        requestOverlayClose('dismiss', { closeOverlay: false }),
+        commitFlow.requestOverlayClose('dismiss', { closeOverlay: false }),
     })
 
     const mobileFullscreenActivatorReadonly = computed(
@@ -273,7 +259,6 @@ export const VAdvancedDateInput = defineComponent({
       resetFieldValidation,
     })
     const {
-      committedSelection,
       pickerSelection,
       draftSource,
       pickerBoundaryField,
@@ -312,6 +297,11 @@ export const VAdvancedDateInput = defineComponent({
       await resetFieldValidation()
     }
 
+    function closeOverlay() {
+      pickerBoundaryField.value = null
+      if (!props.inline) overlay.closeMenu()
+    }
+
     function fieldErrorMessages() {
       if (!fieldRef.value) return [...mergedErrorMessages.value]
       if (fieldRef.value.isPristine) return [...mergedErrorMessages.value]
@@ -346,255 +336,24 @@ export const VAdvancedDateInput = defineComponent({
     const pickerBindings = computed(() =>
       buildAdvancedDatePickerBindings(props, mobilePresentation.value),
     )
-
-    function resolveFailureReason(
-      currentDraft: AdvancedDateInputDraft<unknown>,
-    ): AdvancedDateInputCommitFailureReason | null {
-      if (currentDraft.parseStatus === 'empty') return null
-      if (currentDraft.availabilityStatus === 'unavailable') {
-        return 'unavailable'
-      }
-      if (currentDraft.parseStatus === 'partial') return 'incomplete'
-      if (currentDraft.parseStatus === 'invalid') return 'invalid'
-      if (!isSelectionComplete(currentDraft.selection, props.range)) {
-        return 'incomplete'
-      }
-
-      return null
-    }
-
-    function resolveValidationErrorKey(
-      currentDraft: AdvancedDateInputDraft<unknown>,
-      reason: AdvancedDateInputCommitFailureReason,
-    ): InputErrorKey {
-      if (reason === 'unavailable') {
-        return props.range ? 'unavailableRange' : 'unavailableDate'
-      }
-
-      if (reason === 'incomplete') {
-        return props.range ? 'invalidRange' : 'invalidDate'
-      }
-
-      return (
-        currentDraft.errorKey ?? (props.range ? 'invalidRange' : 'invalidDate')
-      )
-    }
-
-    function createValidationResult(
-      currentDraft: AdvancedDateInputDraft<unknown>,
-      reason: AdvancedDateInputCommitFailureReason | null,
-      messages: string[] = [],
-    ): DraftValidationResult {
-      return {
-        ok: !reason,
-        reason,
-        draft: currentDraft,
-        messages,
-      }
-    }
-
-    function resolveDraftCommitPreflight(
-      currentDraft = cloneDraft(draft.value),
-      options: { resetFieldValidation?: boolean } = {},
-    ): DraftValidationResult {
-      const failureReason = resolveFailureReason(currentDraft)
-      if (failureReason) {
-        input.setValidationError(
-          resolveValidationErrorKey(currentDraft, failureReason),
-        )
-        if (options.resetFieldValidation ?? true) {
-          void resetFieldValidation()
-        }
-
-        return createValidationResult(
-          currentDraft,
-          failureReason,
-          input.errorMessages.value.length
-            ? [...input.errorMessages.value]
-            : fieldErrorMessages(),
-        )
-      }
-
-      return createValidationResult(currentDraft, null)
-    }
-
-    async function finalizeDraftValidation(
-      currentDraft: AdvancedDateInputDraft<unknown>,
-    ): Promise<DraftValidationResult> {
-      input.markValid()
-
-      const ruleMessages = await validateFieldRules()
-      if (ruleMessages.length) {
-        return createValidationResult(
-          currentDraft,
-          'rule',
-          fieldErrorMessages(),
-        )
-      }
-
-      return createValidationResult(currentDraft, null)
-    }
-
-    async function resolveDraftValidation(
-      currentDraft = cloneDraft(draft.value),
-    ): Promise<DraftValidationResult> {
-      const preflight = resolveDraftCommitPreflight(currentDraft, {
-        resetFieldValidation: false,
-      })
-
-      if (!preflight.ok) {
-        await resetFieldValidation()
-        return preflight
-      }
-
-      return await finalizeDraftValidation(currentDraft)
-    }
-
-    function handleValidationFailure(
-      result: DraftValidationResult,
-      emitInvalid = true,
-    ): false {
-      if (emitInvalid && result.reason) {
-        emit('inputInvalid', {
-          reason: result.reason,
-          draft: result.draft,
-        })
-      }
-
-      return false
-    }
-
-    function rollbackOptimisticMenu(
-      action: OptimisticMenuAction,
-      menuWasOpen: boolean,
-    ) {
-      if (action === 'open') {
-        if (!menuWasOpen && overlay.menu.value) {
-          closeOverlay()
-        }
-        return
-      }
-
-      if (menuWasOpen && !overlay.menu.value) {
-        overlay.openMenu()
-      }
-    }
-
-    function runOptimisticMenuCommit(
-      action: OptimisticMenuAction,
-      currentDraft: AdvancedDateInputDraft<unknown>,
-      options: { onSuccess?: () => void } = {},
-    ) {
-      const menuWasOpen = overlay.menu.value
-
-      if (action === 'open') {
-        overlay.openMenu()
-      } else {
-        closeOverlay()
-      }
-
-      // Keep overlay timing synchronous while async field rules finish.
-      void (async () => {
-        const result = await finalizeDraftValidation(currentDraft)
-
-        if (!result.ok) {
-          handleValidationFailure(result)
-
-          if (result.reason === 'rule') {
-            rollbackOptimisticMenu(action, menuWasOpen)
-          }
-          return
-        }
-
-        commitSelection(result.draft.selection)
-        options.onSuccess?.()
-      })()
-    }
-
-    async function validateCurrentDraft(
-      currentDraft = cloneDraft(draft.value),
-    ): Promise<string[]> {
-      const result = await resolveDraftValidation(currentDraft)
-
-      return result.messages
-    }
-
-    async function commitInput(emitInvalid = true): Promise<boolean> {
-      const result = await resolveDraftValidation()
-
-      if (!result.ok) {
-        return handleValidationFailure(result, emitInvalid)
-      }
-
-      commitSelection(result.draft.selection)
-      return true
-    }
-
-    function closeOverlay() {
-      pickerBoundaryField.value = null
-      if (!props.inline) overlay.closeMenu()
-    }
-
-    function emitDraftClose(
-      reason: AdvancedDateInputCloseReason,
-      strategy: AdvancedDateInputCloseStrategy,
-      outcome: 'closed' | 'blocked',
-      currentDraft: AdvancedDateInputDraft<unknown>,
-    ) {
-      emit('draftClose', {
-        reason,
-        strategy,
-        outcome,
-        draft: currentDraft,
-      })
-    }
-
-    function shouldEmitCancelOnClose(reason: AdvancedDateInputCloseReason) {
-      return reason === 'cancel' || reason === 'escape'
-    }
-
-    async function requestOverlayClose(
-      reason: AdvancedDateInputCloseReason,
-      options: { closeOverlay?: boolean } = {},
-    ) {
-      const strategy = props.closeDraftStrategy
-      const currentDraft = cloneDraft(draft.value)
-      const shouldCloseOverlay = options.closeOverlay ?? true
-
-      if (strategy === 'revert') {
-        revertDraft()
-        emitDraftClose(reason, strategy, 'closed', currentDraft)
-        if (shouldEmitCancelOnClose(reason)) emit('cancel')
-        if (shouldCloseOverlay) closeOverlay()
-        return true
-      }
-
-      if (strategy === 'preserve') {
-        await resetComponentValidation()
-        emitDraftClose(reason, strategy, 'closed', currentDraft)
-        if (shouldEmitCancelOnClose(reason)) emit('cancel')
-        if (shouldCloseOverlay) closeOverlay()
-        return true
-      }
-
-      if (!(await commitInput(true))) {
-        emitDraftClose(reason, strategy, 'blocked', currentDraft)
-        return false
-      }
-
-      emitDraftClose(reason, strategy, 'closed', currentDraft)
-      if (shouldCloseOverlay) closeOverlay()
-      return true
-    }
-
-    function cancelOverlayDraft() {
-      const currentDraft = cloneDraft(draft.value)
-
-      revertDraft()
-      emitDraftClose('cancel', 'revert', 'closed', currentDraft)
-      emit('cancel')
-      closeOverlay()
-    }
+    const commitFlow = useAdvancedDateInputCommitFlow({
+      closeDraftStrategy: toRef(props, 'closeDraftStrategy'),
+      draft,
+      input,
+      inline: toRef(props, 'inline'),
+      overlayMenu: overlay.menu,
+      range: toRef(props, 'range'),
+      validateFieldRules,
+      resetFieldValidation,
+      getFieldErrorMessages: fieldErrorMessages,
+      commitSelection,
+      revertDraft,
+      openOverlay: overlay.openMenu,
+      closeOverlay,
+      onInputInvalid: (payload) => emit('inputInvalid', payload),
+      onDraftClose: (payload) => emit('draftClose', payload),
+      onCancel: () => emit('cancel'),
+    })
 
     function handleFieldTextUpdate(value: string) {
       updateFieldText(value)
@@ -628,7 +387,7 @@ export const VAdvancedDateInput = defineComponent({
       if (!textEditable.value) return
       if (draftSource.value !== 'text') return
 
-      await validateCurrentDraft()
+      await commitFlow.validateCurrentDraft()
     }
 
     function handleRangeFieldFocus(event: FocusEvent) {
@@ -824,29 +583,10 @@ export const VAdvancedDateInput = defineComponent({
       }
     }
 
-    async function handlePickerApply() {
-      const preflight = resolveDraftCommitPreflight()
-      if (!preflight.ok) {
-        handleValidationFailure(preflight)
-        return
-      }
-
-      if (!props.inline) {
-        runOptimisticMenuCommit('close', preflight.draft, {
-          onSuccess: () =>
-            emit('apply', serializeSelection(committedSelection.value)),
-        })
-        return
-      }
-
-      const result = await finalizeDraftValidation(preflight.draft)
-      if (!result.ok) {
-        handleValidationFailure(result)
-        return
-      }
-
-      commitSelection(result.draft.selection)
-      emit('apply', serializeSelection(committedSelection.value))
+    function handlePickerApply() {
+      void commitFlow.handlePickerApply({
+        onApply: (value) => emit('apply', value),
+      })
     }
 
     function handlePickerCancel() {
@@ -861,11 +601,11 @@ export const VAdvancedDateInput = defineComponent({
       }
 
       if (reason === 'cancel') {
-        cancelOverlayDraft()
+        commitFlow.cancelOverlayDraft()
         return
       }
 
-      void requestOverlayClose(reason)
+      void commitFlow.requestOverlayClose(reason)
     }
 
     function openOverlayFromUserInteraction() {
@@ -882,7 +622,7 @@ export const VAdvancedDateInput = defineComponent({
         return
       }
 
-      void requestOverlayClose('dismiss')
+      void commitFlow.requestOverlayClose('dismiss')
     }
 
     function handleMobileFullscreenActivatorPress(event: Event) {
@@ -938,18 +678,18 @@ export const VAdvancedDateInput = defineComponent({
           return
         }
 
-        const preflight = resolveDraftCommitPreflight()
+        const preflight = commitFlow.resolveDraftCommitPreflight()
         if (!preflight.ok) {
-          handleValidationFailure(preflight)
+          commitFlow.handleValidationFailure(preflight)
           return
         }
 
         pickerBoundaryField.value = options.field ?? null
-        runOptimisticMenuCommit('open', preflight.draft)
+        commitFlow.runOptimisticMenuCommit('open', preflight.draft)
       }
 
       if (event.key === 'Escape' && overlay.menu.value) {
-        void requestOverlayClose('escape')
+        void commitFlow.requestOverlayClose('escape')
       }
     }
 
@@ -1238,8 +978,8 @@ export const VAdvancedDateInput = defineComponent({
     }
 
     const publicHandle: AdvancedDateInputPublicInstance<unknown> = {
-      commitInput: () => commitInput(true),
-      validate: () => validateCurrentDraft(),
+      commitInput: () => commitFlow.commitInput(true),
+      validate: () => commitFlow.validateCurrentDraft(),
       resetValidation: async () => {
         await resetComponentValidation()
       },

@@ -10,7 +10,10 @@ const DEFAULT_THEME_MODE: ThemeMode = 'system'
 
 function canUseLocalStorage() {
   return (
-    typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+    typeof window !== 'undefined' &&
+    typeof window.localStorage !== 'undefined' &&
+    typeof window.localStorage.getItem === 'function' &&
+    typeof window.localStorage.setItem === 'function'
   )
 }
 
