@@ -30,51 +30,68 @@ function lastQuarterStart<TDate>(adapter: AdvancedDateAdapter<TDate>, date: TDat
   return adapter.addMonths(startOfQuarter(adapter, date), -3)
 }
 
+function currentDay<TDate>(adapter: AdvancedDateAdapter<TDate>): TDate {
+  return adapter.startOfDay(adapter.date() as TDate)
+}
+
+function completedDay<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+  date = currentDay(adapter),
+): TDate {
+  return adapter.addDays(date, -1)
+}
+
+function hasCompletedDayInCurrentYear<TDate>(
+  adapter: AdvancedDateAdapter<TDate>,
+): boolean {
+  const today = currentDay(adapter)
+  return adapter.getYear(completedDay(adapter, today)) === adapter.getYear(today)
+}
+
 export function createDefaultPresets<TDate>(
   adapter: AdvancedDateAdapter<TDate>,
   labels: DefaultPresetLabels,
 ): PresetRange<TDate>[] {
-  return [
+  const presets: PresetRange<TDate>[] = [
     {
       label: labels.today,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
+        const today = currentDay(adapter)
         return [today, today]
       },
     },
     {
       label: labels.yesterday,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
-        const yesterday = adapter.addDays(today, -1)
+        const yesterday = completedDay(adapter)
         return [yesterday, yesterday]
       },
     },
     {
       label: labels.last7Days,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
-        return [adapter.addDays(today, -6), today]
+        const end = completedDay(adapter)
+        return [adapter.addDays(end, -6), end]
       },
     },
     {
       label: labels.last30Days,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
-        return [adapter.addDays(today, -29), today]
+        const end = completedDay(adapter)
+        return [adapter.addDays(end, -29), end]
       },
     },
     {
       label: labels.thisMonth,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
+        const today = currentDay(adapter)
         return [adapter.startOfMonth(today), adapter.endOfMonth(today)]
       },
     },
     {
       label: labels.lastMonth,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
+        const today = currentDay(adapter)
         const lastMonth = adapter.addMonths(today, -1)
         return [adapter.startOfMonth(lastMonth), adapter.endOfMonth(lastMonth)]
       },
@@ -82,32 +99,37 @@ export function createDefaultPresets<TDate>(
     {
       label: labels.thisQuarter,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
+        const today = currentDay(adapter)
         return [startOfQuarter(adapter, today), endOfQuarter(adapter, today)]
       },
     },
     {
       label: labels.lastQuarter,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
+        const today = currentDay(adapter)
         const start = lastQuarterStart(adapter, today)
         return [start, adapter.endOfMonth(adapter.addMonths(start, 2))]
       },
     },
     {
-      label: labels.yearToDate,
-      value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
-        return [adapter.startOfYear(today), today]
-      },
-    },
-    {
       label: labels.lastYear,
       value: () => {
-        const today = adapter.startOfDay(adapter.date() as TDate)
+        const today = currentDay(adapter)
         const lastYear = adapter.setYear(today, adapter.getYear(today) - 1)
         return [adapter.startOfYear(lastYear), adapter.endOfYear(lastYear)]
       },
     },
   ]
+
+  if (hasCompletedDayInCurrentYear(adapter)) {
+    presets.splice(-1, 0, {
+      label: labels.yearToDate,
+      value: () => {
+        const end = completedDay(adapter)
+        return [adapter.startOfYear(end), end]
+      },
+    })
+  }
+
+  return presets
 }

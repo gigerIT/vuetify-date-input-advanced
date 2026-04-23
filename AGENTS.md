@@ -276,6 +276,10 @@ npm run build
   mobile fullscreen presses and become readonly while the dialog is opening or
   open so touch devices do not show the virtual keyboard; custom activator
   slots remain consumer-managed.
+- Built-in rolling presets in `src/util/presets.ts` use completed-day ranges:
+  `Last 7 Days`, `Last 30 Days`, and `Year to Date` end on yesterday, and
+  `Year to Date` is omitted on January 1 while `This Month` and `This Quarter`
+  remain full calendar periods.
 - Desktop `VAdvancedDateInput` overlays must keep `VMenu` activator opening
   under the wrapper's own guards instead of relying on Vuetify's default
   activator click path; otherwise disabled inputs can still reopen the menu.

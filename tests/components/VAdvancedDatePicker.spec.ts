@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { aliases as mdAliases, md } from 'vuetify/iconsets/md'
 import { aliases as mdiAliases, mdi as mdiClassSet } from 'vuetify/iconsets/mdi'
 import {
@@ -840,6 +840,43 @@ describe('VAdvancedDatePicker', () => {
     await wrapper.find('.v-advanced-date-picker__preset').trigger('click')
 
     expect(wrapper.emitted('presetSelect')).toHaveLength(1)
+  })
+
+  it('applies built-in rolling presets through yesterday', async () => {
+    let wrapper: ReturnType<typeof render> | undefined
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-14T12:00:00'))
+
+    try {
+      wrapper = render(VAdvancedDatePicker, {
+        props: {
+          modelValue: null,
+          month: 1,
+          year: 2026,
+        },
+      })
+
+      const preset = wrapper
+        .findAll('.v-advanced-date-picker__preset')
+        .find((node) => node.text().trim() === 'Last 30 Days')
+
+      expect(preset).toBeDefined()
+
+      await preset!.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const finalValue = lastEmitted<readonly [Date | null, Date | null]>(
+        wrapper,
+        'update:modelValue',
+      )
+
+      expect(toLocalYmd(finalValue?.[0])).toBe('2026-01-15')
+      expect(toLocalYmd(finalValue?.[1])).toBe('2026-02-13')
+    } finally {
+      wrapper?.unmount()
+      vi.useRealTimers()
+    }
   })
 
   it('realigns the desktop viewport when a preset selects a later off-screen range', async () => {

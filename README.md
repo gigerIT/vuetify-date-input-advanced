@@ -225,6 +225,12 @@ Presets are shown only in range mode. If you omit `presets`, the picker generate
 - `Year to Date`
 - `Last Year`
 
+Built-in rolling presets use completed days rather than including today:
+
+- `Last 7 Days` and `Last 30 Days` both end on yesterday.
+- `Year to Date` spans January 1 through yesterday and is omitted on January 1.
+- `This Month` and `This Quarter` remain full calendar-period presets.
+
 Custom preset shape:
 
 ```ts
