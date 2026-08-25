@@ -127,7 +127,6 @@ export const VAdvancedDateInput = defineComponent({
     const isMobileFullscreenActivator = computed(
       () => display.mobile.value && !props.inline,
     )
-    const mobileActivatorOpening = ref(false)
 
     const overlay = useAdvancedDateOverlay({
       menu: toRef(props, 'menu'),
@@ -138,9 +137,7 @@ export const VAdvancedDateInput = defineComponent({
     })
 
     const mobileFullscreenActivatorReadonly = computed(
-      () =>
-        isMobileFullscreenActivator.value &&
-        (overlay.menu.value || mobileActivatorOpening.value),
+      () => isMobileFullscreenActivator.value && overlay.menu.value,
     )
     const fieldReadonly = computed(
       () =>
@@ -170,12 +167,6 @@ export const VAdvancedDateInput = defineComponent({
       tDateInputAdvanced('fields.startDate'),
     )
     const endPlaceholder = computed(() => tDateInputAdvanced('fields.endDate'))
-
-    watch([overlay.menu, isMobileFullscreenActivator], ([menu, mobile]) => {
-      if (menu && mobile) return
-
-      mobileActivatorOpening.value = false
-    })
 
     const input = useAdvancedDateInput({
       adapter,
@@ -636,19 +627,10 @@ export const VAdvancedDateInput = defineComponent({
       if (!isMobileFullscreenActivator.value || props.disabled) return
 
       event.preventDefault()
-      mobileActivatorOpening.value = true
       openOverlayFromUserInteraction()
     }
 
     function openOverlayFromActivator() {
-      if (
-        isMobileFullscreenActivator.value &&
-        mobileActivatorOpening.value &&
-        overlay.menu.value
-      ) {
-        return false
-      }
-
       return openOverlayFromUserInteraction()
     }
 

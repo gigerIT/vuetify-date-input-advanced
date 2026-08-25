@@ -2,6 +2,7 @@ import type {
   AdvancedDateInputDraft,
   AdvancedDateModel,
   AdvancedDateRangeObject,
+  PresetRange,
 } from '@gigerit/vuetify-date-input-advanced'
 
 function cloneDate(date: Date | null | undefined) {
@@ -10,6 +11,36 @@ function cloneDate(date: Date | null | undefined) {
 
 export function createLocalDate(year: number, month: number, day: number) {
   return new Date(year, month, day)
+}
+
+export function createCustomPlaygroundPresets(): PresetRange<Date>[] {
+  return [
+    {
+      label: 'Weekend Escape',
+      slot: 'highlight',
+      value: () => {
+        const start = new Date()
+        const day = start.getDay()
+        const delta = (5 - day + 7) % 7
+        start.setDate(start.getDate() + delta)
+        const end = new Date(start)
+        end.setDate(start.getDate() + 2)
+
+        return [start, end]
+      },
+    },
+    {
+      label: 'Two Weeks Out',
+      value: () => {
+        const start = new Date()
+        start.setDate(start.getDate() + 14)
+        const end = new Date(start)
+        end.setDate(start.getDate() + 6)
+
+        return [start, end]
+      },
+    },
+  ]
 }
 
 export function formatDemoDate(date: Date) {

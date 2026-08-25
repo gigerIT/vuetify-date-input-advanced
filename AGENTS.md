@@ -290,6 +290,9 @@ npm run build
 - Desktop `VAdvancedDateInput` overlays must keep `VMenu` activator opening
   under the wrapper's own guards instead of relying on Vuetify's default
   activator click path; otherwise disabled inputs can still reopen the menu.
+- Overlay `update:menu` emissions are transition-based, except that a blocked
+  controlled `menu=false` close must emit `true` to reconcile the parent with
+  the locally restored open state.
 - Avoid destructive git operations such as hard reset, checkout of unrelated
   files, or force-push unless explicitly requested.
 - Before committing, run `npm run typecheck`, `npm run test`, and

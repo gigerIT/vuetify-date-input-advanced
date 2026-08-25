@@ -3,13 +3,13 @@ import { computed, reactive, ref, watch } from 'vue'
 import type {
   AdvancedDateInputFieldProps,
   AdvancedDateModel,
-  PresetRange,
 } from '@gigerit/vuetify-date-input-advanced'
 
 import {
   allowOnly,
   coercePlaygroundModel,
   countCalendarNights,
+  createCustomPlaygroundPresets,
   normalizeRangeModel,
   serializePreviewModel,
   toLocalYmd,
@@ -285,36 +285,6 @@ function defaultModel(
   return [range.start, range.end] as const
 }
 
-function createCustomPresets(): PresetRange<Date>[] {
-  return [
-    {
-      label: 'Weekend Escape',
-      slot: 'highlight',
-      value: () => {
-        const start = new Date()
-        const day = start.getDay()
-        const delta = (5 - day + 7) % 7
-        start.setDate(start.getDate() + delta)
-        const end = new Date(start)
-        end.setDate(start.getDate() + 2)
-
-        return [start, end]
-      },
-    },
-    {
-      label: 'Two Weeks Out',
-      value: () => {
-        const start = new Date()
-        start.setDate(start.getDate() + 14)
-        const end = new Date(start)
-        end.setDate(start.getDate() + 6)
-
-        return [start, end]
-      },
-    },
-  ]
-}
-
 function splitFieldProps(mode: PlaygroundFieldPropsMode): {
   startFieldProps?: AdvancedDateInputFieldProps
   endFieldProps?: AdvancedDateInputFieldProps
@@ -399,7 +369,7 @@ function createDefaultOptions(baseDate: Date): PlaygroundLabOptions {
 
 export function usePlaygroundLabState() {
   const today = new Date()
-  const customPresets = createCustomPresets()
+  const customPresets = createCustomPlaygroundPresets()
   const yearOptions = [
     today.getFullYear() - 1,
     today.getFullYear(),

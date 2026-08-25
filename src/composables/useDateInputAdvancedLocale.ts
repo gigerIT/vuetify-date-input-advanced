@@ -26,6 +26,14 @@ const DATE_INPUT_ADVANCED_MESSAGES = {
   lt: dateInputAdvancedLt,
 } as const
 
+function createDateInputAdvancedTranslator(
+  t: ReturnType<typeof useLocale>['t'],
+) {
+  return function tDateInputAdvanced(key: string, ...params: unknown[]) {
+    return t(`${DATE_INPUT_ADVANCED_LOCALE_PREFIX}.${key}`, ...params)
+  }
+}
+
 function isLocaleMessageMap(value: unknown): value is LocaleMessageMap {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
@@ -131,11 +139,15 @@ export function useDateInputAdvancedLocale() {
     ensureLocaleMessages()
   })
 
-  function tDateInputAdvanced(key: string, ...params: unknown[]) {
-    return t(`${DATE_INPUT_ADVANCED_LOCALE_PREFIX}.${key}`, ...params)
+  return {
+    tDateInputAdvanced: createDateInputAdvancedTranslator(t),
   }
+}
+
+export function useDateInputAdvancedTranslation() {
+  const { t } = useLocale()
 
   return {
-    tDateInputAdvanced,
+    tDateInputAdvanced: createDateInputAdvancedTranslator(t),
   }
 }

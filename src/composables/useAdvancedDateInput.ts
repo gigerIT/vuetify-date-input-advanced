@@ -1,6 +1,6 @@
 import { computed, readonly, ref, watch, type Ref } from 'vue'
 
-import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
+import { useDateInputAdvancedTranslation } from '@/composables/useDateInputAdvancedLocale'
 import type {
   AdvancedDateAdapter,
   AdvancedDateInputAvailabilityStatus,
@@ -68,7 +68,7 @@ export function useAdvancedDateInput<TDate>(options: {
   allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
   onTextUpdate: (value: string) => void
 }) {
-  const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+  const { tDateInputAdvanced } = useDateInputAdvancedTranslation()
   const text = ref('')
   const isEditing = ref(false)
   const inputError = ref<InputErrorKey | null>(null)

@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue'
 
-import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
+import { useDateInputAdvancedTranslation } from '@/composables/useDateInputAdvancedLocale'
 import type { AdvancedDateAdapter, NormalizedRange } from '@/types'
 
 export function useAdvancedDatePickerLiveText<TDate>(options: {
@@ -11,7 +11,7 @@ export function useAdvancedDatePickerLiveText<TDate>(options: {
   months: Ref<Array<{ label: string }>>
   selection: Ref<NormalizedRange<TDate>>
 }) {
-  const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+  const { tDateInputAdvanced } = useDateInputAdvancedTranslation()
 
   return computed(() => {
     const labels = options.isMobileScroll.value

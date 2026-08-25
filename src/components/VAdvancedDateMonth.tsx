@@ -3,7 +3,7 @@ import { defineComponent, withDirectives } from 'vue'
 
 import { Ripple } from 'vuetify/directives'
 
-import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
+import { useDateInputAdvancedTranslation } from '@/composables/useDateInputAdvancedLocale'
 import type { AdvancedDateMonthData } from '@/types'
 
 export const VAdvancedDateMonth = defineComponent({
@@ -30,7 +30,7 @@ export const VAdvancedDateMonth = defineComponent({
   },
 
   setup(props, { emit, slots }) {
-    const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+    const { tDateInputAdvanced } = useDateInputAdvancedTranslation()
 
     return () => (
       <section

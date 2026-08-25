@@ -8,7 +8,7 @@ import {
 
 import { VAdvancedDatePicker } from '@/components/VAdvancedDatePicker'
 
-import { render } from '../render'
+import { render, renderWithVuetify } from '../render'
 
 const pickerIconCases = [
   {
@@ -1344,6 +1344,65 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.find('button[aria-label="Kitas mėnuo"]').exists()).toBe(true)
   })
 
+  it('updates picker strings when the active locale changes at runtime', async () => {
+    const { wrapper, vuetify } = renderWithVuetify(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        autoApply: false,
+        showWeekNumbers: true,
+      },
+    })
+
+    expect(wrapper.text()).toContain('Apply')
+    expect(wrapper.text()).toContain('Today')
+
+    ;(vuetify as any).locale.current.value = 'lt'
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Taikyti')
+    expect(wrapper.text()).toContain('Atšaukti')
+    expect(wrapper.text()).toContain('Šiandien')
+    expect(wrapper.text()).toContain('Sav.')
+    expect(wrapper.find('button[aria-label="Ankstesnis mėnuo"]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('button[aria-label="Kitas mėnuo"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('preserves partial consumer locale overrides while filling defaults', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      vuetify: {
+        locale: {
+          messages: {
+            en: {
+              dateInputAdvanced: {
+                actions: {
+                  apply: 'Confirm dates',
+                },
+              },
+            },
+          },
+        },
+      } as any,
+      props: {
+        modelValue: null,
+        month: 0,
+        year: 2026,
+        autoApply: false,
+      },
+    })
+
+    expect(wrapper.text()).toContain('Confirm dates')
+    expect(wrapper.text()).toContain('Cancel')
+    expect(wrapper.text()).toContain('Today')
+
+    wrapper.unmount()
+  })
+
   it('does not echo synced month props back to the parent', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
@@ -1487,6 +1546,62 @@ describe('VAdvancedDatePicker', () => {
     ).toBe('2026-03-05')
     expect(wrapper.text()).toContain('March 2026')
     expect(wrapper.text()).toContain('April 2026')
+
+    wrapper.unmount()
+  })
+
+  it('falls back from a disabled focus target in the active direction', async () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: null,
+        range: false,
+        month: 0,
+        year: 2026,
+        allowedDates: (date: unknown) =>
+          !(date instanceof Date) || toLocalYmd(date) !== '2026-01-15',
+      },
+      attachTo: document.body,
+    })
+
+    await wrapper.find('[data-date="2026-01-10"]').trigger('focus')
+    await wrapper.vm.focusDate(new Date('2026-01-15'))
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date'),
+    ).toBe('2026-01-16')
+
+    await wrapper.find('[data-date="2026-01-20"]').trigger('focus')
+    await wrapper.vm.focusDate(new Date('2026-01-15'))
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (document.activeElement as HTMLElement | null)?.getAttribute('data-date'),
+    ).toBe('2026-01-14')
+
+    wrapper.unmount()
+  })
+
+  it('keeps one focusable day across padded multi-month boundaries', () => {
+    const wrapper = render(VAdvancedDatePicker, {
+      props: {
+        modelValue: new Date('2026-01-31'),
+        range: false,
+        month: 0,
+        year: 2026,
+        months: 2,
+      },
+    })
+
+    const activeDays = wrapper.findAll('button[data-date][tabindex="0"]')
+
+    expect(activeDays).toHaveLength(1)
+    expect(activeDays[0].attributes('data-date')).toBe('2026-01-31')
+    expect(
+      wrapper.findAll(
+        '.v-advanced-date-picker__day-cell--outside button[data-date]',
+      ),
+    ).toHaveLength(0)
 
     wrapper.unmount()
   })

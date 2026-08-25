@@ -275,42 +275,25 @@ export type AdvancedDateInputResolvedProps = Readonly<
   ExtractPropTypes<typeof advancedDateInputProps>
 >
 
+type AdvancedDatePickerBindingKey = Exclude<
+  keyof typeof advancedDatePickerProps,
+  'modelValue'
+>
+
+const advancedDatePickerBindingKeys = (
+  Object.keys(advancedDatePickerProps) as (keyof typeof advancedDatePickerProps)[]
+).filter(
+  (key): key is AdvancedDatePickerBindingKey => key !== 'modelValue',
+)
+
 export function buildAdvancedDatePickerBindings(
   props: AdvancedDateInputResolvedProps,
   mobilePresentation: AdvancedDateMobilePresentation | null,
 ) {
   return {
-    modelValue: props.modelValue,
-    range: props.range,
-    returnObject: props.returnObject,
-    months: props.months,
-    title: props.title,
-    titleStartDate: props.titleStartDate,
-    titleEndDate: props.titleEndDate,
-    month: props.month,
-    year: props.year,
-    presets: props.presets,
-    showPresets: props.showPresets,
-    autoApply: props.autoApply,
-    min: props.min,
-    max: props.max,
-    allowedDates: props.allowedDates,
-    allowedStartDates: props.allowedStartDates,
-    allowedEndDates: props.allowedEndDates,
-    showWeekNumbers: props.showWeekNumbers,
-    firstDayOfWeek: props.firstDayOfWeek,
-    prevIcon: props.prevIcon,
-    nextIcon: props.nextIcon,
-    disabled: props.disabled,
-    readonly: props.readonly,
-    theme: props.theme,
-    rounded: props.rounded,
-    border: props.border,
-    elevation: props.elevation,
-    width: props.width,
-    minWidth: props.minWidth,
-    maxWidth: props.maxWidth,
-    density: props.density,
+    ...(Object.fromEntries(
+      advancedDatePickerBindingKeys.map((key) => [key, props[key]]),
+    ) as Pick<AdvancedDateInputResolvedProps, AdvancedDatePickerBindingKey>),
     mobilePresentation,
   }
 }

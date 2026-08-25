@@ -555,7 +555,7 @@ describe('VAdvancedDateInput', () => {
     })
   })
 
-  it('opens the mobile fullscreen overlay from Enter on the readonly single-date activator without validating text', async () => {
+  it('does not redundantly reopen the mobile fullscreen overlay from Enter on the readonly single-date activator', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
@@ -580,7 +580,7 @@ describe('VAdvancedDateInput', () => {
         await input.trigger('keydown', { key: 'Enter' })
         await wrapper.vm.$nextTick()
 
-        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+        expect(wrapper.emitted('update:menu')).toBeUndefined()
         expect(wrapper.emitted('inputInvalid')).toBeUndefined()
         expect(wrapper.emitted('update:modelValue')).toBeUndefined()
         expect(wrapper.text()).not.toContain('Enter a valid date')
@@ -1124,7 +1124,7 @@ describe('VAdvancedDateInput', () => {
     }, 375)
   })
 
-  it('opens the mobile fullscreen overlay from Enter on readonly range activators without validating text', async () => {
+  it('does not redundantly reopen the mobile fullscreen overlay from Enter on readonly range activators', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
@@ -1147,7 +1147,7 @@ describe('VAdvancedDateInput', () => {
         await rangeInput(wrapper, 'start').trigger('keydown', { key: 'Enter' })
         await wrapper.vm.$nextTick()
 
-        expect(wrapper.emitted('update:menu')).toEqual([[true]])
+        expect(wrapper.emitted('update:menu')).toBeUndefined()
         expect(wrapper.emitted('inputInvalid')).toBeUndefined()
         expect(wrapper.emitted('update:modelValue')).toBeUndefined()
         expect(wrapper.text()).not.toContain('Enter a valid range')
@@ -2327,7 +2327,7 @@ describe('VAdvancedDateInput', () => {
       field.vm.$emit('click:appendInner', new MouseEvent('click'))
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.emitted('update:menu')).toEqual([[true], [true]])
+      expect(wrapper.emitted('update:menu')).toEqual([[true]])
     } finally {
       wrapper?.unmount()
 
@@ -2397,7 +2397,7 @@ describe('VAdvancedDateInput', () => {
       await rangeInput(wrapper, 'end').trigger('click')
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.emitted('update:menu')).toEqual([[true], [true]])
+      expect(wrapper.emitted('update:menu')).toEqual([[true]])
 
       wrapper.unmount()
     })
@@ -2622,6 +2622,7 @@ describe('VAdvancedDateInput', () => {
       wrapper = render(VAdvancedDateInput, {
         props: {
           modelValue: null,
+          menu: true,
           inputReadonly: true,
           autoApply: false,
           range: false,
@@ -4178,6 +4179,85 @@ describe('VAdvancedDateInput', () => {
         '2026-01-20',
       )
       expect(publicHandle(wrapper).draft.selection.end).toBeNull()
+
+      wrapper.unmount()
+    })
+  })
+
+  it('lets newly controlled text replace an uncontrolled typed draft', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: null,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await rangeInput(wrapper, 'start').setValue('Jan 20, 2026')
+      await wrapper.setProps({ text: 'Jan 25, 2026' })
+      await wrapper.vm.$nextTick()
+
+      expect(rangeInput(wrapper, 'start').element.value).toBe('Jan 25, 2026')
+      expect(publicHandle(wrapper).draft.source).toBe('text')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-25',
+      )
+      expect(wrapper.find('[data-date="2026-01-25"]').classes()).toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+      expect(wrapper.find('[data-date="2026-01-20"]').classes()).not.toContain(
+        'v-advanced-date-picker__day--selected',
+      )
+
+      wrapper.unmount()
+    })
+  })
+
+  it('returns to the committed mirror when controlled text is removed', async () => {
+    await runWithDesktopWidth(async () => {
+      const wrapper = render(VAdvancedDateInput, {
+        props: {
+          modelValue: new Date('2026-01-12T00:00:00.000Z'),
+          text: 'Jan 20, 2026',
+          range: false,
+          menu: true,
+          month: 0,
+          year: 2026,
+        },
+        attachTo: document.body,
+        global: {
+          stubs: {
+            VMenu: menuStub,
+          },
+        },
+      })
+
+      await wrapper.setProps({ text: undefined })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
+      expect(publicHandle(wrapper).draft.source).toBe('picker')
+      expect(publicHandle(wrapper).isDirty).toBe(false)
+
+      await wrapper.find('input').setValue('Jan 25, 2026')
+      await wrapper.setProps({
+        modelValue: new Date('2026-01-30T00:00:00.000Z'),
+      })
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('input').element.value).toBe('Jan 25, 2026')
+      expect(publicHandle(wrapper).draft.source).toBe('text')
+      expect(toLocalYmd(publicHandle(wrapper).draft.selection.start)).toBe(
+        '2026-01-25',
+      )
 
       wrapper.unmount()
     })

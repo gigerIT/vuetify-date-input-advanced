@@ -24,7 +24,7 @@ type InputErrorKey =
 
 type SelectionChangeOrigin = 'external' | 'internal'
 
-type TextControlMode = 'mirror' | 'draft'
+type DraftAuthority = 'picker' | 'controlled-text' | 'uncontrolled-text'
 
 interface AdvancedDateInputDraftAssessment<TDate> {
   selection: NormalizedRange<TDate>
@@ -122,17 +122,16 @@ export function useAdvancedDateInputDraft<TDate>(options: {
     start: null,
     end: null,
   })
-  const controlledTextMode = ref<TextControlMode>(
+  const draftAuthority = ref<DraftAuthority>(
     options.textValue.value !== undefined &&
       options.editable.value &&
       options.textValue.value !== options.input.committedText.value
-      ? 'draft'
-      : 'mirror',
+      ? 'controlled-text'
+      : 'picker',
   )
-  const draftSource = ref<AdvancedDateInputSource>(
-    controlledTextMode.value === 'draft' ? 'text' : 'picker',
+  const draftSource = computed<AdvancedDateInputSource>(
+    () => (draftAuthority.value === 'picker' ? 'picker' : 'text'),
   )
-  const hasUncontrolledTextDraft = ref(false)
   const pendingControlledTextEchoes = ref<string[]>([])
   const pickerBoundaryField = ref<AdvancedDateInputField | null>(null)
   const pickerSelectionChangeOrigin = ref<SelectionChangeOrigin>('external')
@@ -278,11 +277,9 @@ export function useAdvancedDateInputDraft<TDate>(options: {
   }
 
   function syncCommittedMirror(selection = committedSelection.value) {
-    hasUncontrolledTextDraft.value = false
-    controlledTextMode.value = 'mirror'
+    draftAuthority.value = 'picker'
     pickerBoundaryField.value = null
     setPickerSelection(selection, 'external')
-    draftSource.value = 'picker'
     options.onPassiveActiveFieldSync(selection)
     syncInputText(formatSelection(selection))
   }
@@ -302,8 +299,8 @@ export function useAdvancedDateInputDraft<TDate>(options: {
         text !== undefined && textChanged && consumeControlledTextEcho(text)
       const preserveUncontrolledTextDraft =
         editable &&
-        draftSource.value === 'text' &&
-        hasUncontrolledTextDraft.value
+        text === undefined &&
+        draftAuthority.value === 'uncontrolled-text'
       const nextCommittedText = formatSelection(next)
 
       committedSelection.value = cloneSelection(next)
@@ -313,18 +310,16 @@ export function useAdvancedDateInputDraft<TDate>(options: {
       } else if (preserveUncontrolledTextDraft) {
         syncPickerSelectionFromText(options.input.text.value)
       } else if (isControlledTextEcho) {
-        controlledTextMode.value = 'mirror'
-        draftSource.value = 'picker'
+        draftAuthority.value = 'picker'
         pickerSelectionChangeOrigin.value = 'internal'
       } else if (text !== undefined) {
         if (textChanged) {
           options.input.setExternalText(text)
-          controlledTextMode.value =
-            text === nextCommittedText ? 'mirror' : 'draft'
+          draftAuthority.value =
+            text === nextCommittedText ? 'picker' : 'controlled-text'
         }
 
-        if (controlledTextMode.value === 'draft') {
-          draftSource.value = 'text'
+        if (draftAuthority.value === 'controlled-text') {
           syncPickerSelectionFromText(
             options.input.text.value,
             textChanged ? 'external' : pickerSelectionChangeOrigin.value,
@@ -415,8 +410,7 @@ export function useAdvancedDateInputDraft<TDate>(options: {
     const value = serializeSelection(normalizedSelection)
     const committedText = formatSelection(normalizedSelection)
 
-    hasUncontrolledTextDraft.value = false
-    controlledTextMode.value = 'mirror'
+    draftAuthority.value = 'picker'
     pickerBoundaryField.value = null
     committedSelection.value = cloneSelection(normalizedSelection)
     const committedDraft = createPickerDraft(
@@ -425,7 +419,6 @@ export function useAdvancedDateInputDraft<TDate>(options: {
     )
 
     setPickerSelection(normalizedSelection, 'internal')
-    draftSource.value = 'picker'
     options.onPassiveActiveFieldSync(normalizedSelection)
     syncInputText(committedDraft.text)
     options.input.markValid()
@@ -457,21 +450,18 @@ export function useAdvancedDateInputDraft<TDate>(options: {
   }
 
   function updateFieldText(value: string) {
-    hasUncontrolledTextDraft.value = options.textValue.value === undefined
-    if (options.textValue.value !== undefined) {
-      controlledTextMode.value = 'draft'
-    }
+    draftAuthority.value =
+      options.textValue.value === undefined
+        ? 'uncontrolled-text'
+        : 'controlled-text'
     pickerBoundaryField.value = null
-    draftSource.value = 'text'
     options.input.setText(value)
     syncPickerSelectionFromText(value)
   }
 
   function applyPickerDraft(nextSelection: NormalizedRange<TDate>) {
-    hasUncontrolledTextDraft.value = false
-    controlledTextMode.value = 'mirror'
+    draftAuthority.value = 'picker'
     setPickerSelection(nextSelection, 'internal')
-    draftSource.value = 'picker'
     options.input.resetValidation()
     void options.resetFieldValidation()
   }

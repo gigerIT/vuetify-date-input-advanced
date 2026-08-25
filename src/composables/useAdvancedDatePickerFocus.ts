@@ -23,23 +23,34 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
   onEscape: () => void
 }) {
   const dayButtons = ref<HTMLButtonElement[]>([])
-  const dayButtonLookup = ref(new Map<string, HTMLButtonElement>())
+  const dayButtonLookup = ref(
+    new Map<string, { button: HTMLButtonElement; index: number }>(),
+  )
 
-  const dayLookup = computed(() => {
-    return new Map(
-      options.months.value.flatMap((month) =>
-        month.weeks.flatMap((week) =>
-          week.days.map((day) => [day.key, day.date] as const),
-        ),
-      ),
-    )
-  })
+  const dayIndex = computed(() => {
+    const dateByKey = new Map<string, TDate>()
+    const focusableKeys = new Set<string>()
+    let firstFocusableDay: { key: string; date: TDate } | null = null
 
-  const firstAvailableDay = computed(() => {
-    return options.months.value
-      .flatMap((month) => month.weeks)
-      .flatMap((week) => week.days)
-      .find((day) => !day.outside && !day.disabled)
+    for (const month of options.months.value) {
+      for (const week of month.weeks) {
+        for (const day of week.days) {
+          if (day.outside) continue
+
+          dateByKey.set(day.key, day.date)
+          if (day.disabled) continue
+
+          focusableKeys.add(day.key)
+          firstFocusableDay ??= { key: day.key, date: day.date }
+        }
+      }
+    }
+
+    return {
+      dateByKey,
+      focusableKeys,
+      firstFocusableDay,
+    }
   })
 
   function refreshDayButtons() {
@@ -51,8 +62,10 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
 
     dayButtons.value = buttons
     dayButtonLookup.value = new Map(
-      buttons.flatMap((button) =>
-        button.dataset.date ? [[button.dataset.date, button] as const] : [],
+      buttons.flatMap((button, index) =>
+        button.dataset.date
+          ? [[button.dataset.date, { button, index }] as const]
+          : [],
       ),
     )
   }
@@ -61,15 +74,13 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     targetKey: string,
     direction: 1 | -1,
   ): HTMLButtonElement | null {
-    const index = dayButtons.value.findIndex(
-      (button) => button.dataset.date === targetKey,
-    )
+    const target = dayButtonLookup.value.get(targetKey)
 
-    if (index === -1) return null
-    if (!dayButtons.value[index].disabled) return dayButtons.value[index]
+    if (!target) return null
+    if (!target.button.disabled) return target.button
 
     for (
-      let cursor = index + direction;
+      let cursor = target.index + direction;
       dayButtons.value[cursor];
       cursor += direction
     ) {
@@ -88,7 +99,7 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     const referenceDate =
       focus.activeDate.value ?? options.selection.value.start ?? date
     const direction = options.adapter.isBefore(date, referenceDate) ? -1 : 1
-    const direct = dayButtonLookup.value.get(targetKey) ?? null
+    const direct = dayButtonLookup.value.get(targetKey)?.button ?? null
     const button = direct?.disabled
       ? findFocusableButton(targetKey, direction)
       : direct
@@ -96,7 +107,7 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     button?.focus()
 
     const resolved = button?.dataset.date
-      ? dayLookup.value.get(button.dataset.date) ?? null
+      ? dayIndex.value.dateByKey.get(button.dataset.date) ?? null
       : null
     if (resolved) focus.setActiveDate(resolved)
   }
@@ -116,7 +127,7 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     const fallback =
       selectionFocusDate() ??
       focus.activeDate.value ??
-      firstAvailableDay.value?.date
+      dayIndex.value.firstFocusableDay?.date
 
     if (!fallback) return
 
@@ -140,17 +151,10 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
         : ''
 
     if (preferredKey) {
-      const preferredDay = options.months.value
-        .flatMap((month) => month.weeks)
-        .flatMap((week) => week.days)
-        .find(
-          (day) => day.key === preferredKey && !day.outside && !day.disabled,
-        )
-
-      if (preferredDay) return preferredDay.key
+      if (dayIndex.value.focusableKeys.has(preferredKey)) return preferredKey
     }
 
-    return firstAvailableDay.value?.key ?? ''
+    return dayIndex.value.firstFocusableDay?.key ?? ''
   })
 
   return {

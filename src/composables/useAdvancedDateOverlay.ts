@@ -52,6 +52,8 @@ export function useAdvancedDateOverlay(options: {
   })
 
   function setMenu(value: boolean) {
+    if (menu.value === value) return
+
     menu.value = value
     options.onMenuUpdate(value)
   }

@@ -2,7 +2,7 @@ import { defineComponent } from 'vue'
 
 import { VBtn } from 'vuetify/components'
 
-import { useDateInputAdvancedLocale } from '@/composables/useDateInputAdvancedLocale'
+import { useDateInputAdvancedTranslation } from '@/composables/useDateInputAdvancedLocale'
 
 export const VAdvancedDateActions = defineComponent({
   name: 'VAdvancedDateActions',
@@ -17,7 +17,7 @@ export const VAdvancedDateActions = defineComponent({
   },
 
   setup(props, { emit, slots }) {
-    const { tDateInputAdvanced } = useDateInputAdvancedLocale()
+    const { tDateInputAdvanced } = useDateInputAdvancedTranslation()
 
     return () => {
       if (slots.actions) {
