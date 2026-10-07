@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.2](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.5.1...v3.5.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* **picker:** remove earlier-date search section ([040aa4b](https://github.com/gigerIT/vuetify-date-input-advanced/commit/040aa4bb8a1acb6b0e187ec73b688cdab1ac917c))
+
 ## [3.5.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.5.0...v3.5.1) (2026-10-07)
 
 
