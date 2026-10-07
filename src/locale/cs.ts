@@ -16,9 +16,7 @@ export const dateInputAdvancedCs: DateInputAdvancedLocaleMessages = {
     },
     navigation: {
       unavailablePeriod: 'Žádná dostupná data: {0}',
-      searchEarlier: 'Hledat dřívější data',
       searchLater: 'Hledat pozdější data',
-      searchedEarlier: 'Žádná dřívější data nalezena až do {0}',
       searchedLater: 'Žádná pozdější data nalezena až do {0}',
       jumpToMonth: 'Přejít na {0}',
     },

@@ -16,9 +16,7 @@ export const dateInputAdvancedDe: DateInputAdvancedLocaleMessages = {
     },
     navigation: {
       unavailablePeriod: 'Keine verfügbaren Daten: {0}',
-      searchEarlier: 'Frühere Daten suchen',
       searchLater: 'Spätere Daten suchen',
-      searchedEarlier: 'Keine früheren Daten bis {0} gefunden',
       searchedLater: 'Keine späteren Daten bis {0} gefunden',
       jumpToMonth: 'Zu {0} wechseln',
     },

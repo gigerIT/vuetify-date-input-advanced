@@ -483,8 +483,12 @@ period, and Page Up / Page Down use the same month search.
 
 Supply `min` and `max` when the availability bounds are known. A callback alone
 cannot establish that no later or earlier dates exist. Searches start with a
-12-month span; “Search earlier dates” and “Search later dates” extend it in
-12-month increments. Reaching the search limit keeps that direction available.
+12-month span. The previous-month arrow and upward mobile scrolling extend
+backward searches in 12-month increments, without a separate message or button.
+On mobile, scrolling upward with the mouse wheel or swiping down at the top
+also continues backward searches when only one month is rendered.
+“Search later dates” extends forward searches. Reaching the search limit keeps
+that direction available.
 Only reaching a date bound disables it. Fewer than `months` calendars can be
 shown while a search awaits continuation or reaches a bound.
 
@@ -495,9 +499,8 @@ retains at most ten calendars while loading earlier or later months.
 
 Gap notices, search controls, and navigation hints use the optional
 `dateInputAdvanced.navigation` locale namespace (`unavailablePeriod`,
-`searchEarlier`, `searchLater`, `searchedEarlier`, `searchedLater`, and
-`jumpToMonth`). Defaults are included for all six bundled locales; consumer
-messages override them.
+`searchLater`, `searchedLater`, and `jumpToMonth`). Defaults are included for
+all six bundled locales; consumer messages override them.
 
 ### Apply / Cancel
 

@@ -16,9 +16,7 @@ export const dateInputAdvancedLt: DateInputAdvancedLocaleMessages = {
     },
     navigation: {
       unavailablePeriod: 'Nėra galimų datų: {0}',
-      searchEarlier: 'Ieškoti ankstesnių datų',
       searchLater: 'Ieškoti vėlesnių datų',
-      searchedEarlier: 'Ankstesnių datų nerasta iki {0}',
       searchedLater: 'Vėlesnių datų nerasta iki {0}',
       jumpToMonth: 'Pereiti į {0}',
     },

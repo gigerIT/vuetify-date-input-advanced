@@ -16,9 +16,7 @@ export const dateInputAdvancedFr: DateInputAdvancedLocaleMessages = {
     },
     navigation: {
       unavailablePeriod: 'Aucune date disponible : {0}',
-      searchEarlier: 'Rechercher des dates antérieures',
       searchLater: 'Rechercher des dates ultérieures',
-      searchedEarlier: 'Aucune date antérieure trouvée jusqu’à {0}',
       searchedLater: 'Aucune date ultérieure trouvée jusqu’à {0}',
       jumpToMonth: 'Aller à {0}',
     },

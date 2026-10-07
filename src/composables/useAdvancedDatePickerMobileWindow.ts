@@ -34,6 +34,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   const mobileMutating = ref(false)
   const pendingMobileScrollMonthKey = ref('')
   let scrollFrame = 0
+  let touchStartY: number | null = null
 
   const mobileWindowBaseCount = computed(() =>
     Math.max(options.months.value + MOBILE_INITIAL_NEXT_MONTHS, 7),
@@ -276,6 +277,31 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     mobileMutating.value = false
   }
 
+  // At the top of a short window there may be no scrollable overflow. Wheel
+  // and touch gestures still let users continue searching earlier months.
+  function onMonthsWheel(event: WheelEvent) {
+    if (event.deltaY < 0 && containerRef.value?.scrollTop === 0) {
+      void prependMobileMonths(true)
+    }
+  }
+
+  function onMonthsTouchStart(event: TouchEvent) {
+    touchStartY = event.touches[0]?.clientY ?? null
+  }
+
+  function onMonthsTouchEnd(event: TouchEvent) {
+    const endY = event.changedTouches[0]?.clientY
+    if (
+      touchStartY != null &&
+      endY != null &&
+      endY - touchStartY > 40 &&
+      containerRef.value?.scrollTop === 0
+    ) {
+      void prependMobileMonths(true)
+    }
+    touchStartY = null
+  }
+
   function onMonthsScroll() {
     if (!options.isMobileScroll.value || scrollFrame) return
 
@@ -292,7 +318,7 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
         container.scrollHeight - container.scrollTop - container.clientHeight
 
       if (container.scrollTop <= threshold) {
-        void prependMobileMonths()
+        void prependMobileMonths(true)
       }
 
       if (distanceToBottom <= threshold) {
@@ -371,13 +397,15 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     monthsTrackRef,
     setMonthsTrackRef,
     visibleMonths,
-    previous,
     next,
     prependMobileMonths,
     appendMobileMonths,
     monthsTrackKey,
     monthsStyle,
     onMonthsScroll,
+    onMonthsWheel,
+    onMonthsTouchStart,
+    onMonthsTouchEnd,
     resetWindow,
     scrollMonthIntoView,
     handleMonthsRendered,

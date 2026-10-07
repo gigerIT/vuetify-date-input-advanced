@@ -373,9 +373,14 @@ describe('navigation across unavailable months', () => {
     }
   })
 
-  it.each(['next', 'prev'] as const)(
-    'continues mobile searches %s across a multi-year gap',
-    async (direction) => {
+  it.each([
+    { direction: 'next', interaction: 'button' },
+    { direction: 'prev', interaction: 'touch' },
+    { direction: 'prev', interaction: 'wheel' },
+    { direction: 'prev', interaction: 'keyboard' },
+  ] as const)(
+    'continues mobile searches $direction with $interaction across a multi-year gap',
+    async ({ direction, interaction }) => {
       const originalWidth = window.innerWidth
       Object.defineProperty(window, 'innerWidth', {
         configurable: true,
@@ -398,9 +403,30 @@ describe('navigation across unavailable months', () => {
         attachTo: document.body,
       })
       try {
-        await wrapper
-          .get(`[data-search-direction="${direction}"]`)
-          .trigger('click')
+        await wrapper.vm.$nextTick()
+        expect(wrapper.text()).not.toContain('No earlier dates')
+        expect(wrapper.text()).not.toContain('Search earlier dates')
+        expect(wrapper.find('[data-search-direction="prev"]').exists()).toBe(
+          false,
+        )
+        const container = wrapper.get<HTMLElement>(
+          '.v-advanced-date-picker__months',
+        )
+        container.element.scrollTop = 0
+        if (interaction === 'button') {
+          await wrapper.get('[data-search-direction="next"]').trigger('click')
+        } else if (interaction === 'touch') {
+          await container.trigger('touchstart', { touches: [{ clientY: 20 }] })
+          await container.trigger('touchend', {
+            changedTouches: [{ clientY: 100 }],
+          })
+        } else if (interaction === 'wheel') {
+          await container.trigger('wheel', { deltaY: -100 })
+        } else {
+          await wrapper
+            .get('[data-date="2028-03-10"]')
+            .trigger('keydown', { key: 'PageUp' })
+        }
         await wrapper.vm.$nextTick()
         expect(
           wrapper
@@ -487,7 +513,11 @@ describe('navigation across unavailable months', () => {
     try {
       expect(allowedDates.mock.calls.length).toBeLessThan(850)
       expect(wrapper.find('[data-search-direction="next"]').exists()).toBe(true)
-      expect(wrapper.find('[data-search-direction="prev"]').exists()).toBe(true)
+      expect(wrapper.find('[data-search-direction="prev"]').exists()).toBe(
+        false,
+      )
+      expect(wrapper.text()).not.toContain('No earlier dates')
+      expect(wrapper.text()).not.toContain('Search earlier dates')
       const calls = allowedDates.mock.calls.length
       await wrapper.get('[data-search-direction="next"]').trigger('click')
       expect(allowedDates.mock.calls.length - calls).toBeLessThan(400)

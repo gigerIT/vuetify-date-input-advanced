@@ -314,7 +314,7 @@ export const VAdvancedDatePicker = defineComponent({
       containerRef: mobileWindow.containerRef,
       monthsTrackRef: mobileWindow.monthsTrackRef,
       ensureDateVisible,
-      onPageDate: (date, direction, byYear) => {
+      onPageDate: async (date, direction, byYear) => {
         if (disabledRef.value) return
         const requested = byYear
           ? adapter.setYear(date, adapter.getYear(date) + direction)
@@ -335,13 +335,26 @@ export const VAdvancedDatePicker = defineComponent({
           gapAnnouncement.value = skipped ? describeGap(skipped) : ''
           void focus.focusDate(target)
         } else if (result.kind === 'pending') {
-          // Keep keyboard users on a reachable control when the next batch is
-          // unknown; the same continuation action is available in both views.
-          const control =
-            mobileWindow.containerRef.value?.querySelector<HTMLButtonElement>(
-              `[data-search-direction="${direction < 0 ? 'prev' : 'next'}"]`,
-            )
-          control?.focus()
+          if (direction < 0 && isMobileScroll.value) {
+            await mobileWindow.prependMobileMonths(true)
+            const earlier = mobileWindow.visibleMonths.value
+              .slice()
+              .reverse()
+              .find((month) =>
+                adapter.isBefore(month, adapter.startOfMonth(date)),
+              )
+            if (earlier) await focus.focusDate(earlier)
+          } else {
+            // Backward continuation uses the existing month arrow; forward
+            // continuation retains its search control.
+            const control =
+              mobileWindow.containerRef.value?.querySelector<HTMLButtonElement>(
+                direction < 0
+                  ? '.v-advanced-date-picker__nav--prev'
+                  : '[data-search-direction="next"]',
+              )
+            control?.focus()
+          }
         }
       },
       onSelect: handleSelectDate,
@@ -488,27 +501,21 @@ export const VAdvancedDatePicker = defineComponent({
           )
         : tDateInputAdvanced(
             direction < 0
-              ? 'navigation.searchEarlier'
+              ? 'ariaLabel.previousMonth'
               : 'navigation.searchLater',
           )
     }
 
-    function renderSearch(direction: -1 | 1) {
+    function renderLaterSearch() {
       const result = isMobileScroll.value
-        ? direction < 0
-          ? mobileWindow.previous.value
-          : mobileWindow.next.value
-        : direction < 0
-          ? navigation.previous.value
-          : navigation.next.value
+        ? mobileWindow.next.value
+        : navigation.next.value
       if (result.kind !== 'pending') return null
       return (
         <div class="v-advanced-date-picker__search">
           <span role="status">
             {tDateInputAdvanced(
-              direction < 0
-                ? 'navigation.searchedEarlier'
-                : 'navigation.searchedLater',
+              'navigation.searchedLater',
               adapter.format(result.through, 'monthAndYear'),
             )}
           </span>
@@ -516,22 +523,17 @@ export const VAdvancedDatePicker = defineComponent({
             variant="text"
             size="small"
             disabled={disabledRef.value}
-            data-search-direction={direction < 0 ? 'prev' : 'next'}
+            data-search-direction="next"
             {...{
               onClick: () => {
                 if (disabledRef.value) return
-                if (isMobileScroll.value) {
-                  if (direction < 0) void mobileWindow.prependMobileMonths(true)
-                  else void mobileWindow.appendMobileMonths(true)
-                } else void scrollToAdjacentMonth(direction)
+                if (isMobileScroll.value)
+                  void mobileWindow.appendMobileMonths(true)
+                else void scrollToAdjacentMonth(1)
               },
             }}
           >
-            {tDateInputAdvanced(
-              direction < 0
-                ? 'navigation.searchEarlier'
-                : 'navigation.searchLater',
-            )}
+            {tDateInputAdvanced('navigation.searchLater')}
           </VBtn>
         </div>
       )
@@ -616,6 +618,15 @@ export const VAdvancedDatePicker = defineComponent({
             onScroll={
               isMobileScroll.value ? mobileWindow.onMonthsScroll : undefined
             }
+            onWheel={
+              isMobileScroll.value ? mobileWindow.onMonthsWheel : undefined
+            }
+            onTouchstart={
+              isMobileScroll.value ? mobileWindow.onMonthsTouchStart : undefined
+            }
+            onTouchend={
+              isMobileScroll.value ? mobileWindow.onMonthsTouchEnd : undefined
+            }
           >
             {!isMobileScroll.value ? (
               <VBtn
@@ -664,7 +675,6 @@ export const VAdvancedDatePicker = defineComponent({
                 ref={mobileWindow.setMonthsTrackRef}
                 class="v-advanced-date-picker__months-track"
               >
-                {renderSearch(-1)}
                 {grid.months.value.map((month) => (
                   <Fragment key={month.key}>
                     {visibleGaps.value.find((gap) =>
@@ -695,7 +705,7 @@ export const VAdvancedDatePicker = defineComponent({
                     />
                   </Fragment>
                 ))}
-                {renderSearch(1)}
+                {renderLaterSearch()}
               </div>
             )}
 
@@ -722,8 +732,7 @@ export const VAdvancedDatePicker = defineComponent({
                     {gap.label}
                   </div>
                 ))}
-                {renderSearch(-1)}
-                {renderSearch(1)}
+                {renderLaterSearch()}
               </>
             ) : null}
           </div>
