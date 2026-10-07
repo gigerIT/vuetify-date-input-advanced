@@ -493,6 +493,7 @@ const {
                 :month="1"
                 :year="2026"
                 :allowed-dates="allowOnly('2026-01-15', '2026-02-05')"
+                :max="createLocalDate(2026, 3, 30)"
               />
             </v-sheet>
 
@@ -517,6 +518,7 @@ const {
                 :year="2026"
                 :allowed-start-dates="allowOnly('2026-01-20', '2026-02-10')"
                 :allowed-end-dates="allowOnly('2026-01-25')"
+                :max="createLocalDate(2026, 1, 28)"
               />
             </v-sheet>
 
@@ -526,18 +528,21 @@ const {
               class="pa-4"
               data-testid="playground-edge-gap-month"
             >
-              <div class="text-subtitle-2 font-weight-medium">Gap months are not skipped</div>
+              <div class="text-subtitle-2 font-weight-medium">Skip unavailable months</div>
               <div class="text-caption text-medium-emphasis mb-4">
-                April has a selectable date, but March is empty.
+                October 2026 and March 2027 remain reachable across four empty months. Resize to see the mobile gap separator.
               </div>
               <v-advanced-date-picker
                 v-model="constrainedGapMonthValue"
                 :range="false"
                 :months="1"
                 :show-presets="false"
-                :month="1"
+                :month="9"
                 :year="2026"
-                :allowed-dates="allowOnly('2026-02-10', '2026-04-10')"
+                :allowed-dates="allowOnly('2026-10-10', '2027-03-10')"
+                :min="createLocalDate(2026, 9, 1)"
+                :max="createLocalDate(2027, 2, 31)"
+                mobile-presentation="inline"
               />
             </v-sheet>
 

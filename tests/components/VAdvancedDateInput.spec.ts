@@ -317,6 +317,7 @@ describe('VAdvancedDateInput', () => {
           year: 2026,
           months: 1,
           allowedDates: allowOnly('2026-01-15', '2026-02-05'),
+          max: new Date(2026, 3, 30),
         },
         global: {
           stubs: {
@@ -827,7 +828,7 @@ describe('VAdvancedDateInput', () => {
     }
   })
 
-  it('limits mobile fullscreen input rendering to the constrained month segment', async () => {
+  it('skips unavailable months in the mobile fullscreen input', async () => {
     await runWithDesktopWidth(async () => {
       const wrapper = render(VAdvancedDateInput, {
         props: {
@@ -849,7 +850,7 @@ describe('VAdvancedDateInput', () => {
       try {
         await wrapper.vm.$nextTick()
 
-        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+        expect(monthLabels(wrapper)).toEqual(['February 2026', 'April 2026'])
       } finally {
         wrapper.unmount()
       }

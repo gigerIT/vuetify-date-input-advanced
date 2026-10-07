@@ -456,6 +456,49 @@ and become readonly while the dialog is opening or open to avoid showing the
 touchscreen keyboard. Custom `activator` slots own their own mobile focus and
 keyboard behavior.
 
+### Unavailable Month Gaps
+
+Both views skip months with no selectable dates under the current selection
+constraints. With two desktop calendar slots, October 2026 and March 2027 can
+appear together. With one slot, the month arrows jump directly between them.
+Mobile places a localized “No available dates” separator between the calendars
+instead of rendering each empty month. Desktop also identifies the skipped
+period, and Page Up / Page Down use the same month search.
+
+```vue
+<v-advanced-date-picker
+  :range="false"
+  :months="2"
+  :month="9"
+  :year="2026"
+  :min="new Date(2026, 9, 1)"
+  :max="new Date(2027, 2, 31)"
+  :allowed-dates="date =>
+    date.getDate() === 10 && (
+      (date.getFullYear() === 2026 && date.getMonth() === 9) ||
+      (date.getFullYear() === 2027 && date.getMonth() === 2)
+    )"
+/>
+```
+
+Supply `min` and `max` when the availability bounds are known. A callback alone
+cannot establish that no later or earlier dates exist. Searches start with a
+12-month span; “Search earlier dates” and “Search later dates” extend it in
+12-month increments. Reaching the search limit keeps that direction available.
+Only reaching a date bound disables it. Fewer than `months` calendars can be
+shown while a search awaits continuation or reaches a bound.
+
+The displayed month and selected endpoint months stay visible when availability
+changes during a range selection. Day selection still applies `allowedDates`,
+`allowedStartDates`, and `allowedEndDates` for the active field. The mobile list
+retains at most ten calendars while loading earlier or later months.
+
+Gap notices, search controls, and navigation hints use the optional
+`dateInputAdvanced.navigation` locale namespace (`unavailablePeriod`,
+`searchEarlier`, `searchLater`, `searchedEarlier`, `searchedLater`, and
+`jumpToMonth`). Defaults are included for all six bundled locales; consumer
+messages override them.
+
 ### Apply / Cancel
 
 `autoApply` controls calendar click behavior:
@@ -474,7 +517,7 @@ These props are accepted by both `VAdvancedDateInput` and `VAdvancedDatePicker`.
 | `modelValue`        | `AdvancedDateModel<TDate>`                                           | `null`                    | Current value                                                                                                     |
 | `range`             | `boolean`                                                            | `true`                    | Set `false` for single-date mode                                                                                  |
 | `returnObject`      | `boolean`                                                            | `false`                   | Range mode only; emits `{ start, end }` instead of a tuple                                                        |
-| `months`            | `number`                                                             | `2`                       | Visible month count, clamped to at least `1`                                                                      |
+| `months`            | `number`                                                             | `2`                       | Calendar slots, clamped to at least `1`; unavailable months are skipped                                                                      |
 | `month`             | `number \| undefined`                                                | current month             | Leading visible month                                                                                             |
 | `year`              | `number \| undefined`                                                | current year              | Leading visible year                                                                                              |
 | `presets`           | `PresetRange<TDate>[] \| undefined`                                  | built-in range presets    | Ignored when `range=false`                                                                                        |

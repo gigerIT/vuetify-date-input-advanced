@@ -432,7 +432,7 @@ describe('VAdvancedDatePicker', () => {
     })
   })
 
-  it('stops standalone mobile fullscreen rendering before an unavailable gap month', async () => {
+  it('skips unavailable months in standalone mobile fullscreen rendering', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
         props: {
@@ -450,7 +450,7 @@ describe('VAdvancedDatePicker', () => {
       try {
         await wrapper.vm.$nextTick()
 
-        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+        expect(monthLabels(wrapper)).toEqual(['February 2026', 'April 2026'])
       } finally {
         wrapper.unmount()
       }
@@ -639,7 +639,7 @@ describe('VAdvancedDatePicker', () => {
     })
   })
 
-  it('limits standalone mobile inline rendering to the constrained segment', async () => {
+  it('skips unavailable months in standalone mobile inline rendering', async () => {
     await runWithWindowWidth(async () => {
       const wrapper = render(VAdvancedDatePicker, {
         props: {
@@ -657,7 +657,7 @@ describe('VAdvancedDatePicker', () => {
       try {
         await wrapper.vm.$nextTick()
 
-        expect(monthLabels(wrapper)).toEqual(['February 2026'])
+        expect(monthLabels(wrapper)).toEqual(['February 2026', 'April 2026'])
       } finally {
         wrapper.unmount()
       }
@@ -1259,7 +1259,7 @@ describe('VAdvancedDatePicker', () => {
     expect(wrapper.emitted('update:year')).toBeUndefined()
   })
 
-  it('disables next navigation when the revealed month has no selectable dates', () => {
+  it('disables next navigation when no selectable dates remain before max', () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
         modelValue: null,
@@ -1267,6 +1267,7 @@ describe('VAdvancedDatePicker', () => {
         year: 2026,
         months: 1,
         allowedDates: allowOnly('2026-01-15', '2026-02-05'),
+        max: new Date(2026, 3, 30),
       },
     })
 
@@ -1288,6 +1289,7 @@ describe('VAdvancedDatePicker', () => {
         year: 2026,
         months: 1,
         autoApply: false,
+        max: new Date(2026, 1, 28),
         allowedStartDates: allowOnly('2026-01-20', '2026-02-10'),
         allowedEndDates: allowOnly('2026-01-25'),
       },
@@ -1306,7 +1308,7 @@ describe('VAdvancedDatePicker', () => {
     ).toBeDefined()
   })
 
-  it('does not skip a fully unavailable adjacent month when a later month is selectable', () => {
+  it('skips a fully unavailable adjacent month when a later month is selectable', async () => {
     const wrapper = render(VAdvancedDatePicker, {
       props: {
         modelValue: null,
@@ -1319,7 +1321,10 @@ describe('VAdvancedDatePicker', () => {
 
     expect(
       wrapper.find('button[aria-label="Next month"]').attributes('disabled'),
-    ).toBeDefined()
+    ).toBeUndefined()
+    await wrapper.get('button[aria-label="Next month"]').trigger('click')
+    expect(monthLabels(wrapper).at(-1)).toBe('April 2026')
+    expect(wrapper.get('[data-date="2026-04-10"]').attributes('disabled')).toBeUndefined()
   })
 
   it('renders built-in picker strings from the active locale', () => {

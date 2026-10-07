@@ -19,6 +19,7 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
   containerRef: Ref<HTMLElement | null>
   monthsTrackRef: Ref<HTMLElement | null>
   ensureDateVisible: (date: TDate) => Promise<void>
+  onPageDate: (date: TDate, direction: -1 | 1, byYear: boolean) => void
   onSelect: (date: TDate) => void
   onEscape: () => void
 }) {
@@ -101,13 +102,23 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     const direction = options.adapter.isBefore(date, referenceDate) ? -1 : 1
     const direct = dayButtonLookup.value.get(targetKey)?.button ?? null
     const button = direct?.disabled
-      ? findFocusableButton(targetKey, direction)
+      ? (findFocusableButton(targetKey, direction) ??
+        dayButtons.value.find((candidate) => {
+          const key = candidate.dataset.date
+          const candidateDate = key ? dayIndex.value.dateByKey.get(key) : null
+          return (
+            !candidate.disabled &&
+            candidateDate &&
+            options.adapter.isSameMonth(candidateDate, date)
+          )
+        }) ??
+        null)
       : direct
 
     button?.focus()
 
     const resolved = button?.dataset.date
-      ? dayIndex.value.dateByKey.get(button.dataset.date) ?? null
+      ? (dayIndex.value.dateByKey.get(button.dataset.date) ?? null)
       : null
     if (resolved) focus.setActiveDate(resolved)
   }
@@ -138,6 +149,7 @@ export function useAdvancedDatePickerFocus<TDate>(options: {
     adapter: options.adapter,
     firstDayOfWeek: options.firstDayOfWeek,
     onFocusDate: focusDate,
+    onPageDate: options.onPageDate,
     onSelect: options.onSelect,
     onEscape: options.onEscape,
   })

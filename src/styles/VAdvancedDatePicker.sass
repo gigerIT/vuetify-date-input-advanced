@@ -290,3 +290,29 @@
 
 .v-advanced-date-picker__preset.v-list-item--active
   background: $advanced-date-picker-preset-active-bg
+
+.v-advanced-date-picker__gap
+  display: flex
+  align-items: center
+  gap: 12px
+  padding-block: 12px
+  font-size: 0.75rem
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity))
+  text-align: center
+  overflow-wrap: anywhere
+  &::before,
+  &::after
+    content: ''
+    flex: 1 0 12px
+    border-block-start: 1px dashed rgba(var(--v-border-color), var(--v-border-opacity))
+
+.v-advanced-date-picker__search
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  justify-content: center
+  gap: 4px 12px
+  padding-block: 8px
+  font-size: 0.75rem
+  text-align: center
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity))

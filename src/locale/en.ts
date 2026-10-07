@@ -14,6 +14,14 @@ export const dateInputAdvancedEn: DateInputAdvancedLocaleMessages = {
       previousMonth: 'Previous month',
       nextMonth: 'Next month',
     },
+    navigation: {
+      unavailablePeriod: 'No available dates: {0}',
+      searchEarlier: 'Search earlier dates',
+      searchLater: 'Search later dates',
+      searchedEarlier: 'No earlier dates found back to {0}',
+      searchedLater: 'No later dates found through {0}',
+      jumpToMonth: 'Go to {0}',
+    },
     errors: {
       invalidDate: 'Enter a valid date',
       unavailableDate: 'Date is unavailable',

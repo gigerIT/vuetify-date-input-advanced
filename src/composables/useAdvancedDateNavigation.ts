@@ -3,10 +3,12 @@ import { computed, ref, watch, type Ref } from 'vue'
 import type {
   AdvancedDateAdapter,
   AdvancedDateInputField,
-  DateBounds,
   NormalizedRange,
 } from '@/types'
-import { monthHasSelectableDate } from '@/util/dates'
+import {
+  MONTH_SEARCH_BATCH,
+  type MonthAvailability,
+} from './useAdvancedDateMonthAvailability'
 
 function currentDate<TDate>(adapter: AdvancedDateAdapter<TDate>): TDate {
   return adapter.startOfDay(adapter.date() as TDate)
@@ -34,9 +36,7 @@ export function useAdvancedDateNavigation<TDate>(options: {
   year: Ref<number>
   min: Ref<TDate | null | undefined>
   max: Ref<TDate | null | undefined>
-  allowedDates: Ref<((date: TDate) => boolean) | undefined>
-  allowedStartDates: Ref<((date: TDate) => boolean) | undefined>
-  allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
+  availability: MonthAvailability<TDate>
   onMonthChange?: (month: number) => void
   onYearChange?: (year: number) => void
 }) {
@@ -48,27 +48,33 @@ export function useAdvancedDateNavigation<TDate>(options: {
     ),
   )
 
+  const forwardSpan = ref(MONTH_SEARCH_BATCH)
+  const backwardSpan = ref(MONTH_SEARCH_BATCH)
+
+  function leadingMonthForEnd(date: TDate) {
+    let month = options.adapter.startOfMonth(date)
+    for (let index = 1; index < options.months.value; index++) {
+      const previous = options.availability.find(month, -1, backwardSpan.value)
+      if (previous.kind !== 'found') break
+      month = previous.month
+    }
+    return month
+  }
+
   function clampDisplayedMonth(date: TDate): TDate {
     let next = options.adapter.startOfMonth(date)
-
+    if (options.max.value) {
+      const lastLeading = leadingMonthForEnd(options.max.value)
+      if (options.adapter.isAfter(next, lastLeading)) next = lastLeading
+    }
     if (options.min.value) {
       const minMonth = options.adapter.startOfMonth(options.min.value)
       if (options.adapter.isBefore(next, minMonth)) next = minMonth
     }
-
-    if (options.max.value) {
-      const maxMonth = options.adapter.startOfMonth(options.max.value)
-      const lastAllowedLeadingMonth = options.adapter.addMonths(
-        maxMonth,
-        -(options.months.value - 1),
-      )
-      if (options.adapter.isAfter(next, lastAllowedLeadingMonth)) {
-        next = lastAllowedLeadingMonth
-      }
-    }
-
-    return options.adapter.startOfMonth(next)
+    return next
   }
+
+  displayedMonth.value = clampDisplayedMonth(displayedMonth.value)
 
   function syncMonth(date: TDate, notify = true) {
     const next = clampDisplayedMonth(date)
@@ -86,60 +92,48 @@ export function useAdvancedDateNavigation<TDate>(options: {
     if (year !== options.year.value) options.onYearChange?.(year)
   }
 
-  const visibleMonths = computed(() => {
-    return Array.from(
-      { length: Math.max(1, options.months.value) },
-      (_, index) => {
-        return options.adapter.startOfMonth(
-          options.adapter.addMonths(displayedMonth.value, index),
-        )
-      },
-    )
+  const window = computed(() =>
+    options.availability.collect(
+      displayedMonth.value,
+      options.months.value,
+      forwardSpan.value,
+    ),
+  )
+  const visibleMonths = computed<TDate[]>((previous) => {
+    const months = window.value.months
+    return previous?.length === months.length &&
+      months.every((month, index) =>
+        options.adapter.isSameMonth(month, previous[index]),
+      )
+      ? previous
+      : months
   })
-
-  const constraints = computed<DateBounds<TDate>>(() => ({
-    min: options.min.value,
-    max: options.max.value,
-    allowedDates: options.allowedDates.value,
-    allowedStartDates: options.allowedStartDates.value,
-    allowedEndDates: options.allowedEndDates.value,
-  }))
-
-  function canNavigateToMonth(month: TDate) {
-    return monthHasSelectableDate(
-      options.adapter,
-      month,
-      options.selection.value,
-      options.range.value,
-      constraints.value,
-      options.selectionTargetField.value,
-    )
-  }
-
-  const canPrev = computed(() => {
-    const prevRevealedMonth = options.adapter.startOfMonth(
-      options.adapter.addMonths(displayedMonth.value, -1),
-    )
-
-    return canNavigateToMonth(prevRevealedMonth)
-  })
-
-  const canNext = computed(() => {
-    const nextRevealedMonth = options.adapter.startOfMonth(
-      options.adapter.addMonths(displayedMonth.value, options.months.value),
-    )
-
-    return canNavigateToMonth(nextRevealedMonth)
-  })
+  const previous = computed(() =>
+    options.availability.find(displayedMonth.value, -1, backwardSpan.value),
+  )
+  const next = computed(() => window.value.next)
+  const canPrev = computed(() => previous.value.kind !== 'boundary')
+  const canNext = computed(() => next.value.kind !== 'boundary')
 
   function prevMonth() {
-    if (!canPrev.value) return
-    syncMonth(options.adapter.addMonths(displayedMonth.value, -1))
+    if (previous.value.kind === 'pending')
+      backwardSpan.value += MONTH_SEARCH_BATCH
+    const result = previous.value
+    if (result.kind === 'found') {
+      forwardSpan.value = Math.max(forwardSpan.value, backwardSpan.value)
+      syncMonth(result.month)
+    }
   }
 
   function nextMonth() {
-    if (!canNext.value) return
-    syncMonth(options.adapter.addMonths(displayedMonth.value, 1))
+    const previousCount = visibleMonths.value.length
+    if (next.value.kind === 'pending') forwardSpan.value += MONTH_SEARCH_BATCH
+    // Continuing a search can fill an empty calendar slot in the current view.
+    if (visibleMonths.value.length > previousCount) return
+    const result = next.value
+    if (result.kind === 'found') {
+      syncMonth(visibleMonths.value[1] ?? result.month)
+    }
   }
 
   function selectionViewportAnchor() {
@@ -152,10 +146,7 @@ export function useAdvancedDateNavigation<TDate>(options: {
     ) {
       return {
         anchor: selection.end,
-        displayedMonth: options.adapter.addMonths(
-          selection.end,
-          -(options.months.value - 1),
-        ),
+        displayedMonth: leadingMonthForEnd(selection.end),
       }
     }
 
@@ -198,16 +189,15 @@ export function useAdvancedDateNavigation<TDate>(options: {
     { immediate: true },
   )
 
-  watch(
-    () => options.months.value,
-    () => {
-      syncMonth(displayedMonth.value, false)
-    },
-  )
+  watch([options.months, options.min, options.max], () => {
+    syncMonth(displayedMonth.value, false)
+  })
 
   return {
     displayedMonth,
     visibleMonths,
+    previous,
+    next,
     canPrev,
     canNext,
     prevMonth,

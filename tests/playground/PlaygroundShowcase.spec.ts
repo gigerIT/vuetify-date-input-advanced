@@ -287,52 +287,58 @@ describe('Playground showcase', () => {
     wrapper.unmount()
   })
 
-  it('shows the expected disabled arrow states for each constrained demo', () => {
-    const wrapper = render(PlaygroundAdvancedTab, {
-      global: {
-        plugins: [AdvancedDatePlugin],
-      },
-    })
+  it('shows the expected disabled arrow states for each constrained demo', async () => {
+    await runWithWindowWidth(async () => {
+      const wrapper = render(PlaygroundAdvancedTab, {
+        global: {
+          plugins: [AdvancedDatePlugin],
+        },
+      })
 
-    const hardBounds = wrapper.get(
-      '[data-testid="playground-edge-hard-bounds"]',
-    )
-    expect(
-      hardBounds
-        .find('button[aria-label="Previous month"]')
-        .attributes('disabled'),
-    ).toBeDefined()
-    expect(
-      hardBounds.find('button[aria-label="Next month"]').attributes('disabled'),
-    ).toBeDefined()
+      const hardBounds = wrapper.get(
+        '[data-testid="playground-edge-hard-bounds"]',
+      )
+      expect(
+        hardBounds
+          .find('button[aria-label="Previous month"]')
+          .attributes('disabled'),
+      ).toBeDefined()
+      expect(
+        hardBounds
+          .find('button[aria-label="Next month"]')
+          .attributes('disabled'),
+      ).toBeDefined()
 
-    const revealedMonth = wrapper.get(
-      '[data-testid="playground-edge-revealed-month"]',
-    )
-    expect(
-      revealedMonth
-        .find('button[aria-label="Previous month"]')
-        .attributes('disabled'),
-    ).toBeUndefined()
-    expect(
-      revealedMonth
-        .find('button[aria-label="Next month"]')
-        .attributes('disabled'),
-    ).toBeDefined()
+      const revealedMonth = wrapper.get(
+        '[data-testid="playground-edge-revealed-month"]',
+      )
+      expect(
+        revealedMonth
+          .find('button[aria-label="Previous month"]')
+          .attributes('disabled'),
+      ).toBeUndefined()
+      expect(
+        revealedMonth
+          .find('button[aria-label="Next month"]')
+          .attributes('disabled'),
+      ).toBeDefined()
 
-    const draftRange = wrapper.get(
-      '[data-testid="playground-edge-draft-range"]',
-    )
-    expect(
-      draftRange.find('button[aria-label="Next month"]').attributes('disabled'),
-    ).toBeDefined()
+      const draftRange = wrapper.get(
+        '[data-testid="playground-edge-draft-range"]',
+      )
+      expect(
+        draftRange
+          .find('button[aria-label="Next month"]')
+          .attributes('disabled'),
+      ).toBeDefined()
 
-    const gapMonth = wrapper.get('[data-testid="playground-edge-gap-month"]')
-    expect(
-      gapMonth.find('button[aria-label="Next month"]').attributes('disabled'),
-    ).toBeDefined()
+      const gapMonth = wrapper.get('[data-testid="playground-edge-gap-month"]')
+      expect(
+        gapMonth.find('button[aria-label="Next month"]').attributes('disabled'),
+      ).toBeUndefined()
 
-    wrapper.unmount()
+      wrapper.unmount()
+    }, 1440)
   })
 
   it('shows the constrained mobile fullscreen month limit in the advanced tab', async () => {

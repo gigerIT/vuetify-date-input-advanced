@@ -1,20 +1,11 @@
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  ref,
-  shallowRef,
-  watch,
-  type Ref,
-} from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 
-import type {
-  AdvancedDateAdapter,
-  AdvancedDateInputField,
-  DateBounds,
-  NormalizedRange,
-} from '@/types'
-import { dateKey, monthHasSelectableDate } from '@/util/dates'
+import type { AdvancedDateAdapter, NormalizedRange } from '@/types'
+import { dateKey } from '@/util/dates'
+import {
+  MONTH_SEARCH_BATCH,
+  type MonthAvailability,
+} from './useAdvancedDateMonthAvailability'
 
 const MOBILE_INITIAL_PREVIOUS_MONTHS = 1
 const MOBILE_INITIAL_NEXT_MONTHS = 5
@@ -23,6 +14,7 @@ const MOBILE_MAX_RENDERED_MONTHS = 10
 
 export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
+  availability: MonthAvailability<TDate>
   desktopVisibleMonths: Ref<TDate[]>
   displayedMonth: Ref<TDate>
   setDisplayedMonth: (month: TDate) => void
@@ -31,19 +23,13 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   isMobileFullscreen: Ref<boolean>
   months: Ref<number>
   selection: Ref<NormalizedRange<TDate>>
-  selectionTargetField: Ref<AdvancedDateInputField | null>
-  range: Ref<boolean>
-  min: Ref<TDate | null | undefined>
-  max: Ref<TDate | null | undefined>
-  allowedDates: Ref<((date: TDate) => boolean) | undefined>
-  allowedStartDates: Ref<((date: TDate) => boolean) | undefined>
-  allowedEndDates: Ref<((date: TDate) => boolean) | undefined>
 }) {
   const containerRef = ref<HTMLElement | null>(null)
   const monthsTrackRef = ref<HTMLElement | null>(null)
   const mobileWindowStart = ref<TDate | null>(null)
   const mobileWindowCount = ref(0)
-  const mobileVisibleMonths = shallowRef<TDate[]>([])
+  const forwardSpan = ref(MONTH_SEARCH_BATCH)
+  const backwardSpan = ref(MONTH_SEARCH_BATCH)
   const mobileInlineHeight = ref<number | null>(null)
   const mobileMutating = ref(false)
   const pendingMobileScrollMonthKey = ref('')
@@ -53,135 +39,52 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     Math.max(options.months.value + MOBILE_INITIAL_NEXT_MONTHS, 7),
   )
 
-  const constraints = computed<DateBounds<TDate>>(() => ({
-    min: options.min.value,
-    max: options.max.value,
-    allowedDates: options.allowedDates.value,
-    allowedStartDates: options.allowedStartDates.value,
-    allowedEndDates: options.allowedEndDates.value,
-  }))
-
-  function canRenderMonth(month: TDate) {
-    return monthHasSelectableDate(
-      options.adapter,
-      month,
-      options.selection.value,
-      options.range.value,
-      constraints.value,
-      options.selectionTargetField.value,
-    )
-  }
-
-  function buildMobileMonthWindow(
-    start: TDate,
-    count: number,
-    keepThroughMonth = options.displayedMonth.value,
-  ): TDate[] {
-    const months: TDate[] = []
-    const anchor = options.adapter.startOfMonth(keepThroughMonth)
-
-    for (let index = 0; index < count; index += 1) {
-      const month = options.adapter.startOfMonth(
-        options.adapter.addMonths(start, index),
+  const window = computed(() =>
+    mobileWindowStart.value
+      ? options.availability.collect(
+          mobileWindowStart.value,
+          mobileWindowCount.value,
+          forwardSpan.value,
+          [options.displayedMonth.value],
+        )
+      : { months: [], next: { kind: 'boundary' as const } },
+  )
+  const mobileVisibleMonths = computed<TDate[]>((previous) => {
+    const months = window.value.months
+    return previous?.length === months.length &&
+      months.every((month, index) =>
+        options.adapter.isSameMonth(month, previous[index]),
       )
-
-      if (!months.length) {
-        months.push(month)
-        continue
-      }
-
-      if (
-        options.adapter.isBefore(month, anchor) ||
-        options.adapter.isSameMonth(month, anchor)
-      ) {
-        months.push(month)
-        continue
-      }
-
-      if (!canRenderMonth(month)) {
-        break
-      }
-
-      months.push(month)
-    }
-
-    return months
-  }
-
-  function createWindowStart(anchor: TDate) {
-    let start = options.adapter.startOfMonth(anchor)
-
-    for (let index = 0; index < MOBILE_INITIAL_PREVIOUS_MONTHS; index += 1) {
-      const previous = options.adapter.startOfMonth(
-        options.adapter.addMonths(start, -1),
-      )
-
-      if (!canRenderMonth(previous)) break
-
-      start = previous
-    }
-
-    return start
-  }
-
-  function syncMobileVisibleMonths(keepThroughMonth = options.displayedMonth.value) {
-    if (!mobileWindowStart.value) {
-      mobileVisibleMonths.value = []
-      return
-    }
-
-    mobileVisibleMonths.value = buildMobileMonthWindow(
-      mobileWindowStart.value,
-      mobileWindowCount.value,
-      keepThroughMonth,
-    )
-  }
-
-  function latestPreservedMonth() {
-    let preservedMonth = options.adapter.startOfMonth(options.displayedMonth.value)
-
-    for (const date of [
-      options.selection.value.start,
-      options.selection.value.end,
-    ]) {
-      if (!date) continue
-
-      const candidate = options.adapter.startOfMonth(date)
-
-      if (options.adapter.isAfter(candidate, preservedMonth)) {
-        preservedMonth = candidate
-      }
-    }
-
-    return preservedMonth
-  }
+      ? previous
+      : months
+  })
+  const previous = computed(() =>
+    mobileWindowStart.value
+      ? options.availability.find(
+          mobileWindowStart.value,
+          -1,
+          backwardSpan.value,
+        )
+      : { kind: 'boundary' as const },
+  )
+  const next = computed(() => window.value.next)
 
   function resetWindow(anchor: TDate) {
     const targetMonth = options.adapter.startOfMonth(anchor)
-
-    mobileWindowStart.value = createWindowStart(targetMonth)
-    mobileWindowCount.value = mobileWindowBaseCount.value
-    syncMobileVisibleMonths()
-    pendingMobileScrollMonthKey.value = dateKey(options.adapter, targetMonth)
-  }
-
-  function rebuildWindowFromAvailabilityChange(anchor: TDate) {
-    if (!mobileWindowStart.value || !mobileWindowCount.value) {
-      resetWindow(anchor)
-      return
+    forwardSpan.value = MONTH_SEARCH_BATCH
+    backwardSpan.value = MONTH_SEARCH_BATCH
+    let start = targetMonth
+    for (let index = 0; index < MOBILE_INITIAL_PREVIOUS_MONTHS; index++) {
+      const result = options.availability.find(start, -1)
+      if (result.kind !== 'found') break
+      start = result.month
     }
-
-    // Rebuild cached months without recentering when only availability inputs
-    // change, so the current mobile anchor stays stable when possible.
-    syncMobileVisibleMonths(latestPreservedMonth())
-
-    const displayedMonthStillVisible = mobileVisibleMonths.value.some((month) =>
-      options.adapter.isSameMonth(month, options.displayedMonth.value),
+    mobileWindowStart.value = start
+    mobileWindowCount.value = Math.min(
+      mobileWindowBaseCount.value,
+      MOBILE_MAX_RENDERED_MONTHS,
     )
-
-    if (!mobileVisibleMonths.value.length || !displayedMonthStillVisible) {
-      resetWindow(anchor)
-    }
+    pendingMobileScrollMonthKey.value = dateKey(options.adapter, targetMonth)
   }
 
   const visibleMonths = computed(() =>
@@ -231,7 +134,8 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
 
   function findMonthElement(key: string) {
     return (
-      getMonthElements().find((element) => element.dataset.month === key) ?? null
+      getMonthElements().find((element) => element.dataset.month === key) ??
+      null
     )
   }
 
@@ -258,15 +162,18 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     const months = getMonthElements().slice(0, options.months.value)
     if (!months.length) return
 
-    const trackStyles = monthsTrackRef.value
-      ? getComputedStyle(monthsTrackRef.value)
+    // Measure calendar offsets, which include gap indicators between months.
+    const first = months[0]
+    const last = months.at(-1)!
+    const padding = containerRef.value
+      ? getComputedStyle(containerRef.value)
       : null
-    const gap =
-      Number.parseFloat(trackStyles?.rowGap || trackStyles?.gap || '0') || 0
-
     mobileInlineHeight.value =
-      months.reduce((height, month) => height + month.offsetHeight, 0) +
-      gap * Math.max(months.length - 1, 0)
+      last.offsetTop +
+      last.offsetHeight -
+      first.offsetTop +
+      (Number.parseFloat(padding?.paddingTop || '0') || 0) +
+      (Number.parseFloat(padding?.paddingBottom || '0') || 0)
   }
 
   function captureMonthScrollReference() {
@@ -312,93 +219,58 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     if (month) options.setDisplayedMonth(month)
   }
 
-  async function prependMobileMonths() {
+  async function prependMobileMonths(continueSearch = false) {
     if (
       !options.isMobileScroll.value ||
       mobileMutating.value ||
       !mobileWindowStart.value
-    ) {
-      return
-    }
-
-    let added = 0
-
-    for (let index = 1; index <= MOBILE_LOAD_MONTH_STEP; index += 1) {
-      const month = options.adapter.startOfMonth(
-        options.adapter.addMonths(mobileWindowStart.value, -index),
-      )
-
-      if (!canRenderMonth(month)) break
-
-      added += 1
-    }
-
-    if (!added) return
-
-    const reference = captureMonthScrollReference()
-
-    mobileMutating.value = true
-    mobileWindowStart.value = options.adapter.startOfMonth(
-      options.adapter.addMonths(mobileWindowStart.value, -added),
     )
+      return
+    if (continueSearch && previous.value.kind === 'pending')
+      backwardSpan.value += MONTH_SEARCH_BATCH
+    const added: TDate[] = []
+    let first = mobileWindowStart.value
+    for (let index = 0; index < MOBILE_LOAD_MONTH_STEP; index++) {
+      const result = options.availability.find(first, -1, backwardSpan.value)
+      if (result.kind !== 'found') break
+      added.unshift(result.month)
+      first = result.month
+    }
+    if (!added.length) return
+    const reference = captureMonthScrollReference()
+    mobileMutating.value = true
+    // Keep the already rendered far edge reachable after prepending across a gap.
+    forwardSpan.value = Math.max(forwardSpan.value, backwardSpan.value)
     mobileWindowCount.value = Math.min(
-      mobileWindowCount.value + added,
+      mobileVisibleMonths.value.length + added.length,
       MOBILE_MAX_RENDERED_MONTHS,
     )
-    syncMobileVisibleMonths()
-
+    mobileWindowStart.value = first
     await nextTick()
     restoreMonthScrollReference(reference)
     mobileMutating.value = false
   }
 
-  async function appendMobileMonths() {
+  async function appendMobileMonths(continueSearch = false) {
     if (
       !options.isMobileScroll.value ||
       mobileMutating.value ||
       !mobileWindowStart.value
-    ) {
+    )
       return
-    }
-
-    const renderedMonths = mobileVisibleMonths.value
-    const lastMonth = renderedMonths.at(-1)
-    if (!lastMonth) return
-
-    let added = 0
-
-    for (let index = 1; index <= MOBILE_LOAD_MONTH_STEP; index += 1) {
-      const month = options.adapter.startOfMonth(
-        options.adapter.addMonths(lastMonth, index),
-      )
-
-      if (!canRenderMonth(month)) break
-
-      added += 1
-    }
-
-    if (!added) return
-
-    const overflow = Math.max(
-      mobileWindowCount.value + added - MOBILE_MAX_RENDERED_MONTHS,
-      0,
-    )
     const reference = captureMonthScrollReference()
-
     mobileMutating.value = true
-
-    if (overflow) {
-      mobileWindowStart.value = options.adapter.startOfMonth(
-        options.adapter.addMonths(mobileWindowStart.value, overflow),
-      )
-    }
-
-    mobileWindowCount.value = Math.min(
-      mobileWindowCount.value + added,
-      MOBILE_MAX_RENDERED_MONTHS,
-    )
-    syncMobileVisibleMonths()
-
+    if (continueSearch && next.value.kind === 'pending')
+      forwardSpan.value += MONTH_SEARCH_BATCH
+    const expanded = options.availability.collect(
+      mobileWindowStart.value,
+      mobileVisibleMonths.value.length + MOBILE_LOAD_MONTH_STEP,
+      forwardSpan.value,
+      [options.displayedMonth.value],
+    ).months
+    const retained = expanded.slice(-MOBILE_MAX_RENDERED_MONTHS)
+    mobileWindowCount.value = retained.length
+    mobileWindowStart.value = retained[0]
     await nextTick()
     restoreMonthScrollReference(reference)
     mobileMutating.value = false
@@ -444,15 +316,11 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
   }
 
   watch(
-    [
-      options.isMobileScroll,
-      options.displayedMonth,
-    ],
+    [options.isMobileScroll, options.displayedMonth],
     ([mobile, displayedMonth]) => {
       if (!mobile) {
         mobileWindowStart.value = null
         mobileWindowCount.value = 0
-        mobileVisibleMonths.value = []
         mobileInlineHeight.value = null
         return
       }
@@ -473,37 +341,24 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
       const anchorMonth =
         options.selection.value.start ?? options.displayedMonth.value
 
-      if (options.selectionChangeOrigin.value === 'internal') {
-        rebuildWindowFromAvailabilityChange(anchorMonth)
-        return
-      }
+      // The computed window tracks availability. Internal picks retain the
+      // current scroll anchor while filtering and refilling surrounding months.
+      if (options.selectionChangeOrigin.value === 'internal') return
 
       resetWindow(anchorMonth)
     },
   )
 
-  watch(
-    [
-      options.range,
-      options.min,
-      options.max,
-      options.allowedDates,
-      options.allowedStartDates,
-      options.allowedEndDates,
-    ],
-    () => {
-      if (!options.isMobileScroll.value) return
-
-      resetWindow(options.displayedMonth.value)
-    },
-  )
-
-  watch(options.selectionTargetField, () => {
+  watch(options.availability.constraints, () => {
     if (!options.isMobileScroll.value) return
 
-    rebuildWindowFromAvailabilityChange(
-      options.selection.value.start ?? options.displayedMonth.value,
-    )
+    resetWindow(options.displayedMonth.value)
+  })
+
+  watch(mobileVisibleMonths, () => {
+    if (!options.isMobileScroll.value || mobileMutating.value) return
+    const reference = captureMonthScrollReference()
+    void nextTick(() => restoreMonthScrollReference(reference))
   })
 
   onBeforeUnmount(() => {
@@ -516,6 +371,10 @@ export function useAdvancedDatePickerMobileWindow<TDate>(options: {
     monthsTrackRef,
     setMonthsTrackRef,
     visibleMonths,
+    previous,
+    next,
+    prependMobileMonths,
+    appendMobileMonths,
     monthsTrackKey,
     monthsStyle,
     onMonthsScroll,

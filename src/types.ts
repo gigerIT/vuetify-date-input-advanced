@@ -173,6 +173,14 @@ export interface DateInputAdvancedLocaleMessages {
       previousMonth: string
       nextMonth: string
     }
+    navigation?: {
+      unavailablePeriod: string
+      searchEarlier: string
+      searchLater: string
+      searchedEarlier: string
+      searchedLater: string
+      jumpToMonth: string
+    }
     errors: {
       invalidDate: string
       unavailableDate: string

@@ -14,6 +14,14 @@ export const dateInputAdvancedCs: DateInputAdvancedLocaleMessages = {
       previousMonth: 'Předchozí měsíc',
       nextMonth: 'Následující měsíc',
     },
+    navigation: {
+      unavailablePeriod: 'Žádná dostupná data: {0}',
+      searchEarlier: 'Hledat dřívější data',
+      searchLater: 'Hledat pozdější data',
+      searchedEarlier: 'Žádná dřívější data nalezena až do {0}',
+      searchedLater: 'Žádná pozdější data nalezena až do {0}',
+      jumpToMonth: 'Přejít na {0}',
+    },
     errors: {
       invalidDate: 'Zadejte platné datum',
       unavailableDate: 'Datum není k dispozici',

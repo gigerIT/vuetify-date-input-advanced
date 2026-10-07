@@ -7,6 +7,7 @@ export function useRovingFocus<TDate>(options: {
   adapter: AdvancedDateAdapter<TDate>
   firstDayOfWeek?: Ref<number | string | undefined>
   onFocusDate?: (date: TDate) => void
+  onPageDate?: (date: TDate, direction: -1 | 1, byYear: boolean) => void
   onSelect?: (date: TDate) => void
   onEscape?: () => void
 }) {
@@ -49,11 +50,21 @@ export function useRovingFocus<TDate>(options: {
         next = options.adapter.addDays(getWeekStart(date), 6)
         break
       case 'PageUp':
+        if (options.onPageDate) {
+          event.preventDefault()
+          options.onPageDate(date, -1, event.shiftKey)
+          return
+        }
         next = event.shiftKey
           ? options.adapter.setYear(date, options.adapter.getYear(date) - 1)
           : options.adapter.addMonths(date, -1)
         break
       case 'PageDown':
+        if (options.onPageDate) {
+          event.preventDefault()
+          options.onPageDate(date, 1, event.shiftKey)
+          return
+        }
         next = event.shiftKey
           ? options.adapter.setYear(date, options.adapter.getYear(date) + 1)
           : options.adapter.addMonths(date, 1)

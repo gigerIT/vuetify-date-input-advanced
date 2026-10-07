@@ -14,6 +14,14 @@ export const dateInputAdvancedLt: DateInputAdvancedLocaleMessages = {
       previousMonth: 'Ankstesnis mėnuo',
       nextMonth: 'Kitas mėnuo',
     },
+    navigation: {
+      unavailablePeriod: 'Nėra galimų datų: {0}',
+      searchEarlier: 'Ieškoti ankstesnių datų',
+      searchLater: 'Ieškoti vėlesnių datų',
+      searchedEarlier: 'Ankstesnių datų nerasta iki {0}',
+      searchedLater: 'Vėlesnių datų nerasta iki {0}',
+      jumpToMonth: 'Pereiti į {0}',
+    },
     errors: {
       invalidDate: 'Įveskite tinkamą datą',
       unavailableDate: 'Datos pasirinkti negalima',
