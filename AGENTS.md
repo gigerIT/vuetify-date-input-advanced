@@ -279,6 +279,11 @@ npm run build
   inputs change, including internal partial/completed range picks and
   start/end target-field phase changes; preserving the current anchor must not
   leave stale non-selectable months rendered.
+- Availability callbacks can allow disconnected months. Verify reachability
+  across empty months in both directions on desktop and mobile; an empty month
+  does not establish the end of availability. Existing gap tests and the
+  Advanced playground demo currently assert the stopping behavior and need
+  updating when gap navigation is fixed.
 - Built-in `VAdvancedDateInput` activators must suppress control-focus on
   mobile fullscreen presses and become readonly while the dialog is opening or
   open so touch devices do not show the virtual keyboard; custom activator

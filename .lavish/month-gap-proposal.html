@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Available months across gaps — fix proposal</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --primary: #1867c0;
+        --surface: #fff;
+        --back: #f5f6f8;
+        --text: #242424;
+        --muted: #666;
+        --border: #dfe2e7;
+        --tonal: #eaf2fc;
+        --error: #b00020;
+        --shadow: 0 2px 8px #0000000b;
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --primary: #69afff;
+        --surface: #212121;
+        --back: #121212;
+        --text: #eee;
+        --muted: #bbb;
+        --border: #424242;
+        --tonal: #1c3048;
+        --error: #ffb4b9;
+        --shadow: 0 2px 8px #0004;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--back);
+        color: var(--text);
+        font:
+          15px/1.6 Roboto,
+          Arial,
+          sans-serif;
+      }
+      main {
+        max-width: 1220px;
+        margin: auto;
+        padding: 36px 24px 64px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 24px;
+      }
+      header > div,
+      section,
+      article,
+      .columns > *,
+      .demo-columns > *,
+      .month {
+        min-width: 0;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: clamp(28px, 4vw, 40px);
+        line-height: 1.15;
+        margin: 8px 0 14px;
+        letter-spacing: -0.035em;
+      }
+      h2 {
+        font-size: 23px;
+        line-height: 1.35;
+        margin-bottom: 12px;
+      }
+      h3 {
+        font-size: 17px;
+        margin-bottom: 8px;
+      }
+      p + p {
+        margin-top: 10px;
+      }
+      .eyebrow {
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .muted,
+      .caption {
+        color: var(--muted);
+      }
+      .caption {
+        font-size: 13px;
+      }
+      .intro {
+        max-width: 800px;
+        font-size: 17px;
+      }
+      section {
+        margin-top: 28px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        padding: 24px;
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .demo-columns {
+        display: grid;
+        grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 20px;
+      }
+      .chip {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 16px;
+        background: var(--tonal);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .bad {
+        color: var(--error);
+      }
+      button,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 8px 12px;
+      }
+      button:hover:not(:disabled) {
+        background: var(--tonal);
+      }
+      button:focus-visible,
+      select:focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 3px;
+      }
+      button:disabled {
+        opacity: 0.32;
+        cursor: default;
+      }
+      select {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 6px;
+        border-radius: 6px;
+        max-width: 100%;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 12px 0 20px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+      }
+      .controls button {
+        border: 0;
+        font-size: 28px;
+        padding: 0;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        line-height: 1;
+      }
+      .picker {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .picker-top {
+        padding: 14px 18px 0;
+        font-weight: 600;
+      }
+      .desktop-months {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        padding: 12px 16px 20px;
+      }
+      .desktop-months.single {
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 355px;
+        margin: auto;
+      }
+      .month-title {
+        font-weight: 600;
+        text-align: center;
+        padding: 8px 0 18px;
+      }
+      .days {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 2px;
+      }
+      .weekday {
+        font-size: 12px;
+        text-align: center;
+        color: var(--muted);
+        padding-bottom: 6px;
+      }
+      .day {
+        width: 100%;
+        aspect-ratio: 1;
+        max-width: 44px;
+        justify-self: center;
+        min-width: 0;
+        border-radius: 50%;
+        border: 0;
+        padding: 0;
+        font-size: 13px;
+      }
+      .day:not(:disabled) {
+        color: var(--primary);
+        background: var(--tonal);
+        font-weight: 700;
+      }
+      .day.selected {
+        background: var(--primary);
+        color: var(--surface);
+      }
+      .empty {
+        aspect-ratio: 1;
+      }
+      .gap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 12px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.5;
+      }
+      .gap::before,
+      .gap::after {
+        content: '';
+        flex: 1 1 10px;
+        min-width: 8px;
+        border-top: 1px dashed var(--border);
+      }
+      .gap strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .desktop-gap {
+        padding: 0 16px 18px;
+      }
+      .mobile-scroll {
+        max-height: 440px;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: 12px 18px;
+        scrollbar-width: thin;
+      }
+      .mobile-scroll .month + .gap {
+        margin: 4px 0;
+      }
+      .selection {
+        border-top: 1px solid var(--border);
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--primary);
+        min-height: 45px;
+      }
+      .note {
+        margin-top: 16px;
+        border-left: 3px solid var(--primary);
+        padding: 0 0 0 14px;
+        color: var(--muted);
+      }
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .diagram {
+        color: var(--primary);
+        margin: 20px 0 10px;
+      }
+      .diagram text {
+        fill: var(--text);
+        font-family: Roboto, Arial, sans-serif;
+      }
+      .diagram .box {
+        fill: var(--surface);
+        stroke: var(--border);
+        stroke-width: 1.5;
+      }
+      .diagram .core {
+        fill: var(--tonal);
+        stroke: var(--primary);
+        stroke-width: 1.5;
+      }
+      .path {
+        font:
+          12px/1.5 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        overflow-wrap: anywhere;
+        color: var(--muted);
+      }
+      .rows {
+        margin-top: 12px;
+      }
+      .row {
+        padding: 12px 0;
+        border-top: 1px solid var(--border);
+      }
+      .row strong {
+        display: block;
+      }
+      ul,
+      ol {
+        margin: 10px 0 0;
+        padding-left: 21px;
+      }
+      li + li {
+        margin-top: 8px;
+      }
+      details {
+        margin-top: 16px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--primary);
+        font-weight: 600;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 12px;
+        margin: 12px 0 0;
+      }
+      footer {
+        margin-top: 24px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (max-width: 900px) {
+        .demo-columns {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .mobile-card {
+          max-width: 460px;
+          width: 100%;
+        }
+      }
+      @media (max-width: 620px) {
+        main {
+          padding: 22px 14px 40px;
+        }
+        .columns {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .card {
+          padding: 18px;
+        }
+        header {
+          flex-wrap: wrap;
+        }
+        .desktop-months {
+          gap: 10px;
+          padding: 8px;
+        }
+        .day {
+          font-size: 11px;
+        }
+        .month-title {
+          font-size: 13px;
+        }
+        .weekday {
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">
+            Vuetify Advanced Date Picker · Investigation &amp; proposal
+          </div>
+          <h1>Keep available dates reachable<br />across empty months.</h1>
+          <p class="intro">
+            Confirmed: October 2026 cannot reach March 2027 when every
+            intervening month is unavailable. Use one shared month search, with
+            a compact gap indicator on mobile and direct month navigation on
+            desktop.
+          </p>
+          <div class="badges">
+            <span class="chip">Bug reproduced</span
+            ><span class="chip">Desktop + mobile</span
+            ><span class="chip">Proposal · runtime fix not implemented</span>
+          </div>
+        </div>
+        <button id="theme" aria-label="Switch color theme">Dark view</button>
+      </header>
+
+      <section class="card" aria-labelledby="experience">
+        <div class="eyebrow">Proposed interaction · illustrative mockup</div>
+        <h2 id="experience">
+          October → March, with one explanation for the gap
+        </h2>
+        <p class="muted">
+          Try one or two desktop calendars, navigate with the arrows, and select
+          the 10th. The mobile list scrolls directly from October to March.
+        </p>
+        <p class="caption">
+          Demo: only October 10 and March 10 are allowed; explicit bounds run
+          from October 2026 through March 2027.
+        </p>
+        <div class="demo-columns" style="margin-top: 22px">
+          <article>
+            <h3>Desktop</h3>
+            <p class="caption">
+              Two slots show October and March together. One slot jumps between
+              them. Month headings and an availability notice make the
+              discontinuity explicit.
+            </p>
+            <div class="toolbar">
+              <label
+                >Calendars
+                <select id="count">
+                  <option value="2">2 calendars</option>
+                  <option value="1">1 calendar</option>
+                </select></label
+              >
+              <div class="controls">
+                <button id="previous" aria-label="Previous available month">
+                  ‹</button
+                ><button id="next" aria-label="Next available month">›</button>
+              </div>
+            </div>
+            <div class="picker">
+              <div id="desktop" class="desktop-months"></div>
+              <div id="desktop-gap" class="gap desktop-gap"></div>
+              <div class="selection" data-selection aria-live="polite">
+                Choose an available date.
+              </div>
+            </div>
+          </article>
+          <article class="mobile-card">
+            <h3>Mobile</h3>
+            <p class="caption">
+              A localized separator replaces four unavailable calendars. It
+              describes dates unavailable for the current selection phase.
+            </p>
+            <div class="picker" style="margin-top: 20px">
+              <div class="picker-top">Select a date</div>
+              <div
+                id="mobile"
+                class="mobile-scroll"
+                tabindex="0"
+                aria-label="Available months"
+              ></div>
+              <div class="selection" data-selection>
+                Choose an available date.
+              </div>
+            </div>
+          </article>
+        </div>
+        <p class="note">
+          Preserve the displayed or selected month when range constraints
+          change. Resolve the surrounding months again so the calendar stays
+          anchored and availability stays current.
+        </p>
+      </section>
+
+      <section class="columns">
+        <article class="card">
+          <div class="eyebrow">Verified behavior</div>
+          <h2>One empty month is enough</h2>
+          <div class="rows">
+            <div class="row">
+              <strong class="bad">8 diagnostic cases failed as expected</strong
+              >October → March; a single-month gap; two calendar slots; range
+              mode; reverse navigation; explicit min/max; mobile inline; mobile
+              fullscreen.
+            </div>
+            <div class="row">
+              <strong>3 controls passed</strong>Adjacent available months work.
+              Allowing a date in the adjacent month unblocks the arrow. Opening
+              March directly lets the user select March 10.
+            </div>
+            <div class="row">
+              <strong>5 existing checks preserve the bug</strong>Current tests
+              and the Advanced demo explicitly expect navigation or rendering to
+              stop at an unavailable adjacent month.
+            </div>
+          </div>
+          <p class="caption">
+            Reproduce from the repository:
+            <span class="path">bash .lavish/reproduce-allowed-date-gap.sh</span
+            >. It creates and removes a temporary test file; a failing exit
+            status confirms the current bug.
+          </p>
+          <details>
+            <summary>See the actual playground reproduction</summary>
+            <img
+              src="current-gap.png"
+              alt="Actual Advanced playground: February 2026 has a selectable date, April has another, but the next arrow is disabled because March is empty."
+              style="
+                display: block;
+                width: 100%;
+                height: auto;
+                border-radius: 8px;
+                margin-top: 12px;
+              "
+            />
+            <p class="caption">
+              The existing Advanced demo uses February → April and reproduces
+              the same cause as the October → March diagnostic.
+            </p>
+          </details>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Root cause</div>
+          <h2>Empty is being treated as final</h2>
+          <div class="rows">
+            <div class="row">
+              <strong>Desktop checks only the next revealed month.</strong
+              ><span class="path"
+                >src/composables/useAdvancedDateNavigation.ts:119–142</span
+              >
+              <p>
+                If that month has no selectable date, both the button and
+                navigation action are blocked.
+              </p>
+            </div>
+            <div class="row">
+              <strong>Mobile stops at the same gap.</strong
+              ><span class="path"
+                >src/composables/useAdvancedDatePickerMobileWindow.ts:101,119,331,375</span
+              >
+              <p>
+                Initial construction, backward loading, and forward loading stop
+                on the first unavailable month.
+              </p>
+            </div>
+            <div class="row">
+              <strong>The date itself remains valid.</strong>
+              <p>
+                The failure is reaching the month. The existing day-selection
+                predicate can be reused.
+              </p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" aria-labelledby="shared">
+        <div class="eyebrow">Shared implementation</div>
+        <h2 id="shared">
+          One module owns month availability and skipped spans
+        </h2>
+        <p>
+          Instantiate a shared internal month-search module once in the picker
+          and pass it to both existing view composables. Reuse
+          <span class="path">monthHasSelectableDate()</span> for selection rules
+          and the configured date adapter for all date arithmetic.
+        </p>
+        <svg
+          class="diagram"
+          viewBox="0 0 1040 245"
+          role="img"
+          aria-labelledby="diagram-title diagram-desc"
+        >
+          <title id="diagram-title">
+            Both views consume one month-search module
+          </title>
+          <desc id="diagram-desc">
+            Date bounds, availability callbacks, and active selection feed one
+            shared month search. It returns available months and gap metadata to
+            desktop navigation and mobile windowing.
+          </desc>
+          <defs>
+            <marker
+              id="arrow"
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+            </marker>
+          </defs>
+          <g id="constraints">
+            <title>Existing selection rules</title>
+            <rect class="box" x="10" y="67" width="255" height="114" rx="12" />
+            <text x="30" y="98" font-size="19" font-weight="600">
+              Selection rules
+            </text>
+            <text x="30" y="125" font-size="14">min / max · allowed dates</text>
+            <text x="30" y="151" font-size="14">
+              start / end · current draft
+            </text>
+          </g>
+          <path
+            d="M 265 123 L 325 123"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            marker-end="url(#arrow)"
+          />
+          <g id="resolver">
+            <title>Shared month-search module</title>
+            <rect
+              class="core"
+              x="335"
+              y="55"
+              width="330"
+              height="138"
+              rx="12"
+            />
+            <text x="357" y="90" font-size="20" font-weight="600">
+              Shared month search
+            </text>
+            <text x="357" y="119" font-size="15">
+              Available month + skipped span
+            </text>
+            <text x="357" y="145" font-size="14">
+              Finite batches · reactive cache
+            </text>
+            <text x="357" y="171" font-size="14">
+              Found / boundary / continue
+            </text>
+          </g>
+          <path
+            d="M 665 123 L 700 123 L 700 60 L 758 60"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            marker-end="url(#arrow)"
+          />
+          <path
+            d="M 700 123 L 700 186 L 758 186"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            marker-end="url(#arrow)"
+          />
+          <g id="desktop-consumer">
+            <title>Existing desktop navigation</title>
+            <rect class="box" x="768" y="20" width="260" height="80" rx="12" />
+            <text x="790" y="51" font-size="19" font-weight="600">Desktop</text>
+            <text x="790" y="77" font-size="14">
+              Calendar slots + direct jumps
+            </text>
+          </g>
+          <g id="mobile-consumer">
+            <title>Existing mobile window</title>
+            <rect class="box" x="768" y="146" width="260" height="80" rx="12" />
+            <text x="790" y="177" font-size="19" font-weight="600">Mobile</text>
+            <text x="790" y="203" font-size="14">
+              Month window + gap labels
+            </text>
+          </g>
+        </svg>
+        <div class="columns">
+          <div>
+            <h3>Small shared interface</h3>
+            <p>
+              Search from a month in either direction. Return the next
+              selectable month and the skipped interval, a confirmed bound, or a
+              continuation cursor. Both callers build an ordered list of month
+              entries with gap metadata.
+            </p>
+            <p class="caption">
+              Suggested placement:
+              <span class="path"
+                >src/composables/useAdvancedDateMonthAvailability.ts</span
+              >. Replace the duplicated availability setup in navigation and
+              mobile windowing.
+            </p>
+          </div>
+          <div>
+            <h3>Keep view behavior local</h3>
+            <p>
+              Desktop owns arrows, headings, focus, and announcements. Mobile
+              owns scrolling, prepend/append, height measurement, and scroll
+              restoration. Both receive the same resolved month sequence.
+            </p>
+            <p class="caption">
+              Change mobile's consecutive-month start/count arithmetic to
+              explicit month entries. The existing ten-month rendering cap
+              counts calendars; separators add no calendar grids.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="columns">
+        <article class="card">
+          <div class="eyebrow">Search termination</div>
+          <h2>Keep long gaps searchable</h2>
+          <p>
+            An arbitrary <span class="path">allowedDates</span> callback cannot
+            prove that no later dates exist without a finite bound.
+          </p>
+          <ul>
+            <li>
+              Use <span class="path">min/max</span> as hard boundaries. Search
+              in bounded batches, including within very wide bounds.
+            </li>
+            <li>
+              Start with a batch of 12 calendar months per requested direction;
+              cache evaluated months and yield between batches. The batch size
+              is an internal tuning choice, not a date limit.
+            </li>
+            <li>
+              If the batch ends without a match or bound, show “No available
+              dates through [month]” with “Search later dates” (or the earlier
+              equivalent). Resume from the cursor.
+            </li>
+            <li>
+              Disable navigation only when the date boundary is actually
+              reached. A search budget must never make a later date unreachable.
+            </li>
+          </ul>
+          <p class="note">
+            Cancel or discard searches when availability changes. Keep the cache
+            bounded and reactive to bounds, callbacks and their reactive data,
+            the draft, range mode, and the active start/end field.
+          </p>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Implementation &amp; verification</div>
+          <h2>Make both views agree</h2>
+          <ol>
+            <li>
+              Add shared search results and tests for matches, reverse
+              traversal, bounds, empty availability, and continuation across
+              large gaps.
+            </li>
+            <li>
+              Use the resolved sequence for desktop calendar slots and
+              navigation. Preserve actual month/year emissions, selected
+              endpoints, and focus anchors. Replace consecutive-month arithmetic
+              in viewport clamping and end-field alignment with resolved month
+              positions. Route PageUp/PageDown and exposed month navigation
+              through the shared search.
+            </li>
+            <li>
+              Use it for mobile initial windows, append, prepend, and
+              constraint-driven rebuilds. Preserve the scroll reference when
+              months change.
+            </li>
+            <li>
+              Add localized gap labels and navigation announcements through
+              <span class="path">dateInputAdvanced</span> for all six bundled
+              locales.
+            </li>
+            <li>
+              Replace tests that require stopping at gaps; turn the Advanced gap
+              example into October 2026 → March 2027. Document the new
+              multi-month behavior.
+            </li>
+            <li>
+              Verify the picker and input wrapper in desktop, mobile inline, and
+              fullscreen modes; cover range phases, changed constraints,
+              keyboard access, and gaps beyond one search batch.
+            </li>
+          </ol>
+        </article>
+      </section>
+      <section class="card">
+        <div class="eyebrow">Completed alongside the investigation</div>
+        <h2>Dependencies updated and verified</h2>
+        <p>
+          Ran <span class="path">npm update</span> with an isolated npm 11
+          command after the installed npm 10 resolver failed. Updates include
+          Vue 3.5.43 and Vuetify 4.2.4. Upgraded
+          <span class="path">vite-plugin-dts</span> from 4.5.4 to 5.1.2 to
+          remove the vulnerable declaration-build dependency chain, following
+          its
+          <a
+            href="https://github.com/qmhc/unplugin-dts/blob/main/docs/en/migration-v4-to-v5.md"
+            style="color: var(--primary)"
+            >official migration guide</a
+          >.
+        </p>
+        <div class="badges">
+          <span class="chip">256 tests passed</span
+          ><span class="chip">Typecheck passed</span
+          ><span class="chip">Lint passed</span
+          ><span class="chip">Build passed</span
+          ><span class="chip">Audit: 0 vulnerabilities</span>
+        </div>
+        <p class="note">
+          One test now waits for Vuetify's validation-message leave transition;
+          the field already clears its error immediately. The declaration plugin
+          upgrade retains all 34 declaration files with only import-quote
+          formatting differences. The gap reproduction still fails as expected;
+          the picker fix remains a proposal.
+        </p>
+      </section>
+      <footer>
+        Design source: the project's Vuetify design system. This mockup follows
+        its primary colors, card surfaces, calendar spacing, circular day
+        buttons, and disabled-day treatment. It is a proposal; production picker
+        behavior is unchanged. Diagnostic checks exercise the actual components.
+      </footer>
+      <div
+        id="navigation-live"
+        aria-live="polite"
+        class="caption"
+        style="margin-top: 8px"
+      ></div>
+    </main>
+    <script>
+      const months = [
+        { year: 2026, month: 9, label: 'October 2026', date: '2026-10-10' },
+        { year: 2027, month: 2, label: 'March 2027', date: '2027-03-10' },
+      ]
+      let position = 0
+      let selected = ''
+      function calendar(item) {
+        const root = document.createElement('div')
+        root.className = 'month'
+        const title = document.createElement('div')
+        title.className = 'month-title'
+        title.textContent = item.label
+        root.append(title)
+        const grid = document.createElement('div')
+        grid.className = 'days'
+        for (const name of ['S', 'M', 'T', 'W', 'T', 'F', 'S']) {
+          const label = document.createElement('span')
+          label.className = 'weekday'
+          label.textContent = name
+          grid.append(label)
+        }
+        for (let i = 0; i < new Date(item.year, item.month, 1).getDay(); i++) {
+          const blank = document.createElement('span')
+          blank.className = 'empty'
+          grid.append(blank)
+        }
+        const end = new Date(item.year, item.month + 1, 0).getDate()
+        for (let day = 1; day <= end; day++) {
+          const button = document.createElement('button')
+          button.className =
+            'day' + (selected === item.date && day === 10 ? ' selected' : '')
+          button.textContent = String(day)
+          button.disabled = day !== 10
+          button.setAttribute('aria-label', item.label + ' ' + day)
+          if (day === 10) {
+            button.dataset.date = item.date
+            button.setAttribute('aria-pressed', String(selected === item.date))
+            button.addEventListener('click', () => selectDate(item.date))
+          }
+          grid.append(button)
+        }
+        root.append(grid)
+        return root
+      }
+      function selectDate(date) {
+        selected = date
+        document.querySelectorAll('[data-date]').forEach((button) => {
+          const active = button.dataset.date === date
+          button.classList.toggle('selected', active)
+          button.setAttribute('aria-pressed', String(active))
+        })
+        document
+          .querySelectorAll('[data-selection]')
+          .forEach((node) => (node.textContent = 'Selected: ' + date))
+      }
+      function renderDesktop() {
+        const count = Number(document.getElementById('count').value)
+        const root = document.getElementById('desktop')
+        root.replaceChildren()
+        root.classList.toggle('single', count === 1)
+        const visible = count === 2 ? months : [months[position]]
+        visible.forEach((month) => root.append(calendar(month)))
+        document.getElementById('previous').disabled =
+          count === 2 || position === 0
+        document.getElementById('next').disabled = count === 2 || position === 1
+        document.getElementById('previous').title =
+          'Previous available month: October 2026'
+        document.getElementById('next').title =
+          'Next available month: March 2027'
+        document.getElementById('desktop-gap').textContent =
+          count === 2
+            ? 'Nov 2026 – Feb 2027 · 4 months unavailable'
+            : position === 0
+              ? 'Next available: March 2027 · 4 months skipped'
+              : 'Previous available: October 2026 · 4 months skipped'
+      }
+      document.getElementById('count').addEventListener('change', () => {
+        position = 0
+        renderDesktop()
+      })
+      document.getElementById('previous').addEventListener('click', () => {
+        position = 0
+        renderDesktop()
+        document.getElementById('navigation-live').textContent =
+          'October 2026. Four unavailable months skipped.'
+      })
+      document.getElementById('next').addEventListener('click', () => {
+        position = 1
+        renderDesktop()
+        document.getElementById('navigation-live').textContent =
+          'March 2027. Four unavailable months skipped.'
+      })
+      const mobile = document.getElementById('mobile')
+      mobile.append(calendar(months[0]))
+      const gap = document.createElement('div')
+      gap.className = 'gap'
+      gap.innerHTML =
+        '<span><strong>4 months unavailable</strong><br>Nov 2026 – Feb 2027</span>'
+      mobile.append(gap, calendar(months[1]))
+      document.getElementById('theme').addEventListener('click', () => {
+        const dark = document.documentElement.dataset.theme !== 'dark'
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        document.getElementById('theme').textContent = dark
+          ? 'Light view'
+          : 'Dark view'
+      })
+      renderDesktop()
+    </script>
+  </body>
+</html>

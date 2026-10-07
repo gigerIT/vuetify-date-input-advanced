@@ -5466,7 +5466,10 @@ describe('VAdvancedDateInput', () => {
     await wrapper.setProps({ inputReadonly: true })
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).not.toContain('Enter a valid date')
+    // Vuetify keeps the old message in the DOM during its leave transition.
+    await vi.waitFor(() => {
+      expect(wrapper.text()).not.toContain('Enter a valid date')
+    })
     expect(wrapper.find('input').attributes('readonly')).toBeDefined()
     expect(wrapper.find('input').element.value).toBe('Jan 12, 2026')
 
