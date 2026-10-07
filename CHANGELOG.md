@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.1](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.5.0...v3.5.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **picker:** navigate across unavailable months ([d5cb669](https://github.com/gigerIT/vuetify-date-input-advanced/commit/d5cb669073d469c4c84db0358741bd71da373f98))
+
 ## [3.5.0](https://github.com/gigerIT/vuetify-date-input-advanced/compare/v3.4.1...v3.5.0) (2026-04-23)
 
 
