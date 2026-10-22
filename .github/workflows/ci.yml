@@ -41,7 +41,7 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm run test
+        run: npm run test -- --maxWorkers=2
 
       - name: Build
         run: npm run build

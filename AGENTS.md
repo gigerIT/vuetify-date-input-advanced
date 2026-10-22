@@ -221,8 +221,9 @@ npm run build
   adding long-lived publish tokens unless there is a concrete operational need.
 - npm trusted publisher management requires npm 11.10.0+ with package write
   access and 2FA enabled, and the package must already exist on the registry.
-- The repo does not currently define a dependency scanning tool, SBOM process,
-  or secret scanning config.
+- `.github/dependabot.yml` proposes npm and GitHub Actions updates. CI runs
+  Vitest with at most two workers. Dependency PRs still require independent
+  review and passing validation before an owner integrates them.
 - The repo does not currently include a license file.
 
 > TODO: Confirm the intended package license and add it to the repo.
