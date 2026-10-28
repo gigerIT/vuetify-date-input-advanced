@@ -19,6 +19,8 @@ jobs:
       - id: release
         uses: googleapis/release-please-action@v4
         with:
+          # A PAT lets release PR checks start without manual approval.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           release-type: node
 
   publish:
