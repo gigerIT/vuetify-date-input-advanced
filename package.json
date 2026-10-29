@@ -59,7 +59,7 @@
     "vuetify": "^4.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.34.0",
+    "@eslint/js": "^10.0.1",
     "@mdi/font": "^7.4.47",
     "@types/node": "^24.3.0",
     "@typescript-eslint/eslint-plugin": "^8.39.1",
