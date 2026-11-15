@@ -28,7 +28,7 @@ export function useRovingFocus<TDate>(options: {
   }
 
   function onKeydown(event: KeyboardEvent, date: TDate) {
-    let next: TDate | null = null
+    let next: TDate
 
     switch (event.key) {
       case 'ArrowLeft':
